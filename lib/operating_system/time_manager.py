@@ -22,12 +22,11 @@ class TimeManager:
         elapsed, target_time_shift = (datetime.now() - start_point).seconds, hours * 3600 + minutes * 60 + seconds
         assert elapsed >= target_time_shift, f'Elapsed: {elapsed}, target: {target_time_shift}'
 
-    def reset_time(self, ntp_server: str = None):
+    def reset_time(self, ntp_server: str = 'time.apple.com'):
         """Enable using network time and get it by Simple Network Time Protocol from an NTP server. """
-        if not self.is_network_time_used:
-            self.enable_using_network_time()
         if self.executor.sudo(f'sntp -sS {ntp_server}').returncode != 0:
             self.executor.sudo(f'sntp -s {ntp_server}')
+        self.enable_using_network_time()
 
     @property
     def is_network_time_used(self) -> bool:
@@ -38,5 +37,4 @@ class TimeManager:
         self.executor.sudo('systemsetup -setusingnetworktime on')
 
     def disable_using_network_time(self):
-        if self.is_network_time_used:
-            self.executor.sudo('systemsetup -setusingnetworktime off')
+        self.executor.sudo('systemsetup -setusingnetworktime off')
