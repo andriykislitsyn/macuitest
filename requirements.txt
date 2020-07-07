@@ -1,0 +1,8 @@
+atomacos
+biplist
+mss
+opencv-python
+pyautogui
+pyobjc-core
+pytest
+webcolors
