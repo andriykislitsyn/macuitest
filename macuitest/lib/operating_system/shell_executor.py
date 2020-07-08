@@ -2,7 +2,7 @@ import logging
 import subprocess
 from typing import Optional, Union
 
-from macuitest.config import config
+from macuitest.config.config_parser import config
 
 
 class ShellExecutor:

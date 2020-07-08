@@ -477,8 +477,9 @@ class ASElement:
     __slots__ = ()
     window: str = 'of window 1'
 
-    def __new__(cls, locator: str, process: str) -> Union[
-        BaseUIElement, Button, BusyIndicator, TextArea, TextField, Checkbox, ComboBox, MenuItem, Group, Row, ScrollArea, Table, Image, List, Outline, Popover, Sheet, Window]:
+    def __new__(cls, locator: str, process: str) \
+            -> Union[BaseUIElement, Button, BusyIndicator, TextArea, TextField, Checkbox, ComboBox, MenuItem,
+                     Group, Row, ScrollArea, Table, Image, List, Outline, Popover, Sheet, Window]:
         locator = locator.replace('of of', 'of')
         return cls.__define_locator_type(locator)(locator, process)
 

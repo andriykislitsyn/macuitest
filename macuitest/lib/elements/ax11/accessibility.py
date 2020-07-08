@@ -9,7 +9,7 @@ from macuitest.lib.elements.ax11.callbacks import (PAXUIElementCopyActionNames, 
                                                    PAXUIElementCopyAttributeValue, PAXUIElementGetPid,
                                                    PAXUIElementIsAttributeSettable, PAXUIElementPerformAction,
                                                    PAXUIElementSetAttributeValue, PAXUIElementSetMessagingTimeout, )
-from macuitest.lib.elements.ax11.converter import converter
+from macuitest.lib.elements.ax11.converter import Converter
 from macuitest.lib.elements.ax11.errors import (AXError, AXErrorAPIDisabled, AXErrorCannotComplete,
                                                 AXErrorIllegalArgument, AXErrorNotImplemented, AXErrorNoValue,
                                                 AXErrorUnsupported, )
@@ -18,7 +18,7 @@ from macuitest.lib.elements.ax11.errors import (AXError, AXErrorAPIDisabled, AXE
 class AXUIElement:
     def __init__(self, ref=None):
         self.ref = ref
-        self.converter = converter.Converter(self.__class__)
+        self.converter = Converter(self.__class__)
 
     def __repr__(self):
         c = repr(self.__class__).partition("<class '")[-1].rpartition("'>")[0]
@@ -186,7 +186,7 @@ class AXUIElement:
         app = ra.runningApplicationWithProcessIdentifier_(self.pid)
         return app
 
-    def set_timeout(self, timeout):
+    def set_timeout(self, timeout: int):
         """Set the timeout value used in the accessibility API."""
         PAXUIElementSetMessagingTimeout(self.ref, timeout)
 

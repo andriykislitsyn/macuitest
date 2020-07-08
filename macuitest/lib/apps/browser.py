@@ -5,7 +5,7 @@ import time
 from typing import Union, List
 
 from macuitest.lib.applescript_lib.applescript_wrapper import as_wrapper, AppleScriptError
-from macuitest.lib.apps import Application
+from macuitest.lib.apps.application import Application
 from macuitest.lib.core import wait_condition
 from macuitest.lib.elements.applescript_element import ASElement
 from macuitest.lib.elements.ax11.native_ui_element import NativeUIElement

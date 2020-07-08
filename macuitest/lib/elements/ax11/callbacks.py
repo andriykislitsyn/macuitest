@@ -86,7 +86,7 @@ def PAXUIElementCopyAttributeValue(element, attribute):
     Returns: the value associated with the specified attribute
 
     """
-    error_code, attrValue = AXUIElementCopyAttributeValue(element, attribute, None)
+    error_code, attr_value = AXUIElementCopyAttributeValue(element, attribute, None)
     error_messages = {
         errors.kAXErrorAttributeUnsupported: "The specified AXUIElementRef does not support the specified attribute.",
         errors.kAXErrorNoValue: "The specified attribute does not have a value.",
@@ -95,7 +95,7 @@ def PAXUIElementCopyAttributeValue(element, attribute):
         errors.kAXErrorCannotComplete: "The function cannot complete because messaging has failed in some way.",
         errors.kAXErrorNotImplemented: "The process does not fully support the accessibility API.", }
     errors.check_ax_error(error_code, error_messages)
-    return attrValue
+    return attr_value
 
 
 def PAXUIElementIsAttributeSettable(element, attribute):
@@ -244,16 +244,16 @@ def PAXUIElementCopyElementAtPosition(application, x, y):
     return element
 
 
-def PAXUIElementSetMessagingTimeout(element, timeoutInSeconds):
+def PAXUIElementSetMessagingTimeout(element, timeout: int):
     """
     Sets the timeout value used in the accessibility API
 
     Args:
         element: The AXUIElementRef representing an accessibility object
-        timeoutInSeconds: The number of seconds for the new timeout value
+        timeout: The number of seconds for the new timeout value
 
     """
-    error_code = AXUIElementSetMessagingTimeout(element, timeoutInSeconds)
+    error_code = AXUIElementSetMessagingTimeout(element, timeout)
     error_messages = {
         errors.kAXErrorIllegalArgument: "One or more of the arguments is an illegal value (timeout values must be positive).",
         errors.kAXErrorInvalidUIElement: "The AXUIElementRef is invalid.", }

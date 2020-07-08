@@ -7,12 +7,12 @@ from macuitest.lib.operating_system.file_manager import FileManager
 from macuitest.lib.operating_system.hosts import Hosts
 from macuitest.lib.operating_system.login_window import LoginWindow
 from macuitest.lib.operating_system.memory_manager import MemoryManager
-from macuitest.lib import Networking
+from macuitest.lib.operating_system.networking import Networking
 from macuitest.lib.operating_system.security_manager import SecurityManager
 from macuitest.lib.operating_system.service_manager import ServiceManager
 from macuitest.lib.operating_system.shell_executor import ShellExecutor
 from macuitest.lib.operating_system.system_information import SystemInformation
-from macuitest.lib import TimeManager
+from macuitest.lib.operating_system.time_manager import TimeManager
 
 __all__ = ['macos']
 

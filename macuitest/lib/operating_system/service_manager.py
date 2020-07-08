@@ -3,7 +3,7 @@ from collections import namedtuple
 from pathlib import Path
 from typing import List, Union
 
-from macuitest.lib.applescript_lib import as_wrapper
+from macuitest.lib.applescript_lib.applescript_wrapper import as_wrapper
 from macuitest.lib.core import wait_condition
 from macuitest.lib.operating_system.shell_executor import ShellExecutor
 

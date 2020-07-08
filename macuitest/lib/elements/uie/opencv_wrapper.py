@@ -10,7 +10,7 @@ import mss
 import numpy
 from Quartz import CGDisplayBounds, CGMainDisplayID
 
-from macuitest.config import Point, Region, ScreenSize
+from macuitest.config.constants import Point, Region, ScreenSize
 
 
 class _WrapperOpenCV:

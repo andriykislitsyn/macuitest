@@ -1,7 +1,7 @@
 import time
 from typing import Tuple, ClassVar
 
-from macuitest.config import DNSMapping
+from macuitest.config.constants import DNSMapping
 
 
 class Hosts:

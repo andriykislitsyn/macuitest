@@ -2,8 +2,8 @@ from time import sleep
 
 import Quartz
 
-from macuitest.config import config
-from macuitest.lib.applescript_lib import as_wrapper
+from macuitest.config.constants import config
+from macuitest.lib.applescript_lib.applescript_wrapper import as_wrapper
 from macuitest.lib.operating_system.env import env
 
 

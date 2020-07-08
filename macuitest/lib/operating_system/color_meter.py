@@ -8,7 +8,7 @@ import mss
 import webcolors
 from PIL import Image
 
-from macuitest.config import Point
+from macuitest.config.constants import Point
 
 
 class ColorMeter:

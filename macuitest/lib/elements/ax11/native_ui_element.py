@@ -1,6 +1,8 @@
 from collections import deque
 
 from macuitest.lib.elements.ax11 import accessibility
+from macuitest.lib.elements.ax11.callbacks import PAXUIElementCopyElementAtPosition
+from macuitest.lib.elements.ax11.errors import AXErrorUnsupported
 from macuitest.lib.elements.ax11.mixins.search import SearchMethodsMixin
 from macuitest.lib.elements.ax11.mixins.wait import WaitForMixin
 

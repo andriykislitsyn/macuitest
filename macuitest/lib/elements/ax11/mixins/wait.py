@@ -1,5 +1,5 @@
-from macuitest.lib.elements.ax11 import match_filter
-from macuitest.lib.elements.ax11 import Observer
+from macuitest.lib.elements.ax11.mixins.match import match_filter
+from macuitest.lib.elements.ax11.observer import Observer
 
 
 class WaitForMixin:
@@ -11,7 +11,7 @@ class WaitForMixin:
         return self.wait_for(timeout, "AXWindowCreated", AXTitle=window_name)
 
     def wait_for_window_to_disappear(self, window_name, timeout=10):
-        _ = self.findFirst(AXRole="AXWindow", AXTitle=window_name)
+        _ = self.find_first(AXRole="AXWindow", AXTitle=window_name)
         return self.wait_for(timeout, "AXUIElementDestroyed", AXRole="AXWindow", AXTitle=window_name)
 
     def wait_for_sheet_to_appear(self, timeout=10):
@@ -55,7 +55,7 @@ class WaitForMixin:
         hang.
         """
         return Observer(self).wait_for(
-            filter_= match_filter(**kwargs),
+            filter_=match_filter(**kwargs),
             notification=notification,
             timeout=timeout,
         )

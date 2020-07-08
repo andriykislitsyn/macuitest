@@ -1,4 +1,4 @@
-from macuitest.lib.elements.ax11 import match_filter
+from macuitest.lib.elements.ax11.mixins.match import match_filter
 
 
 class SearchMethodsMixin:
@@ -102,7 +102,6 @@ class SearchMethodsMixin:
 
         app._menuitem(app.AXMenuBar, 1, 'About TextEdit').Press()
         """
-        self._activate()
         for item in args:
             # If the item has an AXMenu as a child, navigate into it.
             # This seems like a silly abstraction added by apple's a11y api.
