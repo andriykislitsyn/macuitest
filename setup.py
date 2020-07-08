@@ -4,13 +4,13 @@ from setuptools import find_packages
 setup(
     name='macuitest',
     packages=find_packages(),
-    version='0.4.6',
+    version='0.4.7',
     license='Apache-2.0 License',
     description='A simple UI testing framework for macOS',
     author='Andrii Kislitsyn',
     author_email='andriikislitsyn@gmail.com',
     url='https://github.com/andriykislitsyn',
-    download_url='https://github.com/andriykislitsyn/macuitest/archive/v0.4.6-alpha.tar.gz',
+    download_url='https://github.com/andriykislitsyn/macuitest/archive/v0.4.7-alpha.tar.gz',
     keywords=['Testing', 'UI', 'Functional', 'macOS'],
     install_requires=[
         'biplist',

@@ -1,0 +1,2 @@
+include macuitest/config/*.conf
+include macuitest/config/*.dist
