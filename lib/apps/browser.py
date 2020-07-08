@@ -9,7 +9,7 @@ from lib.apps.application import Application
 from lib.core import wait_condition
 from lib.elements.applescript_element import ASElement
 from lib.elements.native_element import NativeElement
-from lib.elements.ax11.native_element import NativeUIElement
+from lib.elements.ax11.native_ui_element import NativeUIElement
 from lib.elements.ui_element import UIElement
 from lib.elements.uie.screenshot_path_builder import ScreenshotPathBuilder
 from lib.operating_system.env import env
