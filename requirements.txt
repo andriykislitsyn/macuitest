@@ -1,9 +1,9 @@
 atomacos
 biplist
 mss
-numpy
 opencv-python
-pyautogui
 pyobjc-core
+pyobjc
 pytest
+PyTweening
 webcolors

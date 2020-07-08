@@ -1,7 +1,6 @@
-import os
 from typing import Dict, ClassVar
 
-from lib.db_manager import DataBaseManager
+from lib.operating_system.db_manager import DataBaseManager
 from lib.operating_system.env import env
 
 

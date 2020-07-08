@@ -10,7 +10,7 @@ from config.constants import Frame, Point, DisclosureTriangleState, Region
 from lib import core
 from lib.applescript_lib.applescript_wrapper import as_wrapper, AppleScriptError
 from lib.core import wait_condition
-from lib.mouse import mouse
+from lib.elements.controllers.mouse import mouse
 from lib.operating_system.color_meter import ColorMeter
 from lib.operating_system.env import env
 
@@ -465,15 +465,12 @@ class WebView(BaseUIElement):
 @dataclass(frozen=True)
 class Elements:
     all: MappingProxyType = MappingProxyType(
-        {
-            'UI element': BaseUIElement, 'button': Button, 'pop up button': Button, 'radio button': Button,
+        {'UI element': BaseUIElement, 'button': Button, 'pop up button': Button, 'radio button': Button,
             'busy indicator': BusyIndicator, 'static text': StaticText, 'text area': TextArea, 'text field': TextField,
             'checkbox': Checkbox, 'combo box': ComboBox, 'menu item': MenuItem, 'menu button': MenuItem,
             'menu bar item': MenuBarItem, 'menu': Menu, 'group': Group, 'row': Row, 'scroll area': ScrollArea,
             'table': Table, 'image': Image, 'list': List, 'outline': Outline, 'pop over': Popover, 'popover': Popover,
-            'sheet': Sheet, 'window': Window,
-        }
-    )
+            'sheet': Sheet, 'window': Window, })
 
 
 class ASElement:
@@ -481,9 +478,8 @@ class ASElement:
     __slots__ = ()
     window: str = 'of window 1'
 
-    def __new__(cls, locator: str, process: str) -> \
-            Union[BaseUIElement, Button, BusyIndicator, TextArea, TextField, Checkbox, ComboBox, MenuItem,
-                  Group, Row, ScrollArea, Table, Image, List, Outline, Popover, Sheet, Window]:
+    def __new__(cls, locator: str, process: str) -> Union[
+        BaseUIElement, Button, BusyIndicator, TextArea, TextField, Checkbox, ComboBox, MenuItem, Group, Row, ScrollArea, Table, Image, List, Outline, Popover, Sheet, Window]:
         locator = locator.replace('of of', 'of')
         return cls.__define_locator_type(locator)(locator, process)
 

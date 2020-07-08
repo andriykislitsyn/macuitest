@@ -30,7 +30,7 @@ class SQLite3DataBaseManager:
 class DataBaseManager:
     """Database manager factory."""
 
-    def __new__(cls, db_location: str, db_type: str = 'sqlite3') -> SQLite3DataBaseManager:
+    def __new__(cls, db_location: str, db_type: str = 'sqlite3'):
         databases = {
             'sqlite3': SQLite3DataBaseManager,
         }

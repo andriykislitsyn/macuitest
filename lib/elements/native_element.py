@@ -1,13 +1,12 @@
 import time
-from typing import Any, List, Optional
+from typing import Any, Optional
 
-import atomacos
 from atomacos.errors import AXErrorFactory, AXErrorInvalidUIElement
 
 from config.constants import Frame, Point, Region
 from lib import core
 from lib.core import wait_condition
-from lib.mouse import mouse
+from lib.elements.controllers.mouse import mouse
 
 
 class NativeElement:
@@ -62,7 +61,7 @@ class NativeElement:
         return NativeElement(self.item.AXParent)
 
     @property
-    def children(self) -> List[atomacos.AXClasses.NativeUIElement]:
+    def children(self):
         try:
             return self.item.AXChildren
         except AttributeError:

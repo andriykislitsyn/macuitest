@@ -7,13 +7,13 @@ from typing import Union, List
 import atomacos
 
 from lib.applescript_lib.applescript_wrapper import as_wrapper, AppleScriptError
-from lib.application import Application
+from lib.apps.application import Application
 from lib.core import wait_condition
 from lib.elements.applescript_element import ASElement
 from lib.elements.ui_element import UIElement
 from lib.operating_system.env import env
 from lib.operating_system.macos import macos
-from lib.ui_element.screenshot_path_builder import ScreenshotPathBuilder
+from lib.elements.uie import ScreenshotPathBuilder
 
 
 class DownloadHasNotStartedException(Exception):
