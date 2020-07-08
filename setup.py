@@ -22,8 +22,7 @@ setup(
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',
-        'Intended Audience :: Automation',
-        'Topic :: Software Development :: Testing',
+        'Intended Audience :: Developers',
         'Topic :: Software Development :: Quality Assurance',
         'License :: OSI Approved :: GNU General Public License v2 (GPLv2)',
         'Programming Language :: Python :: 3.6',
