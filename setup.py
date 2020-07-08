@@ -2,14 +2,14 @@ from distutils.core import setup
 
 setup(
     name='macuitest',
-    packages=['config', 'lib'],
-    version='0.4',
+    packages=['macuitest', ],
+    version='0.4.2',
     license='Apache-2.0 License',
     description='A simple UI testing framework for macOS',
     author='Andrii Kislitsyn',
     author_email='andriikislitsyn@gmail.com',
     url='https://github.com/andriykislitsyn',
-    download_url='https://github.com/andriykislitsyn/macuitest/archive/v0.4-alpha.tar.gz',
+    download_url='https://github.com/andriykislitsyn/macuitest/archive/v0.4.2-alpha.tar.gz',
     keywords=['Testing', 'UI', 'Functional', 'macOS'],
     install_requires=[
         'biplist',

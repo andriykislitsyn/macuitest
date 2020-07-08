@@ -1,5 +1,5 @@
-from lib.operating_system.macos import macos
-from lib.operating_system.env import env
+from macuitest.lib.operating_system.macos import macos
+from macuitest.lib.operating_system.env import env
 
 
 def test_macos_version():
