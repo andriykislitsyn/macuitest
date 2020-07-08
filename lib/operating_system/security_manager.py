@@ -3,7 +3,7 @@ import threading
 from config.config_parser import config
 from lib.elements.ui_element import UIElement
 from lib.operating_system.env import env
-from lib.elements.uie import ScreenshotPathBuilder
+from lib.elements.uie.screenshot_path_builder import ScreenshotPathBuilder
 
 
 class WrongApplicationSignature(Exception):

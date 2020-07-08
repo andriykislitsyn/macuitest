@@ -4,16 +4,16 @@ import os
 import time
 from typing import Union, List
 
-import atomacos
-
 from lib.applescript_lib.applescript_wrapper import as_wrapper, AppleScriptError
 from lib.apps.application import Application
 from lib.core import wait_condition
 from lib.elements.applescript_element import ASElement
+from lib.elements.native_element import NativeElement
+from lib.elements.ax11.native_element import NativeUIElement
 from lib.elements.ui_element import UIElement
+from lib.elements.uie.screenshot_path_builder import ScreenshotPathBuilder
 from lib.operating_system.env import env
 from lib.operating_system.macos import macos
-from lib.elements.uie import ScreenshotPathBuilder
 
 
 class DownloadHasNotStartedException(Exception):
@@ -102,8 +102,8 @@ class _BaseBrowser(Application):
         time.sleep(3)
         if not wait_condition(lambda: self.files_in_downloads_dir > self.downloads_count, 120):
             raise DownloadHasNotStartedException  # Sometimes resolver works slower than we need. So we wait 2m.
-        if not wait_condition(lambda: glob.glob(os.path.join(target_directory,
-                                                             self.download_temp_pattern)) == [], timeout):
+        if not wait_condition(lambda: glob.glob(os.path.join(target_directory, self.download_temp_pattern)) == [],
+                              timeout):
             raise DownloadHasNotFinishedException
 
     def webpage_did_load(self, webpage_address):
@@ -138,8 +138,8 @@ class _Safari(_BaseBrowser):
 
     def set_address_bar_value(self, new_value: str):
         self.window.wait_displayed(timeout=10)
-        address_bar = atomacos.getAppRefByBundleId('com.apple.Safari').windows()[0] \
-            .findFirstR(AXIdentifier='WEB_BROWSER_ADDRESS_AND_SEARCH_FIELD')
+        address_bar = NativeUIElement.get_app_ref_by_bundle_id('com.apple.Safari').windows()[0]\
+            .find_first(AXIdentifier='WEB_BROWSER_ADDRESS_AND_SEARCH_FIELD', recursive=True)
         address_bar.AXValue = new_value
         time.sleep(1)
 
@@ -168,8 +168,7 @@ class _Chrome(_BaseBrowser):
             if self.icon_warning_ui.wait_displayed(region=self.btn_download.region()) \
                     or self.btn_discard_ui.wait_displayed(region=self.btn_download.region()):
                 raise MaliciousFileWarning
-        if not wait_condition(
-                lambda: glob.glob(os.path.join(target_directory, self.download_temp_pattern)) == [], timeout):
+        if not wait_condition(lambda: glob.glob(os.path.join(target_directory, self.download_temp_pattern)) == []):
             raise DownloadHasNotFinishedException
 
 

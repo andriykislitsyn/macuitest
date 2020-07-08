@@ -6,7 +6,7 @@ import numpy
 from config.constants import Point, Region
 from lib.core import wait_condition
 from lib.elements.controllers.mouse import mouse
-from lib.elements.uie import opencv_wrapper
+from lib.elements.uie.opencv_wrapper import opencv_wrapper
 
 
 class UIElementNotFoundOnScreen(Exception):

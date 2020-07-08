@@ -1,7 +1,7 @@
 import time
 from typing import Any, Optional
 
-from atomacos.errors import AXErrorFactory, AXErrorInvalidUIElement
+from lib.elements.ax11.errors import AXErrorFactory, AXErrorInvalidUIElement
 
 from config.constants import Frame, Point, Region
 from lib import core
@@ -209,7 +209,7 @@ class WebView(NativeElement):
 
     def __perform_lookup(self):
         self.__wait_children()
-        return self.item.findFirstR(AXRole='AXUnknown')
+        return self.item.find_first(AXRole='AXUnknown', recursive=True)
 
     def __wait_children(self):
         for _ in range(20):

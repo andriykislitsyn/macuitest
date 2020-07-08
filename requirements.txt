@@ -1,4 +1,3 @@
-atomacos
 biplist
 mss
 opencv-python

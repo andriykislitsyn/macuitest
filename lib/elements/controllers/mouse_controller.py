@@ -46,7 +46,7 @@ class MouseController:
         width, height = self.screen_size
         x = max(0, min(x, width - 1))  # Make sure x and y are within the screen bounds.
         y = max(0, min(y, height - 1))
-        steps_count = max(abs(x - start_x), abs(y - start_y)) or 1
+        steps_count = int(max(abs(x - start_x), abs(y - start_y))) or 1
         pause = duration / steps_count
         steps = [pytweening.getPointOnLine(start_x, start_y, x, y, self.tween_type(n / steps_count))
                  for n in range(steps_count)] + [(x, y)]
