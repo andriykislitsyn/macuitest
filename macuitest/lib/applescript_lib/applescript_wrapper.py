@@ -1,6 +1,6 @@
 import time
 
-from macuitest.lib.applescript_lib import AppleScript, ScriptError
+from .applescript import AppleScript, ScriptError
 
 AppleScriptError = ScriptError
 
@@ -42,8 +42,7 @@ class AppleScriptWrapper:
         return self.execute(f'tell app "System Events" to tell application process "{app_process}" to {command}')
 
     def tell_app(self, app: str, command: str, ignoring_responses: bool = False):
-        _tell_what = f'tell application "{app}" to {command}' if not ignoring_responses \
-            else f'ignoring application responses\ntell application "{app}" to {command}\nend ignoring'
+        _tell_what = f'tell application "{app}" to {command}' if not ignoring_responses else f'ignoring application responses\ntell application "{app}" to {command}\nend ignoring'
         return self.execute(_tell_what)
 
     def tell_sys_events(self, command: str):

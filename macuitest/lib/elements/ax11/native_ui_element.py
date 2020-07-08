@@ -1,8 +1,8 @@
 from collections import deque
 
 from macuitest.lib.elements.ax11 import accessibility
-from macuitest.lib.elements.ax11 import SearchMethodsMixin
-from macuitest.lib.elements.ax11 import WaitForMixin
+from macuitest.lib.elements.ax11.mixins.search import SearchMethodsMixin
+from macuitest.lib.elements.ax11.mixins.wait import WaitForMixin
 
 
 class NativeUIElement(WaitForMixin, SearchMethodsMixin, accessibility.AXUIElement):

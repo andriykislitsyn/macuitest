@@ -2,7 +2,7 @@ import time
 from dataclasses import dataclass
 
 from macuitest.lib.elements.controllers.keyboard_controller import KeyBoardController
-from macuitest.lib.elements import MouseController
+from macuitest.lib.elements.controllers.mouse_controller import MouseController
 
 
 @dataclass(frozen=True)

@@ -2,7 +2,7 @@ import os
 import time
 from typing import Dict, Union
 
-from macuitest.lib.applescript_lib import as_wrapper, AppleScriptError
+from macuitest.lib.applescript_lib.applescript_wrapper import as_wrapper, AppleScriptError
 from macuitest.lib.core import wait_condition
 from macuitest.lib.elements.applescript_element import ASElement
 from macuitest.lib.operating_system.env import env

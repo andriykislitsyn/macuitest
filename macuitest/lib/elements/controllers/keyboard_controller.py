@@ -2,7 +2,7 @@ import time
 
 import Quartz
 
-from macuitest.lib.elements import KEYBOARD_KEYS, SPECIAL_KEYS
+from macuitest.lib.elements.controllers.keyboard_mappings import KEYBOARD_KEYS, SPECIAL_KEYS
 
 
 class KeyBoardController:

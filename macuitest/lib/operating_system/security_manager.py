@@ -3,7 +3,7 @@ import threading
 from macuitest.config import config
 from macuitest.lib.elements.ui_element import UIElement
 from macuitest.lib.operating_system.env import env
-from macuitest.lib.elements import ScreenshotPathBuilder
+from macuitest.lib.elements.uie.screenshot_path_builder import ScreenshotPathBuilder
 
 
 class WrongApplicationSignature(Exception):

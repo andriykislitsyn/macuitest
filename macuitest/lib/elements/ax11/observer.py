@@ -7,8 +7,8 @@ from CoreFoundation import CFRunLoopAddSource, CFRunLoopGetCurrent
 from PyObjCTools import AppHelper
 from PyObjCTools import MachSignals
 
-from macuitest.lib.elements.ax11 import (PAXObserverAddNotification, PAXObserverCallback, PAXObserverCreate,
-                                         PAXObserverRemoveNotification, )
+from macuitest.lib.elements.ax11.callbacks import (PAXObserverAddNotification, PAXObserverCallback, PAXObserverCreate,
+                                                   PAXObserverRemoveNotification, )
 
 
 def stop_event_loop():

@@ -3,10 +3,10 @@ from typing import Union, Optional
 import cv2
 import numpy
 
-from macuitest.config import Point, Region
+from macuitest.config.constants import Point, Region
 from macuitest.lib.core import wait_condition
 from macuitest.lib.elements.controllers.mouse import mouse
-from macuitest.lib.elements import opencv_wrapper
+from macuitest.lib.elements.uie.opencv_wrapper import opencv_wrapper
 
 
 class UIElementNotFoundOnScreen(Exception):

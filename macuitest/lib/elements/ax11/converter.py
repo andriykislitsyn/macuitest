@@ -1,16 +1,8 @@
 import re
 from collections import namedtuple
 
-from ApplicationServices import (
-    AXUIElementGetTypeID,
-    AXValueGetType,
-    NSPointFromString,
-    NSRangeFromString,
-    NSSizeFromString,
-    kAXValueCFRangeType,
-    kAXValueCGPointType,
-    kAXValueCGSizeType,
-)
+from ApplicationServices import (AXUIElementGetTypeID, AXValueGetType, NSPointFromString, NSRangeFromString,
+                                 NSSizeFromString, kAXValueCFRangeType, kAXValueCGPointType, kAXValueCGSizeType, )
 from CoreFoundation import CFArrayGetTypeID, CFGetTypeID, CFStringGetTypeID
 
 

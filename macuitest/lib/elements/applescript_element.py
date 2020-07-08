@@ -5,13 +5,12 @@ from datetime import datetime
 from types import MappingProxyType
 from typing import Any, Union, Optional, Tuple
 
-from macuitest.config import CheckboxState
-from macuitest.config import Frame, Point, DisclosureTriangleState, Region
+from macuitest.config.constants import CheckboxState, Frame, Point, DisclosureTriangleState, Region
 from macuitest.lib import core
-from macuitest.lib.applescript_lib import as_wrapper, AppleScriptError
+from macuitest.lib.applescript_lib.applescript_wrapper import as_wrapper, AppleScriptError
 from macuitest.lib.core import wait_condition
 from macuitest.lib.elements.controllers.mouse import mouse
-from macuitest.lib import ColorMeter
+from macuitest.lib.operating_system.color_meter import ColorMeter
 from macuitest.lib.operating_system.env import env
 
 
