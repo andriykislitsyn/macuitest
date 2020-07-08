@@ -1,8 +1,7 @@
 from distutils.core import setup
 
 setup(
-    name='macUITest',
-    packages=['macUITest'],
+    name='macuitest',
     version='0.1',
     license='Apache-2.0 License',
     description='A simple UI testing framework for macOS',
@@ -24,7 +23,9 @@ setup(
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Automation',
-        'Topic :: Software Development :: Quality Assurance Automation', 'License :: Apache-2.0 License',
+        'Topic :: Software Development :: Testing',
+        'Topic :: Software Development :: Quality Assurance',
+        'License :: OSI Approved :: GNU General Public License v2 (GPLv2)',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
