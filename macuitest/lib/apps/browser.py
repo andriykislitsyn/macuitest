@@ -8,7 +8,7 @@ from macuitest.lib.applescript_lib.applescript_wrapper import as_wrapper, AppleS
 from macuitest.lib.apps.application import Application
 from macuitest.lib.core import wait_condition
 from macuitest.lib.elements.applescript_element import ASElement
-from macuitest.lib.elements.ax11.native_ui_element import NativeUIElement
+from macuitest.lib.elements.ax11.native_element import NativeUIElement
 from macuitest.lib.elements.ui_element import UIElement
 from macuitest.lib.elements.uie.screenshot_path_builder import ScreenshotPathBuilder
 from macuitest.lib.operating_system.env import env
@@ -137,8 +137,8 @@ class _Safari(_BaseBrowser):
 
     def set_address_bar_value(self, new_value: str):
         self.window.wait_displayed(timeout=10)
-        address_bar = NativeUIElement.get_app_ref_by_bundle_id('com.apple.Safari').windows()[0]\
-            .find_first(AXIdentifier='WEB_BROWSER_ADDRESS_AND_SEARCH_FIELD', recursive=True)
+        address_bar = NativeUIElement.from_bundle_id('com.apple.Safari').windows()[0]\
+            .find_element(AXIdentifier='WEB_BROWSER_ADDRESS_AND_SEARCH_FIELD', recursive=True)
         address_bar.AXValue = new_value
         time.sleep(1)
 

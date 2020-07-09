@@ -79,25 +79,21 @@ class AXErrorFactory:
                 kAXErrorActionUnsupported: AXErrorActionUnsupported, }.get(error_code, AXErrorUnsupported)
 
 
-def check_ax_error(error_code, error_messages):
-    """
-    Returns if code is kAXErrorSuccess.
-    Raises an error with given message based on given error code.
-    Defaults to AXErrorUnsupported for unknown codes.
-
-    Args:
-        error_code: the error code
-        error_messages: mapping from error code to error message
+def check_ax_error(error_code: int, error_messages) -> None:
+    """ Return if code is kAXErrorSuccess.
+         Raise an error with given message based on given error code.
+         Defaults to AXErrorUnsupported for unknown codes.
+            Args:
+                error_code: the error code
+                error_messages: mapping from error code to error message
     """
     if error_code == kAXErrorSuccess:
         return
-
     try:
         error_message = error_messages[error_code]
     except KeyError:
         if error_code == kAXErrorFailure:
-            error_message = "There is some sort of system memory failure"
+            error_message = 'There is some sort of system memory failure'
         else:
-            error_message = "Unknown AX Error: %s" % error_code
-
+            error_message = f'Unknown AX Error code: {error_code}'
     raise AXErrorFactory(error_code)(error_message)

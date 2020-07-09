@@ -208,7 +208,7 @@ class WebView(NativeElement):
 
     def __perform_lookup(self):
         self.__wait_children()
-        return self.item.find_first(AXRole='AXUnknown', recursive=True)
+        return self.item.find_element(AXRole='AXUnknown', recursive=True)
 
     def __wait_children(self):
         for _ in range(20):

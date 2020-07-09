@@ -15,7 +15,7 @@ class Converter:
             try:
                 return str(value)
             except UnicodeEncodeError:
-                return str(value.encode("utf-8"))
+                return str(value.encode('utf-8'))
         if CFGetTypeID(value) == AXUIElementGetTypeID():
             return self.convert_app_ref(value)
         if CFGetTypeID(value) == CFArrayGetTypeID():
@@ -37,21 +37,21 @@ class Converter:
 
     @staticmethod
     def convert_size(value):
-        repr_searched = re.search("{.*}", str(value)).group()
-        CGSize = namedtuple("CGSize", ["width", "height"])
+        repr_searched = re.search('{.*}', str(value)).group()
+        CGSize = namedtuple('CGSize', ['width', 'height'])
         size = NSSizeFromString(repr_searched)
         return CGSize(size.width, size.height)
 
     @staticmethod
     def convert_point(value):
-        repr_searched = re.search("{.*}", str(value)).group()
-        CGPoint = namedtuple("CGPoint", ["x", "y"])
+        repr_searched = re.search('{.*}', str(value)).group()
+        CGPoint = namedtuple('CGPoint', ['x', 'y'])
         point = NSPointFromString(repr_searched)
         return CGPoint(point.x, point.y)
 
     @staticmethod
     def convert_range(value):
-        repr_searched = re.search("{.*}", str(value)).group()
-        CFRange = namedtuple("CFRange", ["location", "length"])
+        repr_searched = re.search('{.*}', str(value)).group()
+        CFRange = namedtuple('CFRange', ['location', 'length'])
         _range_ = NSRangeFromString(repr_searched)
         return CFRange(_range_.location, _range_.length)
