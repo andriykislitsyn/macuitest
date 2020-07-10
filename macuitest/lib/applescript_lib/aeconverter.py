@@ -5,9 +5,9 @@ import struct
 
 from Foundation import NSAppleEventDescriptor, NSURL
 
-from . import kae
+from macuitest.lib.applescript_lib import aeobjects
 
-__all__ = ['Codecs', 'AEType', 'AEEnum', 'four_characters_code']
+__all__ = ['AEConverter', 'AEType', 'AEEnum', 'four_characters_code']
 
 
 def four_characters_code(code):
@@ -19,11 +19,11 @@ def four_characters_code(code):
     return struct.unpack('>I', code)[0]
 
 
-class Codecs:
+class AEConverter:
     """ Implements mappings for common Python types with direct AppleScript equivalents. Used by AppleScript class. """
 
     kMacEpoch = datetime.datetime(1904, 1, 1)
-    kUSRF = four_characters_code(kae.keyASUserRecordFields)
+    kUSRF = four_characters_code(aeobjects.keyASUserRecordFields)
 
     def __init__(self):
         # Clients may add/remove/replace encoder and decoder items:
@@ -44,24 +44,24 @@ class Codecs:
         }
 
         self.decoders = {four_characters_code(k): v for k, v in {
-            kae.typeNull: self.unpack_null,
-            kae.typeBoolean: self.unpack_boolean,
-            kae.typeFalse: self.unpack_boolean,
-            kae.typeTrue: self.unpack_boolean,
-            kae.typeSInt32: self.unpack_s_int32,
-            kae.typeIEEE64BitFloatingPoint: self.unpack_float64,
-            kae.typeUTF8Text: self.unpack_unicode_text,
-            kae.typeUTF16ExternalRepresentation: self.unpack_unicode_text,
-            kae.typeUnicodeText: self.unpack_unicode_text,
-            kae.typeLongDateTime: self.unpack_long_datetime,
-            kae.typeAEList: self.unpack_ae_list,
-            kae.typeAERecord: self.unpack_ae_record,
-            kae.typeAlias: self.unpack_file,
-            kae.typeFSS: self.unpack_file,
-            kae.typeFSRef: self.unpack_file,
-            kae.typeFileURL: self.unpack_file,
-            kae.typeType: self.unpack_type,
-            kae.typeEnumeration: self.unpack_enumeration,
+            aeobjects.typeNull: self.unpack_null,
+            aeobjects.typeBoolean: self.unpack_boolean,
+            aeobjects.typeFalse: self.unpack_boolean,
+            aeobjects.typeTrue: self.unpack_boolean,
+            aeobjects.typeSInt32: self.unpack_s_int32,
+            aeobjects.typeIEEE64BitFloatingPoint: self.unpack_float64,
+            aeobjects.typeUTF8Text: self.unpack_unicode_text,
+            aeobjects.typeUTF16ExternalRepresentation: self.unpack_unicode_text,
+            aeobjects.typeUnicodeText: self.unpack_unicode_text,
+            aeobjects.typeLongDateTime: self.unpack_long_datetime,
+            aeobjects.typeAEList: self.unpack_ae_list,
+            aeobjects.typeAERecord: self.unpack_ae_record,
+            aeobjects.typeAlias: self.unpack_file,
+            aeobjects.typeFSS: self.unpack_file,
+            aeobjects.typeFSRef: self.unpack_file,
+            aeobjects.typeFileURL: self.unpack_file,
+            aeobjects.typeType: self.unpack_type,
+            aeobjects.typeEnumeration: self.unpack_enumeration,
         }.items()}
 
     def pack(self, data):
@@ -88,10 +88,10 @@ class Codecs:
         if decoder:
             return decoder(desc)
         # if it's a record-like desc, unpack as dict with an extra AEType(b'pcls') key containing the desc type
-        rec = desc.coerceToDescriptorType_(four_characters_code(kae.typeAERecord))
+        rec = desc.coerceToDescriptorType_(four_characters_code(aeobjects.typeAERecord))
         if rec:
             rec = self.unpack_ae_record(rec)
-            rec[AEType(kae.pClass)] = AEType(struct.pack('>I', desc.descriptorType()))
+            rec[AEType(aeobjects.pClass)] = AEType(struct.pack('>I', desc.descriptorType()))
             return rec
         # return as-is
         return desc
@@ -120,10 +120,10 @@ class Codecs:
             return self.pack(float(val))
 
     def pack_float(self, val):
-        return self._pack_bytes(kae.typeFloat, struct.pack('d', val))
+        return self._pack_bytes(aeobjects.typeFloat, struct.pack('d', val))
 
     def pack_bytes(self, val):
-        return self._pack_bytes(kae.typeData, val)
+        return self._pack_bytes(aeobjects.typeData, val)
 
     @staticmethod
     def pack_str(val):
@@ -132,7 +132,7 @@ class Codecs:
     def pack_datetime(self, val):
         delta = val - self.kMacEpoch
         sec = delta.days * 3600 * 24 + delta.seconds
-        return self._pack_bytes(kae.typeLongDateTime, struct.pack('q', sec))
+        return self._pack_bytes(aeobjects.typeLongDateTime, struct.pack('q', sec))
 
     def pack_list(self, val):
         lst = NSAppleEventDescriptor.listDescriptor()
@@ -145,7 +145,7 @@ class Codecs:
         usrf = desctype = None
         for key, value in val.items():
             if isinstance(key, AEType):
-                if key.code == kae.pClass and isinstance(value, AEType):
+                if key.code == aeobjects.pClass and isinstance(value, AEType):
                     # AS packs records that contain a 'class' property by coercing the packed record
                     # to the descriptor type specified by the property's value (assuming it's an AEType)
                     desctype = value
@@ -226,7 +226,7 @@ class Codecs:
 
     @staticmethod
     def unpack_file(desc):
-        url = bytes(desc.coerceToDescriptorType_(four_characters_code(kae.typeFileURL)).data()).decode('utf8')
+        url = bytes(desc.coerceToDescriptorType_(four_characters_code(aeobjects.typeFileURL)).data()).decode('utf8')
         return NSURL.URLWithString_(url).path()
 
 

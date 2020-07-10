@@ -4,7 +4,7 @@ from typing import Any, Optional
 from macuitest.config.constants import Frame, Point, Region
 from macuitest.lib import core
 from macuitest.lib.core import wait_condition
-from macuitest.lib.elements.ax11.errors import AXErrorFactory, AXErrorInvalidUIElement
+from macuitest.lib.elements.native.errors import AXErrorFactory, AXErrorInvalidUIElement
 from macuitest.lib.elements.controllers.mouse import mouse
 
 

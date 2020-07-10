@@ -2,7 +2,7 @@ import threading
 
 from macuitest.config.config_parser import config
 from macuitest.lib.elements.ui_element import UIElement
-from macuitest.lib.elements.uie.screenshot_path_builder import ScreenshotPathBuilder
+from macuitest.lib.elements.ui.screenshot_path_builder import ScreenshotPathBuilder
 from macuitest.lib.operating_system.env import env
 
 

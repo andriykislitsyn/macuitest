@@ -8,7 +8,7 @@ from ApplicationServices import (kAXErrorActionUnsupported, kAXErrorAttributeUns
                                  kAXErrorFailure, kAXErrorIllegalArgument, kAXErrorInvalidUIElement,
                                  kAXErrorNotImplemented, kAXErrorNoValue, )
 
-from macuitest.lib.elements.ax11 import errors
+from macuitest.lib.elements.native import errors
 
 
 def get_accessibility_element_attribute(element, attribute):

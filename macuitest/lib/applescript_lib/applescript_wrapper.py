@@ -1,8 +1,31 @@
-import time
+from Foundation import (NSAppleScript, NSAppleScriptErrorMessage, NSAppleScriptErrorBriefMessage,
+                        NSAppleScriptErrorNumber)
 
-from .applescript import AppleScript, ScriptError
+from macuitest.lib.applescript_lib.aeconverter import AEConverter
 
-AppleScriptError = ScriptError
+ae_converter = AEConverter()
+
+
+class AppleScriptError(Exception):
+    """Indicates an AppleScript compilation/execution error."""
+
+    def __init__(self, error_info):
+        self._error_info = dict(error_info)
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}({self._error_info})'
+
+    @property
+    def message(self) -> str:
+        msg = self._error_info.get(NSAppleScriptErrorMessage)
+        if not msg:
+            msg = self._error_info.get(NSAppleScriptErrorBriefMessage, 'Script Error')
+        return msg
+
+    @property
+    def number(self):
+        """"int | None -- the error number, if given")"""
+        return self._error_info.get(NSAppleScriptErrorNumber)
 
 
 class AppleScriptWrapper:
@@ -15,7 +38,6 @@ class AppleScriptWrapper:
     def typewrite(self, phrase: str) -> None:
         """Type `phrase` with 0.001s delay between key presses."""
         for char in phrase:
-            time.sleep(0.001)
             if char in self.__pass_as_key_code:
                 key_code, is_shift_required = self.__pass_as_key_code[char]
                 self.send_keycode(key_code, 'shift') if is_shift_required else self.send_keycode(key_code)
@@ -53,7 +75,10 @@ class AppleScriptWrapper:
         """Execute AppleScript command abd returns exitcode, stdout and stderr.
             :param str cmd: apple script
             :return: exitcode, stdout and stderr"""
-        return AppleScript(cmd).run()
+        result, error = NSAppleScript.alloc().initWithSource_(cmd).executeAndReturnError_(None)
+        if error:
+            raise AppleScriptError(error)
+        return ae_converter.unpack(result)
 
 
 as_wrapper = AppleScriptWrapper()

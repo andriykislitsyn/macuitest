@@ -6,16 +6,16 @@ import AppKit
 from ApplicationServices import (AXIsProcessTrusted, AXUIElementCreateApplication, AXUIElementCreateSystemWide, CFEqual)
 from PyObjCTools import AppHelper
 
-from macuitest.lib.elements.ax11.callbacks import (get_element_action_names, get_element_attribute_names,
-                                                   get_accessibility_element_attribute, get_accessibility_object_pid,
-                                                   check_attribute_settable, perform_action_on_element,
-                                                   set_attribute_value, set_accessibility_api_timeout,
-                                                   get_accessibility_object_on_screen_position, )
-from macuitest.lib.elements.ax11.converter import Converter
-from macuitest.lib.elements.ax11.errors import (AXError, AXErrorAPIDisabled, AXErrorCannotComplete,
-                                                AXErrorIllegalArgument, AXErrorNotImplemented, AXErrorNoValue,
-                                                AXErrorUnsupported, )
-from macuitest.lib.elements.ax11.element_lookup import LookUpMixin
+from macuitest.lib.elements.native.callbacks import (get_element_action_names, get_element_attribute_names,
+                                                     get_accessibility_element_attribute, get_accessibility_object_pid,
+                                                     check_attribute_settable, perform_action_on_element,
+                                                     set_attribute_value, set_accessibility_api_timeout,
+                                                     get_accessibility_object_on_screen_position, )
+from macuitest.lib.elements.native.converter import Converter
+from macuitest.lib.elements.native.errors import (AXError, AXErrorAPIDisabled, AXErrorCannotComplete,
+                                                  AXErrorIllegalArgument, AXErrorNotImplemented, AXErrorNoValue,
+                                                  AXErrorUnsupported, )
+from macuitest.lib.elements.native.element_lookup import LookUpMixin
 
 
 @dataclass
