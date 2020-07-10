@@ -1,16 +1,20 @@
 from distutils.core import setup
 from setuptools import find_packages
 
+with open('README.md') as fh:
+    long_description = fh.read()
+
 setup(
     name='macuitest',
     packages=find_packages(),
-    version='0.5.2',
+    version='0.5.3',
     license='Apache-2.0 License',
     description='A simple UI testing framework for macOS',
+    long_description=long_description,
     author='Andrii Kislitsyn',
     author_email='andriikislitsyn@gmail.com',
     url='https://github.com/andriykislitsyn',
-    download_url='https://github.com/andriykislitsyn/macuitest/archive/v0.5.2-alpha.tar.gz',
+    download_url='https://github.com/andriykislitsyn/macuitest/archive/v0.5.3-alpha.tar.gz',
     keywords=['Testing', 'UI', 'Functional', 'macOS'],
     install_requires=[
         'biplist',
