@@ -1,4 +1,4 @@
-# List of ISO 3166 alpha-2 country codes.
+"""List of ISO 3166 alpha-2 country codes."""
 
 country_codes = {
     'Afghanistan': 'AF',

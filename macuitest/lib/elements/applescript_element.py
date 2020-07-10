@@ -14,21 +14,17 @@ from macuitest.lib.operating_system.color_meter import ColorMeter
 from macuitest.lib.operating_system.env import env
 
 
-class AppleScriptElementNotFound(Exception):
-    pass
-
-
 class BaseUIElement:
     """Default AppleScript UI element."""
     __slots__ = ('locator', 'process', '_frame')
-
-    def __repr__(self):
-        return f"{self.__class__.__name__}(locator='{self.locator}', process='{self.process}')"
 
     def __init__(self, locator, process):
         self.locator = locator
         self.process = process
         self._frame = None
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__}|locator='{self.locator}', process='{self.process}'>"
 
     def wait_on_position(self, position: Point) -> bool:
         self.reset_frame()
@@ -72,7 +68,7 @@ class BaseUIElement:
 
     def click_mouse(self, x_off=0, y_off=0, hold_time=.3, duration=.2, pause=.3) -> None:
         if not self.wait_displayed(timeout=7):
-            raise AppleScriptElementNotFound(self)
+            raise LookupError(self)
         mouse.click(self.frame.center.x + x_off, self.frame.center.y + y_off, hold_time, duration, pause)
         self.reset_frame()
 
@@ -206,7 +202,7 @@ class BaseUIElement:
 
     def __assert_visible(self):
         if not self.is_visible:
-            raise AppleScriptElementNotFound(self)
+            raise LookupError(self)
 
     def __execute(self, command, params=''):
         """Execute a command.
@@ -242,7 +238,7 @@ class TextElement(BaseUIElement):
     def __repr__(self):
         try:
             return f"'{self.text}'"
-        except (AppleScriptElementNotFound, AppleScriptError):
+        except (AppleScriptError, LookupError):
             return f"{self.__class__.__name__}(locator='{self.locator}', process='{self.process}')"
 
     @property

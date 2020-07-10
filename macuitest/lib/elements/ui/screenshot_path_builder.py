@@ -7,7 +7,7 @@ class ScreenshotPathBuilder:
     """Screenshot path builder."""
 
     def __init__(self, category, root=None):
-        self._screenshots_dir = root or Path(__file__).parents[2].joinpath('media')
+        self._screenshots_dir = root
         self.category = category.lower().replace(' & ', '_and_').replace(' ', '_').replace('-', '_')
 
     def __getattr__(self, item):

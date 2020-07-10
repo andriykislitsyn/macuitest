@@ -50,7 +50,7 @@ class MouseController:
         pause = duration / steps_count
         steps = [pytweening.getPointOnLine(start_x, start_y, x, y, self.tween_type(n / steps_count))
                  for n in range(steps_count)] + [(x, y)]
-        if steps_count < 50:
+        if steps_count < 20:
             steps, pause = [(x, y)], 0
         for tween_x, tween_y in steps:
             self._send_mouse_event(kcg_event, tween_x, tween_y, mouse_button)
@@ -93,7 +93,8 @@ class MouseController:
 
     @staticmethod
     def _send_mouse_event(event, x: int, y: int, button):
-        Quartz.CGEventPost(Quartz.kCGHIDEventTap, Quartz.CGEventCreateMouseEvent(None, event, (x, y), button))
+        event = Quartz.CGEventCreateMouseEvent(None, event, (x, y), button)
+        Quartz.CGEventPost(Quartz.kCGHIDEventTap, event)
 
     @property
     def _position(self):

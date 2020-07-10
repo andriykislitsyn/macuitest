@@ -9,8 +9,8 @@ from macuitest.lib.apps.application import Application
 from macuitest.lib.core import wait_condition
 from macuitest.lib.elements.applescript_element import ASElement
 from macuitest.lib.elements.native.native_ui_element import NativeUIElement
-from macuitest.lib.elements.ui_element import UIElement
 from macuitest.lib.elements.ui.screenshot_path_builder import ScreenshotPathBuilder
+from macuitest.lib.elements.ui_element import UIElement
 from macuitest.lib.operating_system.env import env
 from macuitest.lib.operating_system.macos import macos
 

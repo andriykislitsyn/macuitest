@@ -1,8 +1,9 @@
 biplist
 mss
 opencv-python
-pyobjc-core
-pyobjc
-pytest
+pillow
+pyobjc-framework-ApplicationServices
+pyobjc-framework-Cocoa
+pyobjc-framework-Quartz
 PyTweening
 webcolors

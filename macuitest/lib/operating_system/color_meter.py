@@ -42,7 +42,7 @@ class ColorMeter:
     def _get_pixels(self):
         with mss.mss() as sct:
             for monitor in sct.monitors:
-                if monitor.get('width') <= 1920:  # We want to launch tests on non-Retina displays only.
+                if monitor.get('width') <= 1920:  # We want to launch tests on non-Retina displays only for now.
                     desktop = sct.grab(monitor)
                     self.__pixels = Image.frombytes('RGB', desktop.size, desktop.bgra, 'raw', 'BGRX').load()
                     return self.__pixels
