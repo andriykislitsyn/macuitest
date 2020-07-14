@@ -4,6 +4,7 @@ opencv-python
 pillow
 pyobjc-framework-ApplicationServices
 pyobjc-framework-Cocoa
+pyobjc-framework-CoreText
 pyobjc-framework-Quartz
 PyTweening
 webcolors

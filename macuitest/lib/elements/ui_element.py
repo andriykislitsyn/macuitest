@@ -53,7 +53,7 @@ class UIElement:
 
     @property
     def is_visible(self):
-        return self.wait_displayed(timeout=5) is not None
+        return self.wait_displayed() is not None
 
     @property
     def center(self):

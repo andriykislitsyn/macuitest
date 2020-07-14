@@ -2,15 +2,12 @@ import glob
 import logging
 import os
 import time
-from typing import Union, List
+from typing import List
 
 from macuitest.lib.applescript_lib.applescript_wrapper import as_wrapper, AppleScriptError
 from macuitest.lib.apps.application import Application
 from macuitest.lib.core import wait_condition
-from macuitest.lib.elements.applescript_element import ASElement
 from macuitest.lib.elements.native.native_ui_element import NativeUIElement
-from macuitest.lib.elements.ui.screenshot_path_builder import ScreenshotPathBuilder
-from macuitest.lib.elements.ui_element import UIElement
 from macuitest.lib.operating_system.env import env
 from macuitest.lib.operating_system.macos import macos
 
@@ -137,106 +134,10 @@ class _Safari(_BaseBrowser):
 
     def set_address_bar_value(self, new_value: str):
         self.window.wait_displayed(timeout=10)
-        address_bar = NativeUIElement.from_bundle_id('com.apple.Safari').windows()[0]\
-            .find_element(AXIdentifier='WEB_BROWSER_ADDRESS_AND_SEARCH_FIELD', recursive=True)
+        address_bar = NativeUIElement.from_bundle_id('com.apple.Safari').windows()[0].find_element(
+            AXIdentifier='WEB_BROWSER_ADDRESS_AND_SEARCH_FIELD', recursive=True)
         address_bar.AXValue = new_value
         time.sleep(1)
 
 
-class _Chrome(_BaseBrowser):
-    def __init__(self, app_name='Google Chrome'):
-        super(_Chrome, self).__init__(app_name)
-        self._screenshot = ScreenshotPathBuilder('system')
-        self.document_type = 'window'
-        self.download_temp_pattern = '*.crdownload'
-        self.button_keep = ASElement('button "Keep" of group 1 of tool bar 1 of window 1', self.name)
-        self.btn_download = ASElement(f'button 1 of group 1 of group "Downloads bar" of group 1 of window 1', self.name)
-        self.btn_discard = ASElement(f'button 3 of group 1 of group "Downloads bar" of group 1 of window 1', self.name)
-        self.btn_discard_ui = UIElement(self._screenshot.btn_discard__chrome)
-        self.icon_warning_ui = UIElement(self._screenshot.icon_warning__chrome)
-
-    def open_link_as_user(self, url, is_download_confirmation_needed=False):
-        super(_Chrome, self).open_link_as_user(url, is_download_confirmation_needed)
-
-    def wait_download_finished(self, target_directory, timeout=180):
-        """Wait for a temporary file to be removed from the download directory."""
-        time.sleep(3)
-        if not wait_condition(lambda: self.files_in_downloads_dir > self.downloads_count, 120):
-            raise DownloadHasNotStartedException  # Sometimes resolver works slower than we need. So we wait 2m.
-        if self.btn_download.wait_displayed(timeout=30):
-            if self.icon_warning_ui.wait_displayed(region=self.btn_download.region()) \
-                    or self.btn_discard_ui.wait_displayed(region=self.btn_download.region()):
-                raise MaliciousFileWarning
-        if not wait_condition(lambda: glob.glob(os.path.join(target_directory, self.download_temp_pattern)) == []):
-            raise DownloadHasNotFinishedException
-
-
-class _Firefox(_BaseBrowser):
-    count_windows_command = 'tell application "System Events" to tell application process "firefox" to count windows'
-
-    def __init__(self, app_name='firefox'):
-        super().__init__(app_name)
-        self._screenshot = ScreenshotPathBuilder('common')
-        self.download_temp_pattern = '*.part'
-        self.btn_cancel = UIElement(self._screenshot.btn_sys_cancel)
-        self.btn_save_file = UIElement(self._screenshot.btn_save_file)
-
-    def quit(self, pause: Union[int, float] = 2) -> None:
-        _name_tmp = str(self.name)
-        self.name = self.name.lower()
-        super().quit(pause=pause)
-        self.name = _name_tmp
-
-    def close_tabs(self):
-        self.close_windows()
-
-    def open_new_tab(self):
-        self.launch()
-        time.sleep(0.5)
-        as_wrapper.send_keystroke('t', 'command')  # Firefox does not support a "make new ..." AppleScript command.
-        time.sleep(0.5)
-
-    def confirm_download(self):
-        if not wait_condition(lambda: self.windows_count > 1, timeout=120):
-            raise DownloadHasNotStartedException
-        if self.btn_save_file.is_visible:
-            self.btn_save_file.double_click()
-            if self.btn_cancel.wait_displayed(timeout=2):
-                self.btn_cancel.click(x_off=90)
-
-    @property
-    def windows_count(self):
-        return as_wrapper.execute(self.count_windows_command)
-
-    @property
-    def active_tab_url(self):
-        url = as_wrapper.execute(self._get_url_command)
-        macos.shell_executor.execute('pbcopy </dev/null')
-        return url
-
-    @property
-    def _get_url_command(self):
-        return '''
-            tell application "firefox" to activate
-            tell application "System Events"
-                keystroke "l" using command down
-                keystroke "c" using command down
-            end tell
-            delay 0.5
-            return the clipboard'''
-
-
-class _FirefoxMavericks(_Firefox):
-    def __init__(self):
-        super().__init__()
-        self.btn_cancel = UIElement(self._screenshot.btn_cancel_firefox)
-
-    def confirm_download(self):
-        wait_condition(lambda: self.windows_count == 2)
-        if self.btn_save_file.wait_displayed():
-            self.btn_save_file.double_click()
-            if self.btn_cancel.wait_displayed(timeout=2):
-                self.btn_cancel.click(x_off=90)
-
-
-chrome, firefox, safari = _Chrome(), _Firefox(), _Safari()
+safari = _Safari()

@@ -1,11 +1,3 @@
-import threading
-
-from macuitest.config.config_parser import config
-from macuitest.lib.elements.ui_element import UIElement
-from macuitest.lib.elements.ui.screenshot_path_builder import ScreenshotPathBuilder
-from macuitest.lib.operating_system.env import env
-
-
 class WrongApplicationSignature(Exception):
     pass
 
@@ -13,8 +5,6 @@ class WrongApplicationSignature(Exception):
 class SecurityManager:
     """Wrapper around the Command line interface to keychains and Security framework."""
     _cli: str = 'security'
-    _screenshot = ScreenshotPathBuilder('common')
-    _btn_always_allow = UIElement(_screenshot.btn_always_allow, sim=0.82)
 
     def __init__(self, executor):
         self.executor = executor
@@ -40,17 +30,6 @@ class SecurityManager:
         """Remove a keychain by a service name."""
         while self.find_generic_password(service_name, flag) == 0:
             self.delete_generic_password(service_name, flag)
-
-    def get_keychain_item_password(self, account_name: str) -> str:
-        threading.Thread(target=self._allow_access).start()
-        return self.executor.get_output(f'{self._cli} find-generic-password -a "{account_name}" -w')
-
-    def _allow_access(self):
-        if self._btn_always_allow.is_visible:
-            if env.version > (10, 10):
-                self._btn_always_allow.paste(x_off=100, y_off=-40, phrase=config.password)
-            self._btn_always_allow.click()
-            self._btn_always_allow.wait_vanish()
 
     def find_generic_password(self, service_name: str, flag: str = 's') -> int:
         """Find a password in login keychain by a service name."""
