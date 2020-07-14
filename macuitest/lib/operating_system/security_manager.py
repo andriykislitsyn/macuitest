@@ -36,10 +36,10 @@ class SecurityManager:
             error_message = f'{application_path} is not sign correctly: {output}'
             raise WrongApplicationSignature(error_message)
 
-    def remove_keychain_entry(self, service_name: str) -> None:
+    def remove_keychain_entry(self, service_name: str, flag: str = 's') -> None:
         """Remove a keychain by a service name."""
-        while self.find_generic_password(service_name) == 0:
-            self.delete_generic_password(service_name)
+        while self.find_generic_password(service_name, flag) == 0:
+            self.delete_generic_password(service_name, flag)
 
     def get_keychain_item_password(self, account_name: str) -> str:
         threading.Thread(target=self._allow_access).start()
@@ -52,13 +52,15 @@ class SecurityManager:
             self._btn_always_allow.click()
             self._btn_always_allow.wait_vanish()
 
-    def find_generic_password(self, service_name: str) -> int:
+    def find_generic_password(self, service_name: str, flag: str = 's') -> int:
         """Find a password in login keychain by a service name."""
-        return self.executor.execute(f'{self._cli} find-generic-password -s {service_name} > /dev/null 2>&1').returncode
+        return self.executor.execute(
+            f'{self._cli} find-generic-password -{flag} {service_name} > /dev/null 2>&1').returncode
 
-    def delete_generic_password(self, service_name: str) -> int:
+    def delete_generic_password(self, service_name: str, flag: str = 's') -> int:
         """Delete a password in login keychain by a service name."""
-        return self.executor.execute(f'{self._cli} delete-generic-password -s {service_name} > /dev/null 2>&1')
+        return self.executor.execute(
+            f'{self._cli} delete-generic-password -{flag} {service_name} > /dev/null 2>&1').returncode
 
     def reset_authorization_database(self, search_pattern: str = 'Auth') -> int:
         """Clear the system.login.console authorization rights."""
