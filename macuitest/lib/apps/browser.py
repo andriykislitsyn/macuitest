@@ -47,8 +47,7 @@ class _BaseBrowser(Application):
             pass
 
     def download_file(self, url, file_name='file_pattern*', expected_file_size=2 * 10 ** 5):
-        self.close_tabs()
-        self.activate()
+        self.launch()
         self.open_link_as_user(url, is_download_confirmation_needed=True)
         self.wait_download_finished(env.downloads)
         self.close_tabs()
@@ -63,11 +62,11 @@ class _BaseBrowser(Application):
     @staticmethod
     def open_link_in_a_new_tab(url):
         as_wrapper.send_keystroke('t', 'command')
-        time.sleep(0.6)
+        time.sleep(1)
         as_wrapper.typewrite(url)
-        time.sleep(0.6)
+        time.sleep(1)
         as_wrapper.send_keycode(as_wrapper.key_codes['return'])
-        time.sleep(0.3)
+        time.sleep(.5)
 
     def open_link_as_user(self, url, is_download_confirmation_needed=False):
         self.open_new_tab()
