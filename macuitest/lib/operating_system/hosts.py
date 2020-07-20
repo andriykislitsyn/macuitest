@@ -14,7 +14,7 @@ class Hosts:
     def change_mapping(self, mapping: DNSMapping):
         """ Configure local domain resolution for a certain resource. """
         self.file_manager.change_file_permissions(path=self.hosts_file, permissions='777', sudo=True)
-        with open(self.hosts_file, 'r') as hosts:
+        with open(self.hosts_file) as hosts:
             hosts_config = hosts.read().rstrip().splitlines()
         hosts_config.append(mapping)
         updated = '\n'.join(hosts_config)
