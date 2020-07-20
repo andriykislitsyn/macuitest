@@ -8,9 +8,8 @@ from macuitest.lib.operating_system.env import env
 
 
 class LoginWindow:
-    def __init__(self, executor, security_manager):
+    def __init__(self, executor):
         self.executor = executor
-        self.security_manager = security_manager
 
     @staticmethod
     def lock_screen():
@@ -27,7 +26,7 @@ class LoginWindow:
         sleep(.5)
         as_wrapper.send_keycode(as_wrapper.key_codes['delete'])
         sleep(.5)
-        as_wrapper.typewrite(password or self.security_manager.get_admin_password())
+        as_wrapper.typewrite(password or self.executor.get_admin_password())
         sleep(.5)
         self._confirm_login()
 

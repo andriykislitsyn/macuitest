@@ -1,3 +1,4 @@
+import time
 from typing import ClassVar
 
 from macuitest.lib.operating_system.crash_reporter import CrashReporter
@@ -26,15 +27,15 @@ class MacOS:
         self.crash_reporter = CrashReporter(self.shell_executor)
         self.disk_util = DiskUtil(self.shell_executor)
         self.file_manager = FileManager(self.shell_executor)
+        self.login_window = LoginWindow(self.shell_executor)
         self.memory_manager = MemoryManager(self.shell_executor)
         self.networking = Networking(self.shell_executor)
         self.security_manager = SecurityManager(self.shell_executor)
         self.service_manager = ServiceManager(self.shell_executor)
-        self.login_window = LoginWindow(self.shell_executor, self.security_manager)
         self.sys_info = SystemInformation(self.shell_executor)
         self.time_manager = TimeManager(self.shell_executor)
-        self.hosts = Hosts(self.shell_executor, self.file_manager)
         self.defaults = Defaults(self.shell_executor, self.service_manager)
+        self.hosts = Hosts(self.shell_executor, self.file_manager)
 
 
 macos = MacOS(shell_executor=ShellExecutor())
