@@ -44,6 +44,7 @@ class Mouse:
     def paste(self, x, y, _x=0, _y=0, phrase=''):
         """Hover over the position and click once. Then paste `phrase` from clipboard."""
         self.double_click(x + _x, y + _y)
+        time.sleep(.5)
         KeyBoardController().write(phrase, pause=.005)
 
     def scroll(self, x, y, scrolls, _x=0, _y=0):

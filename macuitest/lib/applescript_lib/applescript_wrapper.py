@@ -1,3 +1,5 @@
+import time
+
 from Foundation import (NSAppleScript, NSAppleScriptErrorMessage, NSAppleScriptErrorBriefMessage,
                         NSAppleScriptErrorNumber)
 
@@ -36,8 +38,9 @@ class AppleScriptWrapper:
     __pass_as_key_code = {'"': (39, True), "'": (39, False)}
 
     def typewrite(self, phrase: str) -> None:
-        """Type `phrase` with 0.001s delay between key presses."""
+        """Type `phrase` with 0.005s delay between key presses."""
         for char in phrase:
+            time.sleep(.005)
             if char in self.__pass_as_key_code:
                 key_code, is_shift_required = self.__pass_as_key_code[char]
                 self.send_keycode(key_code, 'shift') if is_shift_required else self.send_keycode(key_code)
