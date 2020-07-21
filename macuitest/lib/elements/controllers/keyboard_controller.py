@@ -1,5 +1,6 @@
 import time
 
+import AppKit
 import Quartz
 
 from macuitest.lib.elements.controllers.keyboard_mappings import KEYBOARD_KEYS, SPECIAL_KEYS

@@ -169,7 +169,7 @@ class BaseUIElement:
 
     @property
     def did_vanish(self) -> bool:
-        return self.wait_vanish(timeout=5)
+        return self.wait_vanish()
 
     def wait_vanish(self, timeout: [int, float] = 5) -> bool:
         self.wait_displayed(timeout=0.3)
@@ -177,7 +177,7 @@ class BaseUIElement:
 
     @property
     def is_visible(self) -> bool:
-        return self.wait_displayed(timeout=5)
+        return self.wait_displayed()
 
     def wait_displayed(self, timeout: Union[int, float] = 5):
         return wait_condition(self.is_exists, timeout=timeout)
@@ -328,7 +328,7 @@ class Checkbox(BaseUIElement):
         return wait_condition(lambda: self._is_enabled() is False)
 
     def wait_state(self, state):
-        return wait_condition(lambda: self.get_state() == state, timeout=10)
+        return wait_condition(lambda: self.get_state() == state)
 
     def set_state(self, state):
         target_state = CheckboxState.states.get(state)

@@ -1,5 +1,4 @@
 biplist
-mss
 opencv-python
 pillow
 pyobjc-framework-ApplicationServices

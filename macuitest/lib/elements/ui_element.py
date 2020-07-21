@@ -6,7 +6,8 @@ import numpy
 from macuitest.config.constants import Point, Region
 from macuitest.lib.core import wait_condition
 from macuitest.lib.elements.controllers.mouse import mouse
-from macuitest.lib.elements.ui.opencv_wrapper import opencv_wrapper
+from macuitest.lib.ui.monitor import monitor
+from macuitest.lib.ui.opencv_wrapper import opencv_wrapper
 
 
 class UIElementNotFoundOnScreen(Exception):
@@ -17,7 +18,7 @@ class UIElementNotFoundOnScreen(Exception):
 class UIElement:
     """Represent a visible user interface element. Based on automated pattern recognition algorithm (OpenCV)."""
 
-    def __init__(self, scr_path: str, sim: float = 0.875):
+    def __init__(self, scr_path: str, sim: float = 0.85):
         self.pattern = scr_path.strip()
         self.similarity = sim
         self.image, self.width, self.height = None, None, None
@@ -63,23 +64,21 @@ class UIElement:
         return Point(match.x + self.width / 2, match.y + self.height / 2)
 
     def wait_displayed(self, timeout=5, region: Optional[Region] = None) -> Union[None, Point]:
-        _region = region or Region(0, 0, opencv_wrapper.screen_size.width, opencv_wrapper.screen_size.height)
         match = wait_condition(
-            lambda: opencv_wrapper.find_pattern(self.image, self.similarity, _region), timeout=timeout)
+            lambda: opencv_wrapper.find_pattern(self.image, self.similarity, region), timeout=timeout)
         if isinstance(match, Point):
             self._center = match
             return match
 
     def wait_vanish(self, timeout=30, region: Optional[Region] = None) -> bool:
-        _region = region or Region(0, 0, opencv_wrapper.screen_size.width, opencv_wrapper.screen_size.height)
         return wait_condition(
-            lambda: opencv_wrapper.find_pattern(self.image, self.similarity, _region) is None,  timeout=timeout)
+            lambda: opencv_wrapper.find_pattern(self.image, self.similarity, region) is None,  timeout=timeout)
 
     def load_image(self) -> numpy.ndarray:
         image = cv2.imread(self.pattern, 0)
         if image is None:
             return numpy.empty(2)
         height, width = image.shape
-        if opencv_wrapper.is_retina_display:
+        if monitor.is_retina:
             height, width = height / 2, width / 2
         self.image, self.width, self.height = image, width, height

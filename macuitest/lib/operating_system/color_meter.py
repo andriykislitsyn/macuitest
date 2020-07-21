@@ -4,11 +4,11 @@ from collections import Counter
 from multiprocessing import Pool
 from typing import Optional, Tuple
 
-import mss
 import webcolors
 from PIL import Image
 
 from macuitest.config.constants import Point
+from macuitest.lib.ui.monitor import monitor
 
 
 class ColorMeter:
@@ -37,13 +37,8 @@ class ColorMeter:
 
     @property
     def _pixels(self):
-        return self.__pixels or self._get_pixels()
-
-    def _get_pixels(self):
-        with mss.mss() as sct:
-            for monitor in sct.monitors:
-                if monitor.get('width') <= 1920:  # We want to launch tests on non-Retina displays only for now.
-                    desktop = sct.grab(monitor)
-                    self.__pixels = Image.frombytes('RGB', desktop.size, desktop.bgra, 'raw', 'BGRX').load()
-                    return self.__pixels
-        raise LookupError('No appropriate screen found.')
+        if self.__pixels is None:
+            size = (monitor.size.width, monitor.size.height)
+            self.__pixels = Image.frombytes('RGB', size, monitor.bytes, 'raw', 'BGRX').load()
+            return self.__pixels
+        return self.__pixels
