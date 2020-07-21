@@ -8,7 +8,7 @@ import webcolors
 from PIL import Image
 
 from macuitest.config.constants import Point
-from macuitest.lib.ui.monitor import monitor
+from macuitest.lib.elements.ui.monitor import monitor
 
 
 class ColorMeter:

@@ -15,7 +15,7 @@ from macuitest.lib.operating_system.env import env
 
 
 class BaseUIElement:
-    """Default AppleScript UI element."""
+    """ Represent a UI element based on an AppleScript locator. """
     __slots__ = ('locator', 'process', '_frame')
 
     def __init__(self, locator, process):
@@ -24,7 +24,7 @@ class BaseUIElement:
         self._frame = None
 
     def __repr__(self):
-        return f"<{self.__class__.__name__}|locator='{self.locator}', process='{self.process}'>"
+        return f'<{self.__class__.__name__} "{self.locator}", process="{self.process}">'
 
     def wait_on_position(self, position: Point) -> bool:
         self.reset_frame()
