@@ -48,4 +48,3 @@ class Monitor:
 
 
 monitor = Monitor()
-print(monitor.is_retina)

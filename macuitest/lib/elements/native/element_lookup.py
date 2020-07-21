@@ -104,7 +104,7 @@ class LookUpMixin:
             try:
                 menuitem = menuitem.AXChildren[int(item)]  # Find AXMenuBarItems and AXMenuItems using a handy wildcard.
             except ValueError:
-                menuitem = menuitem.find_first(AXRole='AXMenu*Item', AXTitle=item)
+                menuitem = menuitem.find_element(AXRole='AXMenu*Item', AXTitle=item)
         return menuitem
 
     def _convenience_match(self, role, attr, match, recursive=False):

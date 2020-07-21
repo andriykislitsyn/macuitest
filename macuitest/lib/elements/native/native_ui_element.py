@@ -79,7 +79,7 @@ def _running_apps_with_bundle_id(bundle_id: str):
     return AppKit.NSRunningApplication.runningApplicationsWithBundleIdentifier_(bundle_id)
 
 
-class AXUIElement:
+class AXUIElement(LookUpMixin):
     def __init__(self, ref=None):
         self.ref = ref
         self.converter = Converter(self.__class__)
@@ -113,7 +113,7 @@ class AXUIElement:
 
             return perform_ax_action
         else:
-            raise AttributeError(f'Specified object has no attribute: "{item}"')
+            raise AttributeError(f'{self.__class__} cannot access requested attribute: "{item}"')
 
     def __setattr__(self, key, value):
         if key.startswith('AX'):
@@ -229,7 +229,7 @@ class AXUIElement:
                     return []
                 return None
 
-        raise AttributeError(f'"{type(self)}" object has no attribute "{item}"')
+        raise AttributeError(f'"{self}" object has no attribute "{item}"')
 
     def _set_ax_attribute(self, name, value):
         """Set the specified attribute to the specified value."""
@@ -243,7 +243,7 @@ class AXUIElement:
         perform_action_on_element(self.ref, name)
 
 
-class NativeUIElement(AXUIElement, LookUpMixin):
+class NativeUIElement(AXUIElement):
     """Expose the accessibility API in the simplest, most natural way possible."""
 
     def __init__(self, ref=None):
