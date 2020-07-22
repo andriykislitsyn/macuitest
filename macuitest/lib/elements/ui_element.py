@@ -1,3 +1,4 @@
+import threading
 from pathlib import Path
 from typing import Union, Optional
 
@@ -7,6 +8,8 @@ from macuitest.config.constants import Point, Region
 from macuitest.lib.core import wait_condition
 from macuitest.lib.elements.controllers.mouse import mouse
 from macuitest.lib.elements.ui.monitor import monitor
+
+MATCHING_ALGORITHMS = (cv2.TM_CCOEFF_NORMED, cv2.TM_SQDIFF_NORMED)
 
 
 class UIElementNotFoundOnScreen(Exception):
@@ -22,6 +25,7 @@ class UIElement:
         self.similarity = similarity
         self.image, self.width, self.height = None, None, None
         self.__center: Optional[Point] = None
+        self.__matches: Optional = list()
         self.load_image()
 
     def __repr__(self):
@@ -59,13 +63,44 @@ class UIElement:
         return Point(match.x + self.width / 2, match.y + self.height / 2)
 
     def wait_displayed(self, timeout=5, region: Optional[Region] = None) -> Union[None, Point]:
-        match = wait_condition(lambda: self.find_pattern(self.image, self.similarity, region), timeout=timeout)
+        match = wait_condition(lambda: self.find_pattern(region), timeout=timeout)
         if match:
             self.__center = match
             return match
 
-    def wait_vanish(self, timeout=30, region: Optional[Region] = None) -> bool:
-        return wait_condition(lambda: self.find_pattern(self.image, self.similarity, region) is None, timeout=timeout)
+    def wait_vanish(self, timeout=15, region: Optional[Region] = None) -> bool:
+        return wait_condition(
+            lambda: self.find_pattern(region, algorithms=(cv2.TM_CCOEFF_NORMED, )) is None, timeout=timeout)
+
+    def find_pattern(self, region: Optional[Region] = None, algorithms=MATCHING_ALGORITHMS):
+        """ Locate pattern on the screen and return its center.
+
+            OpenCV (Open Source Computer Vision Library) is an open source computer vision
+            and machine learning software library. It's built to provide a common infrastructure
+            for computer vision applications and to accelerate the use of machine perception
+            in the commercial products. """
+        threads = list()
+        r = Region(0, 0, monitor.size.width, monitor.size.height) if region is None else region
+        desktop = cv2.cvtColor(monitor.take_screenshot(), cv2.COLOR_BGR2GRAY)[r.y1:r.y2, r.x1:r.x2]
+        for algorithm in algorithms:
+            x = threading.Thread(target=self.compare_by, args=(desktop, algorithm), daemon=True)
+            threads.append(x)
+            x.start()
+        for thread in threads:
+            thread.join()
+        similarity, position = max(self.__matches)
+        self.__matches = list()
+        if similarity > self.similarity:
+            denominator = 2 if monitor.is_retina else 1
+            return Point((position[0] + r.x1) // denominator, (position[1] + r.y1) // denominator)
+
+    def compare_by(self, desktop, algorithm=cv2.TM_SQDIFF_NORMED):
+        min_val, max_val, min_pos, max_pos = cv2.minMaxLoc(cv2.matchTemplate(desktop, self.image, algorithm))
+        (similarity, position) = round(max_val, 5), max_pos
+        if algorithm == cv2.TM_SQDIFF_NORMED:
+            similarity, position = round(1 - min_val, 5), min_pos
+        self.__matches.append((similarity, position))
+        return similarity, position
 
     def load_image(self) -> None:
         if not Path(self.path).exists():
@@ -77,18 +112,3 @@ class UIElement:
         if monitor.is_retina:
             height, width = height / 2, width / 2
         self.image, self.width, self.height = image, width, height
-
-    @staticmethod
-    def find_pattern(screenshot_path: str, min_threshold: float, region: Optional[Region] = None) -> Optional[Point]:
-        """ Locate pattern on the screen and return its center.
-
-            OpenCV (Open Source Computer Vision Library) is an open source computer vision
-            and machine learning software library. It's built to provide a common infrastructure
-            for computer vision applications and to accelerate the use of machine perception
-            in the commercial products. """
-        r = Region(0, 0, monitor.size.width, monitor.size.height) if region is None else region
-        desktop = cv2.cvtColor(monitor.take_screenshot(), cv2.COLOR_BGR2GRAY)[r.y1:r.y2, r.x1:r.x2]
-        _, similarity, _, position = cv2.minMaxLoc(cv2.matchTemplate(desktop, screenshot_path, cv2.TM_CCOEFF_NORMED))
-        if similarity > min_threshold:
-            denominator = 2 if monitor.is_retina else 1
-            return Point((position[0] + r.x1) // denominator, (position[1] + r.y1) // denominator)
