@@ -6,7 +6,7 @@ import shutil
 import zipfile
 from pathlib import Path
 from pwd import getpwuid
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Union
 
 
 class FileManager:
@@ -114,11 +114,11 @@ class FileManager:
         execute = self.executor.sudo if self.__are_elevated_rights_needed(destination) else self.executor.execute
         execute(f'rsync -q -ahP "{source}" "{destination}"')
 
-    def __are_elevated_rights_needed(self, destination: str):
+    def __are_elevated_rights_needed(self, destination: Union[Path, str]):
         result = False
-        if self.get_file_owner(destination) == 'root':
-            result = True
-        if destination.startswith('/var') or destination.startswith('/private') or destination.startswith('/Library'):
+        protected_folders = ('dev', 'var', 'usr', 'private', 'Library', 'System')
+        _destination_ = str(destination)
+        if self.get_file_owner(_destination_) == 'root' or _destination_.split('/')[1] in protected_folders:
             result = True
         return result
 
