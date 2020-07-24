@@ -6,17 +6,17 @@ import pytweening
 
 
 class MouseController:
-    def __init__(self, tween_type=pytweening.easeInOutQuad):
+    def __init__(self, tween_type=pytweening.easeOutQuad):
         self.tween_type = tween_type
         self.__screen_size = None
 
-    def move_to(self, x: int, y: int, duration: float = .25):
+    def move_to(self, x: int, y: int, duration: float = .4):
         self.__mouse_move_drag(x=x, y=y, duration=duration)
-        time.sleep(.1)
+        time.sleep(.125)
 
-    def drag_to(self, x: int, y: int, duration: float = .25):
+    def drag_to(self, x: int, y: int, duration: float = .4):
         self.__mouse_move_drag(x=x, y=y, duration=duration, move='drag')
-        time.sleep(.1)
+        time.sleep(.125)
 
     def mouse_down(self, x: int, y: int, button: str):
         if button == 'left':
