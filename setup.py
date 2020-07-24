@@ -26,6 +26,7 @@ setup(
         'opencv-python == 3.4.8.29' if macos_ver < (10, 13) else 'opencv-python',
         'pillow',
         'pyobjc-framework-ApplicationServices',
+        'pyobjc-framework-AVFoundation',
         'pyobjc-framework-Cocoa',
         'pyobjc-framework-CoreText',
         'pyobjc-framework-Quartz',
