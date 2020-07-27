@@ -5,6 +5,8 @@ from datetime import datetime
 from types import MappingProxyType
 from typing import Any, Union, Optional, Tuple
 
+from macuitest.lib.elements.ui.monitor import monitor
+
 from macuitest.config.constants import CheckboxState, Frame, Point, DisclosureTriangleState, Region
 from macuitest.lib import core
 from macuitest.lib.applescript_lib.applescript_wrapper import as_wrapper, AppleScriptError
@@ -32,10 +34,10 @@ class BaseUIElement:
 
     def snapshot(self, margin: int = 4) -> str:
         self.reset_frame()
-        _region = f'{self.frame.x1 - margin},{self.frame.y1 - margin},' \
-                  f'{self.frame.width + margin * 2},{self.frame.height + margin * 2}'
+        _region = (self.frame.x1 - margin, self.frame.y1 - margin,
+                   self.frame.width + margin * 2, self.frame.height + margin * 2)
         _where = f'{env.desktop}/scr_{datetime.now().strftime("%Y%m%d%H%M%S%f")}.png'
-        os.system(f'screencapture -x -R"{_region}" "{_where}"')
+        monitor.save_screenshot(region=_region, where=_where)
         return _where
 
     def region(self, margin: int = 4):

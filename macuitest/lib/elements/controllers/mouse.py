@@ -8,10 +8,10 @@ from macuitest.lib.elements.controllers.mouse_controller import MouseController
 @dataclass(frozen=True)
 class Options:
     """Mouse options."""
-    move: float = .4  # Cursor roaming time.
+    move: float = .35  # Cursor roaming time.
     hold: float = .25  # Time to hold a button selected.
     pause: float = .25  # Pause after an action.
-    default_position: tuple = (28, 30)
+    default_position: tuple = (5, 3)
 
 
 class Mouse:
@@ -52,7 +52,7 @@ class Mouse:
         self.controller.vertical_scroll(scrolls)
 
     def reset(self):
-        self.hover(*Options.default_position, duration=0.03)
+        self.hover(*Options.default_position, duration=.4)
 
     def hover(self, x: int, y: int, _x: int = 0, _y: int = 0, duration: float = Options.move) -> None:
         """Hover over the position."""

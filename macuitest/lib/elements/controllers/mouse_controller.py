@@ -10,11 +10,11 @@ class MouseController:
         self.tween_type = tween_type
         self.__screen_size = None
 
-    def move_to(self, x: int, y: int, duration: float = .4):
+    def move_to(self, x: int, y: int, duration: float = .35):
         self.__mouse_move_drag(x=x, y=y, duration=duration)
         time.sleep(.125)
 
-    def drag_to(self, x: int, y: int, duration: float = .4):
+    def drag_to(self, x: int, y: int, duration: float = .35):
         self.__mouse_move_drag(x=x, y=y, duration=duration, move='drag')
         time.sleep(.125)
 
@@ -47,12 +47,13 @@ class MouseController:
         x = max(0, min(x, width - 1))  # Make sure x and y are within the screen bounds.
         y = max(0, min(y, height - 1))
         steps_count = int(max(abs(x - start_x), abs(y - start_y))) or 1
+        if steps_count < 50:
+            duration /= 3
         pause = duration / steps_count
         steps = [pytweening.getPointOnLine(start_x, start_y, x, y, self.tween_type(n / steps_count))
-                 for n in range(steps_count)] + [(x, y)]
-        if steps_count < 20:
-            steps, pause = [(x, y)], 0
-        for tween_x, tween_y in steps:
+                 for n in range(steps_count)]
+        print(len(steps))
+        for tween_x, tween_y in steps + [(x, y)]:
             self._send_mouse_event(kcg_event, tween_x, tween_y, mouse_button)
             time.sleep(pause)
 

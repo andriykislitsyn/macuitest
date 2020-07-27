@@ -1,8 +1,11 @@
-from typing import Optional
+from pathlib import Path
+from typing import Optional, Union, Tuple
 
-import numpy
 import AppKit
-from Quartz import CoreGraphics, CGDisplayBounds, CGMainDisplayID
+import Quartz
+import numpy
+from Foundation import NSURL
+from Quartz import CoreGraphics
 
 from macuitest.config.constants import ScreenSize
 
@@ -12,7 +15,8 @@ class Monitor:
         self.__is_retina: Optional[bool] = None
         self.__screen_size: Optional[ScreenSize] = None
 
-    def take_screenshot(self) -> numpy.ndarray:
+    @property
+    def snapshot(self) -> numpy.ndarray:
         pixel_data = self.pixel_data
         _image = numpy.frombuffer(pixel_data[0], dtype=numpy.uint8)
         return _image.reshape((self.size.height, pixel_data[1], 4))[:, :self.size.width, :]
@@ -30,7 +34,7 @@ class Monitor:
     @property
     def size(self) -> ScreenSize:
         if self.__screen_size is None:
-            size = CGDisplayBounds(CGMainDisplayID()).size
+            size = Quartz.GDisplayBounds(Quartz.CGMainDisplayID()).size
             self.__screen_size = ScreenSize(int(size.width), int(size.height))
         return self.__screen_size
 
@@ -45,6 +49,19 @@ class Monitor:
         pixel_data = CoreGraphics.CGDataProviderCopyData(CoreGraphics.CGImageGetDataProvider(image))
         bytes_per_row = CoreGraphics.CGImageGetBytesPerRow(image) // 4
         return pixel_data, bytes_per_row
+
+    @staticmethod
+    def save_screenshot(where: Union[str, Path], region: Optional[Tuple[int, int, int, int]] = None):
+        region = CoreGraphics.CGRectInfinite if region is None else CoreGraphics.CGRectMake(*region)
+        image = CoreGraphics.CGWindowListCreateImage(
+            region,
+            CoreGraphics.kCGWindowListOptionOnScreenOnly,
+            CoreGraphics.kCGNullWindowID,
+            CoreGraphics.kCGWindowImageDefault
+        )
+        destination = Quartz.CGImageDestinationCreateWithURL(NSURL.fileURLWithPath_(str(where)), 'public.png', 1, None)
+        Quartz.CGImageDestinationAddImage(destination, image, dict())
+        Quartz.CGImageDestinationFinalize(destination)
 
 
 monitor = Monitor()

@@ -81,7 +81,7 @@ class UIElement:
             in the commercial products. """
         threads = list()
         r = Region(0, 0, monitor.size.width, monitor.size.height) if region is None else region
-        desktop = cv2.cvtColor(monitor.take_screenshot(), cv2.COLOR_BGR2GRAY)[r.y1:r.y2, r.x1:r.x2]
+        desktop = cv2.cvtColor(monitor.snapshot, cv2.COLOR_BGR2GRAY)[r.y1:r.y2, r.x1:r.x2]
         for algorithm in algorithms:
             x = threading.Thread(target=self.compare_by, args=(desktop, algorithm), daemon=True)
             threads.append(x)
