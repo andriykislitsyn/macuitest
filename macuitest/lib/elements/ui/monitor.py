@@ -5,7 +5,7 @@ import AppKit
 import Quartz
 import numpy
 from Foundation import NSURL
-from Quartz import CoreGraphics
+from Quartz import CoreGraphics, CGDisplayBounds, CGMainDisplayID
 
 from macuitest.config.constants import ScreenSize
 
@@ -34,7 +34,7 @@ class Monitor:
     @property
     def size(self) -> ScreenSize:
         if self.__screen_size is None:
-            size = Quartz.GDisplayBounds(Quartz.CGMainDisplayID()).size
+            size = CGDisplayBounds(CGMainDisplayID()).size
             self.__screen_size = ScreenSize(int(size.width), int(size.height))
         return self.__screen_size
 
