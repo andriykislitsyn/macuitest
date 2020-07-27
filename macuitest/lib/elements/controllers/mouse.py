@@ -52,7 +52,7 @@ class Mouse:
         self.controller.vertical_scroll(scrolls)
 
     def reset(self):
-        self.hover(*Options.default_position, duration=.4)
+        self.hover(*Options.default_position)
 
     def hover(self, x: int, y: int, _x: int = 0, _y: int = 0, duration: float = Options.move) -> None:
         """Hover over the position."""
