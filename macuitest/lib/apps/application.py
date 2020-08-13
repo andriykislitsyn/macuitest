@@ -82,7 +82,7 @@ class Application:
         self._set_attribute('AXFrontmost', converted)
 
     def is_frontmost(self) -> bool:
-        return wait_condition(lambda: self._read_attribute('AXFrontmost'), timeout=3)
+        return wait_condition(lambda: self._read_attribute('AXFrontmost'), timeout=5)
 
     def set_hidden(self, value: bool = True):
         converted = {True: 'true', False: 'false'}.get(value)
@@ -118,15 +118,14 @@ class Finder(Application):
 
     @property
     def window_path(self) -> str:
-        return as_wrapper.tell_app(self.name, 'return POSIX path of (target of last Finder window as alias)')
+        return as_wrapper.tell_app(self.name, 'return POSIX path of (target of first window as alias)')
 
     def eject_mounted_disks(self) -> None:
         return as_wrapper.tell_app(self.name, 'eject (every disk whose ejectable is true)')
 
     def move_file_to_trash(self, target: str) -> None:
         self.show_destination(target)
-        assert self.is_frontmost
-        time.sleep(5)
+        time.sleep(3)
         as_wrapper.send_keycode(as_wrapper.key_codes['delete'], 'command')
         time.sleep(3)
         self.close_windows()

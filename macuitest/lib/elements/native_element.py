@@ -159,6 +159,10 @@ class TextField(StaticText):
         self.item.AXValue = value
 
     @property
+    def placeholder(self) -> str:
+        return str(self.item.AXPlaceholderValue)
+
+    @property
     def keyboard_focused(self) -> bool:
         return self.item.AXFocused
 
