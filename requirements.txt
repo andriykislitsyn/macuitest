@@ -6,5 +6,7 @@ pyobjc-framework-AVFoundation
 pyobjc-framework-Cocoa
 pyobjc-framework-CoreText
 pyobjc-framework-Quartz
+pytesseract
 PyTweening
+requests
 webcolors
