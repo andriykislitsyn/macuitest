@@ -32,7 +32,7 @@ class Frame:
     height: Union[int, float]
 
 
-@dataclass(frozen=True)
+@dataclass
 class Region:
     x1: Union[int, float]
     y1: Union[int, float]

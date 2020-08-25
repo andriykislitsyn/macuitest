@@ -11,7 +11,7 @@ with open('README.md') as fh:
 setup(
     name='macuitest',
     packages=find_packages(),
-    version='0.6.7',
+    version='0.7',
     license='Apache-2.0 License',
     description='A simple UI testing framework for macOS',
     long_description=long_description,
@@ -19,7 +19,7 @@ setup(
     author='Andrii Kislitsyn',
     author_email='andriikislitsyn@gmail.com',
     url='https://github.com/andriykislitsyn',
-    download_url='https://github.com/andriykislitsyn/macuitest/archive/v0.6.7-alpha.tar.gz',
+    download_url='https://github.com/andriykislitsyn/macuitest/archive/v0.7-alpha.tar.gz',
     keywords=['Testing', 'UI', 'Functional', 'macOS'],
     install_requires=[
         'biplist',
@@ -30,7 +30,9 @@ setup(
         'pyobjc-framework-Cocoa',
         'pyobjc-framework-CoreText',
         'pyobjc-framework-Quartz',
+        'pytesseract',
         'PyTweening',
+        'requests',
         'webcolors',
     ],
     classifiers=[
@@ -45,5 +47,6 @@ setup(
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
     ],
 )

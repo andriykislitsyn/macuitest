@@ -8,7 +8,7 @@ from macuitest.lib.elements.controllers.mouse_controller import MouseController
 @dataclass(frozen=True)
 class Options:
     """Mouse options."""
-    move: float = .35  # Cursor roaming time.
+    move: float = .25  # Cursor roaming time.
     hold: float = .25  # Time to hold a button selected.
     pause: float = .25  # Pause after an action.
     default_position: tuple = (5, 3)

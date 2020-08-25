@@ -20,7 +20,7 @@ class UIElementNotFoundOnScreen(Exception):
 class UIElement:
     """Represent a visible user interface element. Based on automated pattern recognition algorithm (OpenCV)."""
 
-    def __init__(self, screenshot_path: str, similarity: float = 0.85):
+    def __init__(self, screenshot_path: str, similarity: float = 0.9):
         self.path = screenshot_path.strip()
         self.similarity = similarity
         self.image, self.width, self.height = None, None, None
