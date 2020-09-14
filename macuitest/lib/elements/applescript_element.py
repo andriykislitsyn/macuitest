@@ -1,17 +1,16 @@
-import os
+import math
 import time
 from dataclasses import dataclass
 from datetime import datetime
 from types import MappingProxyType
-from typing import Any, Union, Optional, Tuple
-
-from macuitest.lib.elements.ui.monitor import monitor
+from typing import Any, Union, Optional, Tuple, List
 
 from macuitest.config.constants import CheckboxState, Frame, Point, DisclosureTriangleState, Region
 from macuitest.lib import core
 from macuitest.lib.applescript_lib.applescript_wrapper import as_wrapper, AppleScriptError
 from macuitest.lib.core import wait_condition
 from macuitest.lib.elements.controllers.mouse import mouse
+from macuitest.lib.elements.ui.monitor import monitor
 from macuitest.lib.operating_system.color_meter import ColorMeter
 from macuitest.lib.operating_system.env import env
 
@@ -117,7 +116,7 @@ class BaseUIElement:
     @property
     def _children(self):
         self.__assert_visible()
-        return self._read_attribute('AXChildren')
+        return self.get_attribute_value('AXChildren')
 
     @property
     def _rows(self) -> int:
@@ -129,8 +128,8 @@ class BaseUIElement:
         if self._frame is not None:
             return self._frame
         self.__assert_visible()
-        _frame = [*self._read_attribute('AXPosition'), *self._read_attribute('AXSize')]
-        x1, y1, width, height = _frame
+        _frame = (*self.get_attribute_value('AXPosition'), *self.get_attribute_value('AXSize'))
+        x1, y1, width, height = (math.floor(x) for x in _frame)
         x2, y2 = x1 + width, y1 + height
         center = Point(int((x1 + width / 2)), int((y1 + height / 2)))
         self._frame = Frame(x1, y1, x2, y2, center, width, height)
@@ -142,32 +141,32 @@ class BaseUIElement:
     @property
     def title(self) -> str:
         self.__assert_visible()
-        return self._read_attribute('AXTitle').strip()
+        return self.get_attribute_value('AXTitle').strip()
 
     @property
     def description(self) -> str:
         self.__assert_visible()
-        return self._read_attribute('AXDescription').strip()
+        return self.get_attribute_value('AXDescription').strip()
 
     @property
     def value(self) -> str:
         self.__assert_visible()
-        return self._read_attribute('AXValue')
+        return self.get_attribute_value('AXValue')
 
     @property
     def help(self) -> str:
         self.__assert_visible()
-        return self._read_attribute('AXHelp')
+        return self.get_attribute_value('AXHelp')
 
     @property
     def _placeholder(self) -> str:
         self.__assert_visible()
-        return self._read_attribute('AXPlaceholderValue')
+        return self.get_attribute_value('AXPlaceholderValue')
 
     def _is_enabled(self) -> bool:
         """Check whether element enabled"""
         self.__assert_visible()
-        return self._read_attribute('AXEnabled')
+        return self.get_attribute_value('AXEnabled')
 
     @property
     def did_vanish(self) -> bool:
@@ -187,11 +186,18 @@ class BaseUIElement:
     def _set_attribute(self, attribute, value) -> Any:
         return self.__execute(f'set value of attribute "{attribute}" of', params=f'to {value}')
 
-    def _read_attribute(self, attribute) -> Any:
+    def get_attribute_value(self, attribute) -> Any:
         try:
             return self.__execute(f'get value of attribute "{attribute}" of')
         except AppleScriptError:
             return None
+
+    @property
+    def attributes(self) -> List[str]:
+        try:
+            return self.__execute(f'get name of every attribute of')
+        except AppleScriptError:
+            return []
 
     def is_exists(self) -> bool:
         try:
@@ -249,11 +255,11 @@ class TextElement(BaseUIElement):
 
     @property
     def characters_number(self):
-        return self._read_attribute('AXNumberOfCharacters')
+        return self.get_attribute_value('AXNumberOfCharacters')
 
     @property
     def visible_characters_number(self):
-        return list(self._read_attribute('AXVisibleCharacterRange'))[1]
+        return list(self.get_attribute_value('AXVisibleCharacterRange'))[1]
 
     def set_text(self, value: str):
         self.wait_displayed()
@@ -299,7 +305,7 @@ class TextField(TextElement):
 
     @property
     def is_focused(self):
-        return self._read_attribute('AXFocused')
+        return self.get_attribute_value('AXFocused')
 
     @is_focused.setter
     def is_focused(self, value: bool):
@@ -386,7 +392,7 @@ class Row(BaseUIElement):
 
     @property
     def is_selected(self) -> bool:
-        return self._read_attribute('AXSelected')
+        return self.get_attribute_value('AXSelected')
 
 
 class ScrollArea(BaseUIElement):
@@ -434,18 +440,18 @@ class Window(BaseUIElement):
         self._set_attribute('AXMinimized', converted)
 
     def is_minimized(self):
-        return self._read_attribute('AXMinimized')
+        return self.get_attribute_value('AXMinimized')
 
     def set_full_screen(self, value):
         converted = {True: 'true', False: 'false'}.get(value)
         self._set_attribute('AXFrontmost', converted)
 
     def is_full_screen(self):
-        return self._read_attribute('AXFullScreen')
+        return self.get_attribute_value('AXFullScreen')
 
     @property
     def is_keyboard_focused(self) -> bool:
-        return self._read_attribute('AXFocused')
+        return self.get_attribute_value('AXFocused')
 
     minimized = property(is_minimized, set_minimized)
     full_screen = property(is_full_screen, set_full_screen)
@@ -454,9 +460,9 @@ class Window(BaseUIElement):
 class WebView(BaseUIElement):
     @property
     def url(self):
-        wait_condition(lambda: self._read_attribute('AXURL') is not None, timeout=60)
-        wait_condition(lambda: self._read_attribute('AXURL').startswith('http'), timeout=30)
-        return wait_condition(lambda: self._read_attribute('AXURL'), timeout=30)
+        wait_condition(lambda: self.get_attribute_value('AXURL') is not None, timeout=60)
+        wait_condition(lambda: self.get_attribute_value('AXURL').startswith('http'), timeout=30)
+        return wait_condition(lambda: self.get_attribute_value('AXURL'), timeout=30)
 
 
 @dataclass(frozen=True)

@@ -52,9 +52,10 @@ class MouseController:
         pause = duration / steps_count
         steps = [pytweening.getPointOnLine(start_x, start_y, x, y, self.tween_type(n / steps_count))
                  for n in range(steps_count)]
-        for tween_x, tween_y in steps + [(x, y)]:
+        for tween_x, tween_y in steps:
             self._send_mouse_event(kcg_event, tween_x, tween_y, mouse_button)
             time.sleep(pause)
+        self._send_mouse_event(kcg_event, x, y, mouse_button)
 
     @staticmethod
     def vertical_scroll(scrolls: int):
