@@ -183,6 +183,16 @@ class BaseUIElement:
     def wait_displayed(self, timeout: Union[int, float] = 5):
         return wait_condition(self.is_exists, timeout=timeout)
 
+    def perform_action(self, action):
+        self.__execute(f'perform action "{action}" of')
+
+    @property
+    def actions(self) -> List[str]:
+        try:
+            return self.__execute(f'get name of every action of')
+        except AppleScriptError:
+            return []
+
     def _set_attribute(self, attribute, value) -> Any:
         return self.__execute(f'set value of attribute "{attribute}" of', params=f'to {value}')
 
