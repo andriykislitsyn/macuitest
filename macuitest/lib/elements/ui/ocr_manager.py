@@ -2,13 +2,12 @@ import os
 import tempfile
 from dataclasses import astuple
 from pathlib import Path
-from typing import ClassVar, Optional, Tuple, Union
+from typing import ClassVar
 
 import cv2
 import numpy as np
 import pytesseract
 import requests
-from PIL import Image
 
 from macuitest.config.constants import Region
 from macuitest.lib.elements.ui.monitor import monitor
@@ -27,17 +26,15 @@ class OCRManager:
         self.url_tesseract_dataset = f"https://github.com/tesseract-ocr/tessdata_best/raw/master/{self.trained_data}"
         self.__assert_trained_data_present()
 
-    def recognize(self, region: Optional[Union[Tuple[int, int, int, int], Region]] = None):
+    def recognize(self, region: Region) -> str:
         _, screenshot = tempfile.mkstemp()
         screenshot = f'{screenshot}.png'
-        _region_ = astuple(region) if type(region) is Region else region
-        monitor.save_screenshot(where=screenshot, region=_region_)
-        _image_ = Image.open(screenshot).convert('RGB').convert('L').point(lambda x: 0 if x > 200 else 255, mode='1')
-        _image_.save(screenshot)
-        image = cv2.imread(screenshot)
-        payload = pytesseract.image_to_string(image, config=self.config, lang=self.language)
+        region = astuple(region) if type(region) is Region else region
+        monitor.save_screenshot(where=screenshot, region=region)
+        img_gray = cv2.cvtColor(cv2.imread(screenshot), cv2.COLOR_BGR2GRAY)
+        _, img_bw = cv2.threshold(img_gray, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+        payload = pytesseract.image_to_string(img_bw, config=self.config, lang=self.language)
         recognized = os.linesep.join([s for s in payload.splitlines() if s])
-        os.unlink(screenshot)
         return recognized
 
     @staticmethod
