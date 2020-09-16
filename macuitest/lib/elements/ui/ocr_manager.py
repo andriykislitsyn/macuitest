@@ -8,8 +8,9 @@ import cv2
 import numpy as np
 import pytesseract
 import requests
-from macuitest.config.constants import Region
+from PIL import Image
 
+from macuitest.config.constants import Region
 from macuitest.lib.elements.ui.monitor import monitor
 
 
@@ -28,11 +29,12 @@ class OCRManager:
 
     def recognize(self, region: Optional[Union[Tuple[int, int, int, int], Region]] = None):
         _, screenshot = tempfile.mkstemp()
+        screenshot = f'{screenshot}.png'
         _region_ = astuple(region) if type(region) is Region else region
         monitor.save_screenshot(where=screenshot, region=_region_)
+        _image_ = Image.open(screenshot).convert('RGB').convert('L').point(lambda x: 0 if x > 200 else 255, mode='1')
+        _image_.save(screenshot)
         image = cv2.imread(screenshot)
-        if self.is_dark(image):
-            image = cv2.bitwise_not(image)
         payload = pytesseract.image_to_string(image, config=self.config, lang=self.language)
         recognized = os.linesep.join([s for s in payload.splitlines() if s])
         os.unlink(screenshot)

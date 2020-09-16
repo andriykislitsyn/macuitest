@@ -421,7 +421,7 @@ class Image(BaseUIElement):
         return self.description
 
 
-class List(BaseUIElement):
+class _List(BaseUIElement):
     @property
     def elements_number(self):
         return self._count_elements()
@@ -482,7 +482,7 @@ class Elements:
             'busy indicator': BusyIndicator, 'static text': StaticText, 'text area': TextArea, 'text field': TextField,
             'checkbox': Checkbox, 'combo box': ComboBox, 'menu item': MenuItem, 'menu button': MenuItem,
             'menu bar item': MenuBarItem, 'menu': Menu, 'group': Group, 'row': Row, 'scroll area': ScrollArea,
-            'table': Table, 'image': Image, 'list': List, 'outline': Outline, 'pop over': Popover, 'popover': Popover,
+            'table': Table, 'image': Image, 'list': _List, 'outline': Outline, 'pop over': Popover, 'popover': Popover,
             'sheet': Sheet, 'window': Window, })
 
 

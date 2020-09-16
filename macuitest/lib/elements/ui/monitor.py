@@ -52,6 +52,9 @@ class Monitor:
 
     @staticmethod
     def save_screenshot(where: Union[str, Path], region: Optional[Tuple[int, int, int, int]] = None):
+        """ Take a screenshot and save it to `where.
+                Note: Region is defined by (x, y) pair of top left point, and width, length params.
+        """
         region = CoreGraphics.CGRectInfinite if region is None else CoreGraphics.CGRectMake(*region)
         image = CoreGraphics.CGWindowListCreateImage(
             region,
