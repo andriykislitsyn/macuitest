@@ -35,6 +35,7 @@ class OCRManager:
         _, img_bw = cv2.threshold(img_gray, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
         payload = pytesseract.image_to_string(img_bw, config=self.config, lang=self.language)
         recognized = os.linesep.join([s for s in payload.splitlines() if s])
+        os.unlink(screenshot)
         return recognized
 
     @staticmethod
