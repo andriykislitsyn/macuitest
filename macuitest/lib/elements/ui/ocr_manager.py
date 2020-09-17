@@ -50,6 +50,7 @@ class OCRManager:
 
     def __assert_trained_data_present(self):
         if not self.trained_data_path.joinpath(self.trained_data).exists():
+            Path(self.trained_data_path).mkdir(parents=True, exist_ok=True)
             response = requests.get(self.url_tesseract_dataset)  # Download Tesseract trained dataset.
             with open(self.trained_data_path.joinpath(self.trained_data), 'wb') as dataset:
                 dataset.write(response.content)
