@@ -51,7 +51,7 @@ class Monitor:
         return pixel_data, bytes_per_row
 
     @staticmethod
-    def save_screenshot(where: Union[str, Path], region: Optional[Tuple[int, int, int, int]] = None):
+    def save_screenshot(where: Union[str, Path], region: Optional[Tuple[int, int, int, int]] = None) -> Union[str, Path]:
         """ Take a screenshot and save it to `where.
                 Note: Region is defined by (x, y) pair of top left point, and width, length params.
         """
@@ -65,6 +65,7 @@ class Monitor:
         destination = Quartz.CGImageDestinationCreateWithURL(NSURL.fileURLWithPath_(str(where)), 'public.png', 1, None)
         Quartz.CGImageDestinationAddImage(destination, image, dict())
         Quartz.CGImageDestinationFinalize(destination)
+        return where
 
 
 monitor = Monitor()

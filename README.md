@@ -20,6 +20,7 @@
 ## Installation
 
 - Install a modern Python version (at least 3.6): `brew install python3`
+- If OCR capabilities required, install Tesseract: `brew install tesseract`
 - Update pip's setup tools: `pip3 install --upgrade pip setuptools wheel`
 - Install the the package: `pip3 install macuitest` and you should be ready to go
 

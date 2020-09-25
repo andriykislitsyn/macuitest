@@ -9,6 +9,7 @@ from macuitest.config.constants import CheckboxState, Frame, Point, DisclosureTr
 from macuitest.lib import core
 from macuitest.lib.applescript_lib.applescript_wrapper import as_wrapper, AppleScriptError
 from macuitest.lib.core import wait_condition
+from macuitest.lib.elements.controllers.keyboard_controller import keyboard
 from macuitest.lib.elements.controllers.mouse import mouse
 from macuitest.lib.elements.ui.monitor import monitor
 from macuitest.lib.operating_system.color_meter import ColorMeter
@@ -295,33 +296,38 @@ class StaticText(TextElement):
     pass
 
 
-class TextArea(TextElement):
-    pass
-
-
 class TextField(TextElement):
-    @property
-    def placeholder(self):
-        return self._placeholder
-
-    def value(self) -> str:
-        return self._get_value()
-
-    def set(self, value):
-        self._set_value(value)
+    def fill(self, with_text: str):
+        self.focus()
+        self.text = ''
+        time.sleep(.5)
+        keyboard.write(with_text, pause=.03)
+        time.sleep(.5)
+        assert len(self.text) == len(with_text)
 
     def focus(self, value='true'):
         self._set_focus(value)
 
     @property
-    def is_focused(self):
-        return self.get_attribute_value('AXFocused')
+    def is_secure(self) -> bool: return self.get_attribute_value('AXRoleDescription') == 'secure text field'
 
-    @is_focused.setter
-    def is_focused(self, value: bool):
-        self._set_focus(value)
+    @property
+    def placeholder(self): return self._placeholder
 
-    text = property(value, set)
+    def __get_value(self) -> str: return self._get_value()
+
+    def __set_value(self, value): self._set_value(str(value))
+
+    def __get_focused(self): return self.get_attribute_value('AXFocused')
+
+    def __set_focused(self, value: bool): self._set_focus(value)
+
+    is_focused = property(__get_focused, __set_focused)
+    text = property(__get_value, __set_value)
+
+
+class TextArea(TextField):
+    pass
 
 
 class ComboBox(BaseUIElement):
