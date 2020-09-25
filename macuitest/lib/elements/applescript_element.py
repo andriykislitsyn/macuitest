@@ -223,7 +223,7 @@ class BaseUIElement:
         if not self.is_visible:
             raise LookupError(self)
 
-    def __execute(self, command, params=''):
+    def __execute(self, command: str, params: str = ''):
         """Execute a command.
                :param str command: The name of the command to _execute as a string.
                :param str params: Command parameters.
@@ -297,12 +297,12 @@ class StaticText(TextElement):
 
 
 class TextField(TextElement):
-    def fill(self, with_text: str):
+    def fill(self, with_text: str, pause: float = .005):
         self.focus()
         self.text = ''
-        time.sleep(.5)
-        keyboard.write(with_text, pause=.03)
-        time.sleep(.5)
+        time.sleep(.25)
+        keyboard.write(with_text, pause=pause)
+        time.sleep(.25)
         assert len(self.text) == len(with_text)
 
     def focus(self, value='true'):
