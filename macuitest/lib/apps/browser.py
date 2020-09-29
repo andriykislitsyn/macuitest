@@ -26,27 +26,43 @@ class Safari(Application):
 
     def request_webpage(self, url: str):
         as_wrapper.tell_app(self.name, f'make new document with properties {{URL:"{url}"}}')
-        self.window.wait_displayed(timeout=5)
+        wait_condition(lambda: self.native_window is not None)
 
     def close_tabs(self):
         if self.is_running:
             as_wrapper.tell_app(self.name, 'close tabs of every window', ignoring_responses=True)
             assert wait_condition(lambda: as_wrapper.tell_app(self.name, 'return the number of tabs in windows') == 0)
 
-    def did_webpage_load(self, webpage_address: str) -> bool:
-        assert self.window.wait_displayed(timeout=15)
-        time.sleep(1)
-        wait_condition(lambda: self.stop_reload_button is not None)
-        wait_condition(lambda: self.stop_reload_button.AXTitle == 'Reload this page')
-        wait_condition(lambda: self.execute_js_command('document.readyState') == 'complete')
-        return webpage_address in self.address_bar_value
+    def did_webpage_load(self, expected_address: str) -> bool:
+        assert self.did_launch
+        wait_condition(lambda: self.native_window is not None)
+        wait_condition(lambda: self.execute_js_command('document.readyState') == 'complete', timeout=15)
+        return wait_condition(lambda: expected_address in self.document_url, timeout=5)
 
     def execute_js_command(self, command: str) -> None:
-        return as_wrapper.tell_app(self.name, f'''tell front document to do JavaScript "{command}"''')
+        command = command.replace('"', '\\"')
+        return as_wrapper.tell_app(self.name, f'tell front document to do JavaScript "{command}"')
+
+    def search_web(self, query: str):
+        return as_wrapper.tell_app(self.name, f'tell front tab to search the web for "{query}"')
 
     def confirm_download(self) -> None:
+        time.sleep(.5)
         if confirm_download_dialog := self.confirm_download_dialog:
             confirm_download_dialog.find_element(AXRole='AXButton', AXTitle='Allow').AXPress()
+
+    @property
+    def document_cookies(self):
+        return self.execute_js_command('document.cookie')
+
+    @property
+    def document_url(self) -> str: return as_wrapper.tell_app(self.name, f'tell front document to return URL')
+
+    @property
+    def document_name(self) -> str: return as_wrapper.tell_app(self.name, f'tell front document to return name')
+
+    @property
+    def document_html(self) -> str: return as_wrapper.tell_app(self.name, f'tell front document to return source')
 
     def __get_address_bar_value(self) -> str:
         return self.address_bar.AXValue
