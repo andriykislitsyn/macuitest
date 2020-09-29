@@ -58,15 +58,11 @@ class Safari(Application):
 
     @property
     def stop_reload_button(self) -> NativeUIElement:
-        return self.address_bar.AXParent.find_element(AXIdentifier='StopReloadButton')
+        return self.native_window.find_element(AXIdentifier='StopReloadButton', recursive=True)
 
     @property
     def address_bar(self) -> NativeUIElement:
-        return self.tool_bar.find_element(AXIdentifier='WEB_BROWSER_ADDRESS_AND_SEARCH_FIELD', recursive=True)
-
-    @property
-    def tool_bar(self) -> NativeUIElement:
-        return self.native_window.find_element(AXRole='AXToolbar')
+        return self.native_window.find_element(AXIdentifier='WEB_BROWSER_ADDRESS_AND_SEARCH_FIELD', recursive=True)
 
     @property
     def tabs(self) -> List[NativeUIElement]:
