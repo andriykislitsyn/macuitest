@@ -4,7 +4,7 @@ import time
 from typing import ClassVar, List
 
 from macuitest.config.constants import MINUTE
-from macuitest.lib.applescript_lib.applescript_wrapper import as_wrapper
+from macuitest.lib.applescript_lib.applescript_wrapper import as_wrapper, AppleScriptError
 from macuitest.lib.apps.application import Application
 from macuitest.lib.core import wait_condition
 from macuitest.lib.elements.native.native_ui_element import NativeUIElement
@@ -37,12 +37,15 @@ class Safari(Application):
         assert self.did_launch
         assert wait_condition(lambda: self.native_window is not None)
         wait_condition(lambda: self.execute_js_command('document.readyState') == 'complete', timeout=15)
-        wait_condition(lambda: self.stop_reload_button.AXHelp == 'Reload this page')
         return wait_condition(lambda: expected_address in self.document_url)
 
     def execute_js_command(self, command: str):
-        command = command.replace('"', '\\"')
-        return as_wrapper.tell_app(self.name, f'tell front document to do JavaScript "{command}"')
+        try:
+            return as_wrapper.tell_app(
+                self.name, f'tell front document to do JavaScript "%s"' % command.replace('"', '\\"')
+            )
+        except AppleScriptError:
+            pass
 
     def search_web(self, query: str) -> None:
         as_wrapper.tell_app(self.name, f'tell front tab to search the web for "{query}"')
