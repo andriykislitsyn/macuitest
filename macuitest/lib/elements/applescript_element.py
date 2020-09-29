@@ -40,7 +40,11 @@ class BaseUIElement:
         monitor.save_screenshot(region=_region, where=_where)
         return _where
 
-    def region(self, margin: int = 0):
+    @property
+    def region(self):
+        return self.get_region()
+
+    def get_region(self, margin: int = 0):
         self.reset_frame()
         return Region(self.frame.x1 - margin, self.frame.y1 - margin, self.frame.x2 + margin, self.frame.y2 + margin)
 

@@ -26,13 +26,17 @@ class Safari(Application):
 
     def request_webpage(self, url: str):
         as_wrapper.tell_app(self.name, 'make new document with properties {URL:"%s"}' % url)
+        self.window.wait_displayed(timeout=5)
 
     def close_tabs(self):
-        if self.native_window:
-            as_wrapper.tell_app(self.name, 'close tabs of front window')
-            wait_condition(lambda: not self.tabs)
+        if NativeUIElement.from_bundle_id(self.bundle_id):
+            if safari.native_window:
+                as_wrapper.tell_app(self.name, 'close tabs of front window')
+                wait_condition(lambda: not self.tabs)
 
     def did_webpage_load(self, webpage_address: str) -> bool:
+        assert self.window.wait_displayed(timeout=15)
+        time.sleep(1)
         wait_condition(lambda: self.stop_reload_button is not None)
         wait_condition(lambda: self.stop_reload_button.AXTitle == 'Reload this page')
         wait_condition(lambda: self.execute_js_command('document.readyState') == 'complete')
