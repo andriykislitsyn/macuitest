@@ -39,12 +39,12 @@ class Safari(Application):
         wait_condition(lambda: self.execute_js_command('document.readyState') == 'complete', timeout=15)
         return wait_condition(lambda: expected_address in self.document_url, timeout=5)
 
-    def execute_js_command(self, command: str) -> None:
+    def execute_js_command(self, command: str):
         command = command.replace('"', '\\"')
         return as_wrapper.tell_app(self.name, f'tell front document to do JavaScript "{command}"')
 
-    def search_web(self, query: str):
-        return as_wrapper.tell_app(self.name, f'tell front tab to search the web for "{query}"')
+    def search_web(self, query: str) -> None:
+        as_wrapper.tell_app(self.name, f'tell front tab to search the web for "{query}"')
 
     def confirm_download(self) -> None:
         time.sleep(.5)
@@ -56,13 +56,13 @@ class Safari(Application):
         return self.execute_js_command('document.cookie')
 
     @property
-    def document_url(self) -> str: return as_wrapper.tell_app(self.name, f'tell front document to return URL')
+    def document_url(self) -> str: return str(as_wrapper.tell_app(self.name, f'tell front document to return URL'))
 
     @property
-    def document_name(self) -> str: return as_wrapper.tell_app(self.name, f'tell front document to return name')
+    def document_name(self) -> str: return str(as_wrapper.tell_app(self.name, f'tell front document to return name'))
 
     @property
-    def document_html(self) -> str: return as_wrapper.tell_app(self.name, f'tell front document to return source')
+    def document_html(self) -> str: return str(as_wrapper.tell_app(self.name, f'tell front document to return source'))
 
     def __get_address_bar_value(self) -> str:
         return self.address_bar.AXValue
