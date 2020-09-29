@@ -124,40 +124,19 @@ class Finder(Application):
         return as_wrapper.tell_app(self.name, 'eject (every disk whose ejectable is true)')
 
     def move_file_to_trash(self, target: str) -> None:
-        self.show_destination(target)
-        time.sleep(3)
-        as_wrapper.send_keycode(as_wrapper.key_codes['delete'], 'command')
-        time.sleep(3)
-        self.close_windows()
+        as_wrapper.tell_app(self.name, f'move POSIX file "{target}" to trash')
 
     def show_destination(self, destination: str) -> None:
         if not os.path.exists(destination):
             raise FileNotFoundError(destination)
-        self.activate()
         as_wrapper.tell_app(self.name, f'reveal POSIX file "{destination}"')
+        self.window.wait_displayed()
+        self.activate()
 
     def open_destination(self, destination: str) -> None:
         if not os.path.exists(destination):
             raise FileNotFoundError(destination)
-        self.activate()
         as_wrapper.tell_app(self.name, f'open POSIX file "{destination}"')
-
-
-class SystemPreferences(Application):
-    anchors: Dict[str, str] = {'full_disk_access': 'Privacy_AllFiles', 'camera_access': 'Privacy_Camera'}
-
-    def __init__(self):
-        super().__init__('System Preferences')
-
-    @property
-    def current_pane_id(self):
-        return as_wrapper.tell_app(self.name, f'return id of current pane')
-
-    def authorize(self):
-        return as_wrapper.tell_app(self.name, f'tell current pane to authorize')
-
-    def show_anchor(self, anchor: str, pane_id='com.apple.preference.security'):
-        return as_wrapper.tell_app(self.name, f'reveal anchor "{anchor}" of pane "{pane_id}"')
 
 
 class Installer(Application):
@@ -169,10 +148,27 @@ class Installer(Application):
         if not os.path.exists(destination):
             raise FileNotFoundError(destination)
         macos.shell_executor.execute(f'open "{destination}" -a Installer')
-        assert self.did_launch
-        assert self.window.is_visible
-        self.frontmost = True
+        self.window.wait_displayed(timeout=10)
+        self.activate()
+
+
+class SystemPreferences(Application):
+    anchors: Dict[str, str] = {'full_disk_access': 'Privacy_AllFiles', 'camera_access': 'Privacy_Camera'}
+
+    def __init__(self):
+        super().__init__('System Preferences')
+
+    @property
+    def current_pane_id(self):
+        return as_wrapper.tell_app(self.name, 'return id of current pane')
+
+    def authorize(self):
+        return as_wrapper.tell_app(self.name, 'tell current pane to authorize')
+
+    def show_anchor(self, anchor: str, pane_id='com.apple.preference.security'):
+        return as_wrapper.tell_app(self.name, f'reveal anchor "{anchor}" of pane "{pane_id}"')
 
 
 finder = Finder()
+installer = Installer()
 system_preferences_app = SystemPreferences()

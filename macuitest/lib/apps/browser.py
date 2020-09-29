@@ -35,9 +35,10 @@ class Safari(Application):
 
     def did_webpage_load(self, expected_address: str) -> bool:
         assert self.did_launch
-        wait_condition(lambda: self.native_window is not None)
+        assert wait_condition(lambda: self.native_window is not None)
         wait_condition(lambda: self.execute_js_command('document.readyState') == 'complete', timeout=15)
-        return wait_condition(lambda: expected_address in self.document_url, timeout=5)
+        wait_condition(lambda: self.stop_reload_button.AXHelp == 'Reload this page')
+        return wait_condition(lambda: expected_address in self.document_url)
 
     def execute_js_command(self, command: str):
         command = command.replace('"', '\\"')
