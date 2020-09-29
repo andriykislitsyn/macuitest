@@ -25,14 +25,13 @@ class Safari(Application):
         return wait_condition(glob.glob, 30, os.path.join(env.downloads, file_name))
 
     def request_webpage(self, url: str):
-        as_wrapper.tell_app(self.name, 'make new document with properties {URL:"%s"}' % url)
+        as_wrapper.tell_app(self.name, f'make new document with properties {{URL:"{url}"}}')
         self.window.wait_displayed(timeout=5)
 
     def close_tabs(self):
-        if NativeUIElement.from_bundle_id(self.bundle_id):
-            if safari.native_window:
-                as_wrapper.tell_app(self.name, 'close tabs of front window')
-                wait_condition(lambda: not self.tabs)
+        if self.is_running:
+            as_wrapper.tell_app(self.name, 'close tabs of every window', ignoring_responses=True)
+            assert wait_condition(lambda: as_wrapper.tell_app(self.name, 'return the number of tabs in windows') == 0)
 
     def did_webpage_load(self, webpage_address: str) -> bool:
         assert self.window.wait_displayed(timeout=15)
