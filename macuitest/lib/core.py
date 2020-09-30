@@ -2,14 +2,21 @@ import time
 from typing import Any, Callable, Union, Tuple
 
 
-def wait_condition(predicate: Callable, timeout: Union[int, float] = 10, *args, **kwargs) -> Any:
+class WaitConditionException(Exception):
+    """A `placeholder` exception for `wait_condition`."""
+
+
+def wait_condition(predicate: Callable, timeout: Union[int, float] = 10,
+                   exceptions: tuple = (WaitConditionException, ), *args, **kwargs) -> Any:
     """Call `predicate` and return its result."""
     end = time.time() + timeout
     while time.time() < end:
-        result = predicate(*args, **kwargs)
-        if result:
-            return result
-        time.sleep(0.05)
+        time.sleep(.005)
+        try:
+            if result := predicate(*args, **kwargs):
+                return result
+        except exceptions:
+            continue
     return False
 
 

@@ -7,6 +7,7 @@ from macuitest.config.constants import MINUTE
 from macuitest.lib.applescript_lib.applescript_wrapper import as_wrapper, AppleScriptError
 from macuitest.lib.apps.application import Application
 from macuitest.lib.core import wait_condition
+from macuitest.lib.elements.native.errors import AXErrorInvalidUIElement
 from macuitest.lib.elements.native.native_ui_element import NativeUIElement
 from macuitest.lib.operating_system.env import env
 
@@ -22,7 +23,7 @@ class Safari(Application):
         self.confirm_download()
         assert wait_condition(lambda: self.downloads > _before_, timeout=MINUTE)
         assert wait_condition(lambda: glob.glob(os.path.join(env.downloads, '*.download')) == [], timeout=timeout)
-        return wait_condition(glob.glob, 30, os.path.join(env.downloads, file_name))
+        return wait_condition(lambda: glob.glob(os.path.join(env.downloads, file_name)), timeout=30)
 
     def request_webpage(self, url: str):
         as_wrapper.tell_app(self.name, f'make new document with properties {{URL:"{url}"}}')
@@ -37,6 +38,7 @@ class Safari(Application):
         assert self.did_launch
         assert wait_condition(lambda: self.native_window is not None)
         wait_condition(lambda: self.execute_js_command('document.readyState') == 'complete', timeout=15)
+        assert self.did_reload_button_appear
         return wait_condition(lambda: expected_address in self.document_url)
 
     def execute_js_command(self, command: str):
@@ -80,8 +82,14 @@ class Safari(Application):
     address_bar_value = property(__get_address_bar_value, __set_address_bar_value)
 
     @property
+    def did_reload_button_appear(self) -> bool:
+        return wait_condition(lambda: self.stop_reload_button.AXTitle == 'Reload this page',
+                              exceptions=(AttributeError, AXErrorInvalidUIElement))
+
+    @property
     def stop_reload_button(self) -> NativeUIElement:
-        return self.native_window.find_element(AXIdentifier='StopReloadButton', recursive=True)
+        return self.native_window.find_element(AXRole='AXToolbar')\
+            .find_element(AXIdentifier='StopReloadButton', recursive=True)
 
     @property
     def address_bar(self) -> NativeUIElement:
