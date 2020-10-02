@@ -67,20 +67,20 @@ class UIElement:
             self.__center = match
             return match
 
-    def wait_vanish(self, timeout=15, region: Optional[Region] = None) -> bool:
+    def wait_vanish(self, timeout: int = 15, region: Optional[Region] = None) -> bool:
         return wait_condition(
-            lambda: self.find_pattern(region, algorithms=(cv2.TM_CCOEFF_NORMED, )) is None, timeout=timeout)
+            lambda: self.find_pattern(region, algorithms=(cv2.TM_CCOEFF_NORMED,)) is None, timeout=timeout
+        )
 
     def find_pattern(self, region: Optional[Region] = None, algorithms=MATCHING_ALGORITHMS):
-        """ Locate pattern on the screen and return its center.
-
-            OpenCV (Open Source Computer Vision Library) is an open source computer vision
-            and machine learning software library. It's built to provide a common infrastructure
-            for computer vision applications and to accelerate the use of machine perception
-            in the commercial products. """
+        """Locate pattern on the screen and return its center.
+             OpenCV (Open Source Computer Vision Library) is an open source computer vision
+             and machine learning software library. It's built to provide a common infrastructure
+             for computer vision applications and to accelerate the use of machine perception
+             in the commercial products."""
         threads = list()
-        r = Region(0, 0, monitor.size.width, monitor.size.height) if region is None else region
-        desktop = cv2.cvtColor(monitor.snapshot[r.y1:r.y2, r.x1:r.x2], cv2.COLOR_BGR2GRAY)
+        region = region or Region(0, 0, monitor.size.width, monitor.size.height)
+        desktop = cv2.cvtColor(monitor.make_snapshot(region), cv2.COLOR_BGR2GRAY)
         for algorithm in algorithms:
             x = threading.Thread(target=self.compare_by, args=(desktop, algorithm), daemon=True)
             threads.append(x)
@@ -91,7 +91,7 @@ class UIElement:
         self.__matches = list()
         if similarity > self.similarity:
             denominator = 2 if monitor.is_retina else 1
-            return Point((position[0] + r.x1) // denominator, (position[1] + r.y1) // denominator)
+            return Point((position[0] + region.x1) // denominator, (position[1] + region.y1) // denominator)
 
     def compare_by(self, desktop, algorithm=cv2.TM_SQDIFF_NORMED):
         min_val, max_val, min_pos, max_pos = cv2.minMaxLoc(cv2.matchTemplate(desktop, self.image, algorithm))

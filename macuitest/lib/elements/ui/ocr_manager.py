@@ -26,7 +26,7 @@ class OCRManager:
         return wait_condition(lambda: self.recognize(region=where) == text, timeout=timeout)
 
     def recognize(self, region: Region, is_font_white: bool = False) -> str:
-        img_gray = cv2.cvtColor(monitor.snapshot[region.y1:region.y2, region.x1:region.x2], cv2.COLOR_BGR2GRAY)
+        img_gray = cv2.cvtColor(monitor.make_snapshot(region), cv2.COLOR_BGR2GRAY)
         if is_font_white:  # We want to invert font color to get better character recognition results.
             img_gray = cv2.bitwise_not(img_gray)
         payload = pytesseract.image_to_string(img_gray, config=self.tesseract_config, lang=self.language)

@@ -7,7 +7,7 @@ import numpy
 from Foundation import NSURL
 from Quartz import CoreGraphics, CGDisplayBounds, CGMainDisplayID
 
-from macuitest.config.constants import ScreenSize
+from macuitest.config.constants import ScreenSize, Region
 
 
 class Monitor:
@@ -15,15 +15,15 @@ class Monitor:
         self.__is_retina: Optional[bool] = None
         self.__screen_size: Optional[ScreenSize] = None
 
-    @property
-    def snapshot(self) -> numpy.ndarray:
-        pixel_data = self.pixel_data
+    def make_snapshot(self, region: Optional[Region] = None) -> numpy.ndarray:
+        h, w = (region.y2 - region.y1, region.x2 - region.x1) if region else (self.size.height, self.size.width)
+        pixel_data = self.get_pixel_data(region=region)
         _image = numpy.frombuffer(pixel_data[0], dtype=numpy.uint8)
-        return _image.reshape((self.size.height, pixel_data[1], 4))[:, :self.size.width, :]
+        return _image.reshape((h, pixel_data[1], 4))[:, :w, :]
 
     @property
     def bytes(self):
-        return bytes(numpy.frombuffer(self.pixel_data[0], numpy.uint8))
+        return bytes(numpy.frombuffer(self.get_pixel_data()[0], numpy.uint8))
 
     @property
     def is_retina(self) -> bool:
@@ -38,10 +38,12 @@ class Monitor:
             self.__screen_size = ScreenSize(int(size.width), int(size.height))
         return self.__screen_size
 
-    @property
-    def pixel_data(self):
+    @staticmethod
+    def get_pixel_data(region: Optional[Region] = None):
+        region = CoreGraphics.CGRectInfinite if region is None \
+            else CoreGraphics.CGRectMake(region.x1, region.y1, region.x2 - region.x1, region.y2 - region.y1)
         image = CoreGraphics.CGWindowListCreateImage(
-            CoreGraphics.CGRectInfinite,
+            region,
             CoreGraphics.kCGWindowListOptionOnScreenOnly,
             CoreGraphics.kCGNullWindowID,
             CoreGraphics.kCGWindowImageDefault
