@@ -25,13 +25,11 @@ class OCRManager:
     def wait_text(self, text: str, where: Region, timeout: int = 10) -> bool:
         return wait_condition(lambda: self.recognize(region=where) == text, timeout=timeout)
 
-    def recognize(self, region: Region) -> str:
-        img_gray = cv2.cvtColor(monitor.snapshot, cv2.COLOR_BGR2GRAY)
-        _, img_bw = cv2.threshold(img_gray, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
-        payload = pytesseract.image_to_string(
-            img_gray[region.y1:region.y2, region.x1:region.x2],
-            config=self.tesseract_config, lang=self.language
-        )
+    def recognize(self, region: Region, is_font_white: bool = False) -> str:
+        img_gray = cv2.cvtColor(monitor.snapshot[region.y1:region.y2, region.x1:region.x2], cv2.COLOR_BGR2GRAY)
+        if is_font_white:  # We want to invert font color to get better character recognition results.
+            img_gray = cv2.bitwise_not(img_gray)
+        payload = pytesseract.image_to_string(img_gray, config=self.tesseract_config, lang=self.language)
         return os.linesep.join([s for s in payload.splitlines() if s])
 
     def __assert_trained_data_present(self):

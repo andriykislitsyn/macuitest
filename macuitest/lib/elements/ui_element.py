@@ -18,15 +18,15 @@ class UIElementNotFoundOnScreen(Exception):
 
 
 class UIElement:
-    """Represent a visible user interface element. Based on automated pattern recognition algorithm (OpenCV)."""
+    """Represent a visible user interface element. Based on automated pattern lookup algorithm (OpenCV)."""
 
-    def __init__(self, screenshot_path: str, similarity: float = 0.9):
-        self.path = screenshot_path.strip()
-        self.similarity = similarity
+    def __init__(self, screenshot_path: Union[str, Path], similarity: float = .925):
+        self.path = screenshot_path.strip() if isinstance(screenshot_path, str) else screenshot_path
+        self.similarity = round(similarity, 3)
         self.image, self.width, self.height = None, None, None
         self.__center: Optional[Point] = None
         self.__matches: Optional = list()
-        self.load_image()
+        self.__load_image()
 
     def __repr__(self):
         return f'<UIElement "{self.path}", sim={self.similarity}>'
@@ -62,9 +62,8 @@ class UIElement:
             raise UIElementNotFoundOnScreen(self.path)
         return Point(match.x + self.width / 2, match.y + self.height / 2)
 
-    def wait_displayed(self, timeout=5, region: Optional[Region] = None) -> Union[None, Point]:
-        match = wait_condition(lambda: self.find_pattern(region), timeout=timeout)
-        if match:
+    def wait_displayed(self, timeout: int = 5, region: Optional[Region] = None) -> Union[None, Point]:
+        if match := wait_condition(lambda: self.find_pattern(region), timeout=timeout):
             self.__center = match
             return match
 
@@ -81,7 +80,7 @@ class UIElement:
             in the commercial products. """
         threads = list()
         r = Region(0, 0, monitor.size.width, monitor.size.height) if region is None else region
-        desktop = cv2.cvtColor(monitor.snapshot, cv2.COLOR_BGR2GRAY)[r.y1:r.y2, r.x1:r.x2]
+        desktop = cv2.cvtColor(monitor.snapshot[r.y1:r.y2, r.x1:r.x2], cv2.COLOR_BGR2GRAY)
         for algorithm in algorithms:
             x = threading.Thread(target=self.compare_by, args=(desktop, algorithm), daemon=True)
             threads.append(x)
@@ -102,11 +101,11 @@ class UIElement:
         self.__matches.append((similarity, position))
         return similarity, position
 
-    def load_image(self) -> None:
+    def __load_image(self) -> None:
+        """Load the image from the disk."""
         if not Path(self.path).exists():
             raise FileNotFoundError(f'Cannot find request screenshot: {self.path}')
-        image = cv2.imread(self.path, 0)
-        if image is None:
+        if (image := cv2.imread(self.path, cv2.IMREAD_GRAYSCALE)) is None:
             raise IOError(f'Cannot not load screenshot: {self.path}')
         height, width = image.shape
         if monitor.is_retina:
