@@ -1,3 +1,4 @@
+import functools
 import time
 from typing import Any, Callable, Union, Tuple
 
@@ -18,6 +19,27 @@ def wait_condition(predicate: Callable, timeout: Union[int, float] = 10,
         except exceptions:
             continue
     return False
+
+
+def _parametrized(decorator):
+    @functools.wraps(decorator)
+    def wrapper(*args, **kwargs):
+        def result(func):
+            return decorator(func, *args, **kwargs)
+        return result
+    return wrapper
+
+
+@_parametrized
+def slow_down(func, seconds: float):
+    """Slow down `func` by adding timeouts before and after its execution."""
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        time.sleep(seconds)
+        result = func(*args, **kwargs)
+        time.sleep(seconds)
+        return result
+    return wrapper
 
 
 def convert_version_from_tuple_to_str(string: Tuple[int, ...]) -> str:

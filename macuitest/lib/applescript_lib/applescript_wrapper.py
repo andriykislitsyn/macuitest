@@ -38,7 +38,7 @@ class AppleScriptWrapper:
     __pass_as_key_code = {'"': (39, True), "'": (39, False)}
 
     def typewrite(self, phrase: str) -> None:
-        """Type `phrase` with 0.005s delay between key presses."""
+        """Type `phrase` with .005s delay between key presses."""
         for char in phrase:
             time.sleep(.005)
             if char in self.__pass_as_key_code:
@@ -67,7 +67,8 @@ class AppleScriptWrapper:
         return self.execute(f'tell app "System Events" to tell application process "{app_process}" to {command}')
 
     def tell_app(self, app: str, command: str, ignoring_responses: bool = False):
-        _tell_what = f'tell application "{app}" to {command}' if not ignoring_responses else f'ignoring application responses\ntell application "{app}" to {command}\nend ignoring'
+        _tell_what = f'tell application "{app}" to {command}' if not ignoring_responses \
+            else f'ignoring application responses\ntell application "{app}" to {command}\nend ignoring'
         return self.execute(_tell_what)
 
     def tell_sys_events(self, command: str):

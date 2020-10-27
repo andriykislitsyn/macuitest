@@ -45,7 +45,7 @@ class Networking:
                 if resp.code != 404:
                     return
             except error.URLError:
-                time.sleep(0.5)
+                time.sleep(.5)
 
     def turn_internet_off(self):
         for port in self.ports_list:

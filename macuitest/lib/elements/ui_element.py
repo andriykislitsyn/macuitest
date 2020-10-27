@@ -6,7 +6,7 @@ import cv2
 
 from macuitest.config.constants import Point, Region
 from macuitest.lib.core import wait_condition
-from macuitest.lib.elements.controllers.mouse import mouse
+from macuitest.lib.elements.controllers.mouse import mouse, MouseConfig
 from macuitest.lib.elements.ui.monitor import monitor
 
 MATCHING_ALGORITHMS = (cv2.TM_CCOEFF_NORMED, cv2.TM_SQDIFF_NORMED)
@@ -14,63 +14,61 @@ MATCHING_ALGORITHMS = (cv2.TM_CCOEFF_NORMED, cv2.TM_SQDIFF_NORMED)
 
 class UIElementNotFoundOnScreen(Exception):
     """Thrown when a pattern is not found on the screen."""
-    pass
 
 
 class UIElement:
-    """Represent a visible user interface element. Based on automated pattern lookup algorithm (OpenCV)."""
+    """Visible user interface element. Based on automated pattern lookup algorithm (OpenCV)."""
 
     def __init__(self, screenshot_path: Union[str, Path], similarity: float = .925):
         self.path = screenshot_path.strip() if isinstance(screenshot_path, str) else screenshot_path
-        self.similarity = round(similarity, 3)
+        self.similarity: float = round(similarity, 3)
         self.image, self.width, self.height = None, None, None
-        self.__center: Optional[Point] = None
         self.__matches: Optional = list()
         self.__load_image()
 
     def __repr__(self):
         return f'<UIElement "{self.path}", sim={self.similarity}>'
 
-    def paste(self, x_off=0, y_off=0, phrase=''):
-        mouse.paste(self.center.x, self.center.y, x_off, y_off, phrase=phrase)
-        self.__center = None
+    def paste(self, x_off: int = 0, y_off: int = 0, phrase: str = '', region: Optional[Region] = None):
+        center = self.get_center(region)
+        mouse.paste(center.x, center.y, x_off, y_off, phrase=phrase)
 
-    def double_click(self, x_off=0, y_off=0):
-        mouse.double_click(self.center.x, self.center.y, x_off, y_off)
-        self.__center = None
+    def double_click(self, x_off: int = 0, y_off: int = 0, region: Optional[Region] = None):
+        center = self.get_center(region)
+        mouse.double_click(center.x, center.y, x_off, y_off)
 
-    def right_click(self, x_off=0, y_off=0):
-        mouse.right_click(self.center.x, self.center.y, x_off, y_off)
-        self.__center = None
+    def right_click(self, x_off: int = 0, y_off: int = 0, hold: float = MouseConfig.hold,
+                    pause: float = MouseConfig.pause, region: Optional[Region] = None):
+        center = self.get_center(region)
+        mouse.right_click(center.x, center.y, x_off, y_off, hold=hold, pause=pause)
 
-    def click_mouse(self, x_off=0, y_off=0, hold=.3):
-        mouse.click(self.center.x, self.center.y, x_off, y_off, hold=hold)
-        self.__center = None
+    def click_mouse(self, x_off: int = 0, y_off: int = 0, hold: float = MouseConfig.hold,
+                    pause: float = MouseConfig.pause, region: Optional[Region] = None):
+        center = self.get_center(region)
+        mouse.click(center.x, center.y, x_off, y_off, hold=hold, pause=pause)
 
-    def hover_mouse(self, x_off=0, y_off=0, duration=.2):
-        mouse.hover(self.center.x, self.center.y, x_off, y_off, duration=duration)
-        self.__center = None
+    def hover_mouse(self, x_off: int = 0, y_off: int = 0, duration: float = MouseConfig.move,
+                    region: Optional[Region] = None):
+        center = self.get_center(region)
+        mouse.hover(center.x, center.y, x_off, y_off, duration=duration)
 
     @property
-    def is_visible(self):
-        return self.wait_displayed()
+    def is_visible(self) -> bool:
+        """Check whether the pattern is visible on the screen."""
+        return False or self.wait_displayed() is not None
 
-    @property
-    def center(self):
-        match = self.__center or self.wait_displayed()
+    def get_center(self, region: Optional[Region] = None):
+        match = self.wait_displayed(region=region)
         if not match:
             raise UIElementNotFoundOnScreen(self.path)
-        return Point(match.x + self.width / 2, match.y + self.height / 2)
+        return Point(int(match.x + self.width / 2), int(match.y + self.height / 2))
 
     def wait_displayed(self, timeout: int = 5, region: Optional[Region] = None) -> Union[None, Point]:
-        if match := wait_condition(lambda: self.find_pattern(region), timeout=timeout):
-            self.__center = match
-            return match
+        return wait_condition(lambda: self.find_pattern(region), timeout=timeout)
 
     def wait_vanish(self, timeout: int = 15, region: Optional[Region] = None) -> bool:
-        return wait_condition(
-            lambda: self.find_pattern(region, algorithms=(cv2.TM_CCOEFF_NORMED,)) is None, timeout=timeout
-        )
+        return wait_condition(lambda: self.find_pattern(region, algorithms=(cv2.TM_CCOEFF_NORMED,)) is None,
+                              timeout=timeout)
 
     def find_pattern(self, region: Optional[Region] = None, algorithms=MATCHING_ALGORITHMS):
         """Locate pattern on the screen and return its center.
@@ -85,6 +83,9 @@ class UIElement:
             x = threading.Thread(target=self.compare_by, args=(desktop, algorithm), daemon=True)
             threads.append(x)
             x.start()
+        # In case of AssertionError in cv2.error
+        # _img.size().height <= _templ.size().height && _img.size().width <= _templ.size().width
+        # You need to check that the `region` size is larger than `pattern` size.
         for thread in threads:
             thread.join()
         similarity, position = max(self.__matches)

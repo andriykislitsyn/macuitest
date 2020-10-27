@@ -10,7 +10,7 @@ from macuitest.lib import core
 from macuitest.lib.applescript_lib.applescript_wrapper import as_wrapper, AppleScriptError
 from macuitest.lib.core import wait_condition
 from macuitest.lib.elements.controllers.keyboard_controller import keyboard
-from macuitest.lib.elements.controllers.mouse import mouse
+from macuitest.lib.elements.controllers.mouse import mouse, MouseConfig
 from macuitest.lib.elements.ui.monitor import monitor
 from macuitest.lib.operating_system.color_meter import ColorMeter
 from macuitest.lib.operating_system.env import env
@@ -44,7 +44,7 @@ class BaseUIElement:
     def region(self):
         return self.get_region()
 
-    def get_region(self, margin: int = 0):
+    def get_region(self, margin: int = 0) -> Region:
         self.reset_frame()
         return Region(self.frame.x1 - margin, self.frame.y1 - margin, self.frame.x2 + margin, self.frame.y2 + margin)
 
@@ -58,35 +58,35 @@ class BaseUIElement:
         pixel_color = ColorMeter().get_color(Point(self.frame.center.x + x_off, self.frame.center.y + y_off))
         return pixel_color.replace('gray', 'grey')
 
-    def scroll(self, clicks, x_off=0, y_off=0):
+    def scroll(self, clicks: int, x_off: int = 0, y_off: int = 0):
         self.__assert_visible()
         mouse.scroll(self.frame.center.x + x_off, self.frame.center.y + y_off, clicks, x_off, y_off)
 
-    def doubleclick_mouse(self, x_off: int = 0, y_off: int = 0, duration: Union[int, float] = 0.15):
+    def doubleclick_mouse(self, x_off: int = 0, y_off: int = 0, duration: float = MouseConfig.move):
         self.__assert_visible()
         mouse.double_click(self.frame.center.x + x_off, self.frame.center.y + y_off, duration=duration)
         self.reset_frame()
 
-    def rightclick_mouse(self, x_off=0, y_off=0, duration=.2) -> None:
+    def rightclick_mouse(self, x_off: int = 0, y_off: int = 0, duration: float = MouseConfig.move) -> None:
         self.__assert_visible()
         mouse.right_click(self.frame.center.x + x_off, self.frame.center.y + y_off, duration)
         self.reset_frame()
 
-    def click_mouse(self, x_off=0, y_off=0, hold_time=.3, duration=.2, pause=.3) -> None:
-        if not self.wait_displayed(timeout=7):
-            raise LookupError(self)
+    def click_mouse(self, x_off: int = 0, y_off: int = 0, hold_time: float = MouseConfig.hold,
+                    duration: float = MouseConfig.move, pause: float = MouseConfig.pause) -> None:
+        self.__assert_visible()
         mouse.click(self.frame.center.x + x_off, self.frame.center.y + y_off, hold_time, duration, pause)
         self.reset_frame()
 
-    def hover_mouse(self, x_off: int = 0, y_off: int = 0, duration: float = .2) -> None:
+    def hover_mouse(self, x_off: int = 0, y_off: int = 0, duration: float = MouseConfig.move) -> None:
         mouse.hover(self.frame.center.x + x_off, self.frame.center.y + y_off, duration=duration)
 
-    def click(self, pause: float = 0.375) -> bool:
+    def click(self, pause: float = .4) -> bool:
         """Perform click action the element."""
         self.__assert_visible()
         time.sleep(pause)
         self.__execute('click')
-        time.sleep(0.2)
+        time.sleep(.25)
         return True
 
     def _select(self):
@@ -178,7 +178,7 @@ class BaseUIElement:
         return self.wait_vanish()
 
     def wait_vanish(self, timeout: [int, float] = 5) -> bool:
-        self.wait_displayed(timeout=0.3)
+        self.wait_displayed(timeout=.3)
         return wait_condition(lambda: self.is_exists() is False, timeout=timeout)
 
     @property
@@ -340,7 +340,7 @@ class ComboBox(BaseUIElement):
 
     def set_value(self, value):
         self.wait_displayed()
-        time.sleep(0.5)
+        time.sleep(.5)
         self._set_value(value)
 
     text = property(value, set_value)
@@ -406,7 +406,7 @@ class Group(BaseUIElement):
 
 
 class Row(BaseUIElement):
-    def select(self, pause: float = 0.3):
+    def select(self, pause: float = .3):
         self._select()
         time.sleep(pause)
 
@@ -489,11 +489,11 @@ class WebView(BaseUIElement):
 class Elements:
     all: MappingProxyType = MappingProxyType(
         {'UI element': BaseUIElement, 'button': Button, 'pop up button': Button, 'radio button': Button,
-            'busy indicator': BusyIndicator, 'static text': StaticText, 'text area': TextArea, 'text field': TextField,
-            'checkbox': Checkbox, 'combo box': ComboBox, 'menu item': MenuItem, 'menu button': MenuItem,
-            'menu bar item': MenuBarItem, 'menu': Menu, 'group': Group, 'row': Row, 'scroll area': ScrollArea,
-            'table': Table, 'image': Image, 'list': _List, 'outline': Outline, 'pop over': Popover, 'popover': Popover,
-            'sheet': Sheet, 'window': Window, })
+         'busy indicator': BusyIndicator, 'static text': StaticText, 'text area': TextArea, 'text field': TextField,
+         'checkbox': Checkbox, 'combo box': ComboBox, 'menu item': MenuItem, 'menu button': MenuItem,
+         'menu bar item': MenuBarItem, 'menu': Menu, 'group': Group, 'row': Row, 'scroll area': ScrollArea,
+         'table': Table, 'image': Image, 'list': _List, 'outline': Outline, 'pop over': Popover, 'popover': Popover,
+         'sheet': Sheet, 'window': Window, })
 
 
 class ASElement:
@@ -501,9 +501,9 @@ class ASElement:
     __slots__ = ()
     window: str = 'of window 1'
 
-    def __new__(cls, locator: str, process: str) \
-            -> Union[BaseUIElement, Button, BusyIndicator, TextArea, TextField, Checkbox, ComboBox, MenuItem,
-                     Group, Row, ScrollArea, Table, Image, List, Outline, Popover, Sheet, Window]:
+    def __new__(cls, locator: str, process: str) -> Union[BaseUIElement, Button, BusyIndicator, TextArea, TextField,
+                                                          Checkbox, ComboBox, MenuItem, Group, Row, ScrollArea, Table,
+                                                          Image, List, Outline, Popover, Sheet, Window]:
         locator = locator.replace('of of', 'of')
         return cls.__define_locator_type(locator)(locator, process)
 

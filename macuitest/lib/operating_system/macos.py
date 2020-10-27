@@ -1,4 +1,3 @@
-import time
 from typing import ClassVar
 
 from macuitest.lib.operating_system.crash_reporter import CrashReporter

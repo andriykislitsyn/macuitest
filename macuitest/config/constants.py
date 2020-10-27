@@ -76,12 +76,6 @@ class DisclosureTriangleState:
     opened: int = 1
 
 
-@dataclass(frozen=True)
-class SettingsOpenCV:
-    min_sim: float = 0.88
-    wait_time: int = 5
-
-
 @dataclass
 class URLDetails:
     url: str

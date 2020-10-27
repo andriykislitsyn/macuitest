@@ -4,8 +4,8 @@ from typing import Any, Optional
 from macuitest.config.constants import Frame, Point, Region
 from macuitest.lib import core
 from macuitest.lib.core import wait_condition
+from macuitest.lib.elements.controllers.mouse import mouse, MouseConfig
 from macuitest.lib.elements.native.errors import AXErrorFactory, AXErrorInvalidUIElement
-from macuitest.lib.elements.controllers.mouse import mouse
 
 
 class NativeElement:
@@ -15,24 +15,25 @@ class NativeElement:
     def _select(self):
         self.item.AXSelected = True
 
-    def _press(self, pause: float = 0.375):
+    def _press(self, pause: float = .4):
         time.sleep(pause)
         self.item.AXPress()
-        time.sleep(.2)
+        time.sleep(.24)
 
-    def double_click_mouse(self, x_off=0, y_off=0, duration=.2):
+    def double_click_mouse(self, x_off: int = 0, y_off: int = 0, duration: float = MouseConfig.move):
         mouse.double_click(self.frame.center.x + x_off, self.frame.center.y + y_off, duration)
 
-    def click_mouse(self, x_off=0, y_off=0, duration=.2, hold_time=.3):
+    def click_mouse(self, x_off: int = 0, y_off: int = 0, duration: float = MouseConfig.move,
+                    hold_time: float = MouseConfig.hold):
         mouse.click(self.frame.center.x + x_off, self.frame.center.y + y_off, hold_time, duration)
 
-    def rightclick_mouse(self, x_off=0, y_off=0, duration=.2):
+    def rightclick_mouse(self, x_off: int = 0, y_off: int = 0, duration=MouseConfig.move):
         mouse.right_click(self.frame.center.x + x_off, self.frame.center.y + y_off, duration)
 
-    def hover_mouse(self, x_off=0, y_off=0, duration=.2):
+    def hover_mouse(self, x_off: int = 0, y_off: int = 0, duration: float = MouseConfig.move):
         mouse.hover(self.frame.center.x + x_off, self.frame.center.y + y_off, duration)
 
-    def region(self, margin: int = 4):
+    def region(self, margin: int = 0):
         return Region(self.frame.x1 - margin, self.frame.y1 - margin, self.frame.x2 + margin, self.frame.y2 + margin)
 
     @property
@@ -217,7 +218,7 @@ class WebView(NativeElement):
     def __wait_children(self):
         for _ in range(20):
             try:
-                time.sleep(0.3)
+                time.sleep(.3)
                 return self.item.AXChildren
             except (AttributeError, AXErrorInvalidUIElement, AXErrorFactory):
                 continue
