@@ -301,12 +301,14 @@ class StaticText(TextElement):
 
 
 class TextField(TextElement):
-    def fill(self, with_text: str, pause: float = .005):
-        self.focus()
-        self.text = ''
-        time.sleep(.25)
-        keyboard.write(with_text, pause=pause)
-        time.sleep(.25)
+    def fill(self, with_text: str, pause: float = .01):
+        for _ in range(2):
+            self.text = ''
+            self.focus()
+            time.sleep(.5)
+            keyboard.write(with_text, pause=pause)
+            if wait_condition(lambda: len(self.text) == len(with_text), timeout=.5):
+                break
         assert len(self.text) == len(with_text)
 
     def focus(self, value='true'):
