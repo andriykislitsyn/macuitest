@@ -65,15 +65,15 @@ class BaseUIElement:
         f = self.frame
         mouse.double_click(f.center.x + x_off, f.center.y + y_off, duration=duration)
 
-    def rightclick_mouse(self, x_off: int = 0, y_off: int = 0, hold_time: float = MouseConfig.hold,
+    def rightclick_mouse(self, x_off: int = 0, y_off: int = 0, hold: float = MouseConfig.hold,
                     duration: float = MouseConfig.move, pause: float = MouseConfig.pause) -> None:
         f = self.frame
-        mouse.right_click(f.center.x + x_off, f.center.y + y_off, hold_time=hold_time, duration=duration, pause=pause)
+        mouse.right_click(f.center.x + x_off, f.center.y + y_off, hold=hold, duration=duration, pause=pause)
 
-    def click_mouse(self, x_off: int = 0, y_off: int = 0, hold_time: float = MouseConfig.hold,
+    def click_mouse(self, x_off: int = 0, y_off: int = 0, hold: float = MouseConfig.hold,
                     duration: float = MouseConfig.move, pause: float = MouseConfig.pause) -> None:
         f = self.frame
-        mouse.click(f.center.x + x_off, f.center.y + y_off, hold_time=hold_time, duration=duration, pause=pause)
+        mouse.click(f.center.x + x_off, f.center.y + y_off, hold=hold, duration=duration, pause=pause)
 
     def hover_mouse(self, x_off: int = 0, y_off: int = 0, duration: float = MouseConfig.move) -> None:
         f = self.frame
