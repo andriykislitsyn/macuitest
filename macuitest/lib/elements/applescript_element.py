@@ -8,7 +8,7 @@ from typing import Any, Union, Optional, Tuple, List
 from macuitest.config.constants import CheckboxState, Frame, Point, DisclosureTriangleState, Region
 from macuitest.lib import core
 from macuitest.lib.applescript_lib.applescript_wrapper import as_wrapper, AppleScriptError
-from macuitest.lib.core import wait_condition
+from macuitest.lib.core import wait_condition, is_close
 from macuitest.lib.elements.controllers.keyboard_controller import keyboard
 from macuitest.lib.elements.controllers.mouse import mouse, MouseConfig
 from macuitest.lib.elements.ui.monitor import monitor
@@ -17,69 +17,76 @@ from macuitest.lib.operating_system.env import env
 
 
 class BaseUIElement:
-    """ Represent a UI element based on an AppleScript locator. """
+    """Represent a UI element based on an AppleScript locator."""
     __slots__ = ('locator', 'process', '_frame')
 
-    def __init__(self, locator, process):
+    def __init__(self, locator: str, process: str):
         self.locator = locator
         self.process = process
-        self._frame = None
 
     def __repr__(self):
         return f'<{self.__class__.__name__} "{self.locator}", process="{self.process}">'
 
     def wait_on_position(self, position: Point) -> bool:
-        self.reset_frame()
-        return self.frame.center == position
+        for _ in range(50):
+            f = self.frame
+            if is_close(f.center.x, position.x, threshold=2) and is_close(f.center.y, position.y, threshold=2):
+                return True
+            time.sleep(.1)
 
     def snapshot(self, margin: int = 4) -> str:
-        self.reset_frame()
-        _region = (self.frame.x1 - margin, self.frame.y1 - margin,
-                   self.frame.width + margin * 2, self.frame.height + margin * 2)
-        _where = f'{env.desktop}/scr_{datetime.now().strftime("%Y%m%d%H%M%S%f")}.png'
-        monitor.save_screenshot(region=_region, where=_where)
-        return _where
+        frame = self.frame
+        element_region = (frame.x1 - margin, frame.y1 - margin, frame.width + margin * 2, frame.height + margin * 2)
+        screenshot_name = f'{env.desktop}/scr_{datetime.now().strftime("%Y%m%d%H%M%S%f")}.png'
+        monitor.save_screenshot(region=element_region, where=screenshot_name)
+        return screenshot_name
 
     @property
     def region(self):
         return self.get_region()
 
     def get_region(self, margin: int = 0) -> Region:
-        self.reset_frame()
-        return Region(self.frame.x1 - margin, self.frame.y1 - margin, self.frame.x2 + margin, self.frame.y2 + margin)
+        f = self.frame
+        return Region(f.x1 - margin, f.y1 - margin, f.x2 + margin, f.y2 + margin)
 
     def most_common_color(self, ignore_colors: Optional[Tuple[str, ...]] = None):
-        self.reset_frame()
         f = self.frame
         return ColorMeter().get_most_common_color(f.x1, f.x2, f.y1, f.y2, ignore_colors)
 
     def color(self, x_off: int = 0, y_off: int = 0) -> str:
-        self.reset_frame()
-        pixel_color = ColorMeter().get_color(Point(self.frame.center.x + x_off, self.frame.center.y + y_off))
-        return pixel_color.replace('gray', 'grey')
+        f = self.frame
+        return ColorMeter().get_color(Point(f.center.x + x_off, f.center.y + y_off)).replace('gray', 'grey')
 
     def scroll(self, clicks: int, x_off: int = 0, y_off: int = 0):
-        self.__assert_visible()
-        mouse.scroll(self.frame.center.x + x_off, self.frame.center.y + y_off, clicks, x_off, y_off)
+        f = self.frame
+        mouse.scroll(f.center.x + x_off, f.center.y + y_off, clicks, x_off, y_off)
 
     def doubleclick_mouse(self, x_off: int = 0, y_off: int = 0, duration: float = MouseConfig.move):
-        self.__assert_visible()
-        mouse.double_click(self.frame.center.x + x_off, self.frame.center.y + y_off, duration=duration)
-        self.reset_frame()
+        f = self.frame
+        mouse.double_click(f.center.x + x_off, f.center.y + y_off, duration=duration)
 
-    def rightclick_mouse(self, x_off: int = 0, y_off: int = 0, duration: float = MouseConfig.move) -> None:
-        self.__assert_visible()
-        mouse.right_click(self.frame.center.x + x_off, self.frame.center.y + y_off, duration)
-        self.reset_frame()
+    def rightclick_mouse(self, x_off: int = 0, y_off: int = 0, hold_time: float = MouseConfig.hold,
+                    duration: float = MouseConfig.move, pause: float = MouseConfig.pause) -> None:
+        f = self.frame
+        mouse.right_click(f.center.x + x_off, f.center.y + y_off, hold_time=hold_time, duration=duration, pause=pause)
 
     def click_mouse(self, x_off: int = 0, y_off: int = 0, hold_time: float = MouseConfig.hold,
                     duration: float = MouseConfig.move, pause: float = MouseConfig.pause) -> None:
-        self.__assert_visible()
-        mouse.click(self.frame.center.x + x_off, self.frame.center.y + y_off, hold_time, duration, pause)
-        self.reset_frame()
+        f = self.frame
+        mouse.click(f.center.x + x_off, f.center.y + y_off, hold_time=hold_time, duration=duration, pause=pause)
 
     def hover_mouse(self, x_off: int = 0, y_off: int = 0, duration: float = MouseConfig.move) -> None:
-        mouse.hover(self.frame.center.x + x_off, self.frame.center.y + y_off, duration=duration)
+        f = self.frame
+        mouse.hover(f.center.x + x_off, f.center.y + y_off, duration=duration)
+
+    @property
+    def frame(self) -> Frame:
+        self.__assert_visible()
+        _frame = (*self.get_attribute_value('AXPosition'), *self.get_attribute_value('AXSize'))
+        x1, y1, width, height = (math.floor(x) for x in _frame)
+        x2, y2 = x1 + width, y1 + height
+        center = Point(int((x1 + width / 2)), int((y1 + height / 2)))
+        return Frame(x1, y1, x2, y2, center, width, height)
 
     def click(self, pause: float = .4) -> bool:
         """Perform click action the element."""
@@ -127,21 +134,6 @@ class BaseUIElement:
     def _rows(self) -> int:
         self.__assert_visible()
         return self.__execute('count rows of')
-
-    @property
-    def frame(self) -> Frame:
-        if self._frame is not None:
-            return self._frame
-        self.__assert_visible()
-        _frame = (*self.get_attribute_value('AXPosition'), *self.get_attribute_value('AXSize'))
-        x1, y1, width, height = (math.floor(x) for x in _frame)
-        x2, y2 = x1 + width, y1 + height
-        center = Point(int((x1 + width / 2)), int((y1 + height / 2)))
-        self._frame = Frame(x1, y1, x2, y2, center, width, height)
-        return self._frame
-
-    def reset_frame(self):
-        self._frame = None
 
     @property
     def title(self) -> str:

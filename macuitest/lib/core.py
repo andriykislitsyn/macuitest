@@ -9,7 +9,7 @@ class WaitConditionException(Exception):
 
 def wait_condition(predicate: Callable, timeout: Union[int, float] = 10,
                    exceptions: tuple = (WaitConditionException, ), *args, **kwargs) -> Any:
-    """Call `predicate` and return its result."""
+    """Execute `predicate` and return the result."""
     end = time.time() + timeout
     while time.time() < end:
         time.sleep(.005)
@@ -40,6 +40,11 @@ def slow_down(func, seconds: float):
         time.sleep(seconds)
         return result
     return wrapper
+
+
+def is_close(actual: Union[int, float], expected: Union[int, float], threshold: Union[int, float]) -> bool:
+    """Compare the difference between two input numbers with specified threshold."""
+    return abs(round(actual, 2) - round(expected, 2)) <= threshold
 
 
 def convert_version_from_tuple_to_str(string: Tuple[int, ...]) -> str:
