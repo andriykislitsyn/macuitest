@@ -34,12 +34,13 @@ class Safari(Application):
             as_wrapper.tell_app(self.name, 'close tabs of every window', ignoring_responses=True)
             assert wait_condition(lambda: as_wrapper.tell_app(self.name, 'return the number of tabs in windows') == 0)
 
-    def did_webpage_load(self, expected_address: str) -> bool:
+    def did_webpage_load(self, expected_address: str, timeout: float = 15) -> bool:
         assert self.did_launch
         assert wait_condition(lambda: self.native_window is not None)
-        wait_condition(lambda: self.execute_js_command('document.readyState') == 'complete', timeout=15)
+        wait_condition(lambda: self.execute_js_command('document.readyState') == 'complete', timeout=timeout)
         assert self.did_reload_button_appear
-        return wait_condition(lambda: expected_address in self.document_url)
+        return wait_condition(lambda: expected_address in self.document_url, timeout=3,
+                              exceptions=(AttributeError, AXErrorInvalidUIElement))
 
     def execute_js_command(self, command: str):
         try:
@@ -62,13 +63,13 @@ class Safari(Application):
         return self.execute_js_command('document.cookie')
 
     @property
-    def document_url(self) -> str: return str(as_wrapper.tell_app(self.name, f'tell front document to return URL'))
+    def document_url(self) -> str: return str(as_wrapper.tell_app(self.name, 'tell front document to return URL'))
 
     @property
-    def document_name(self) -> str: return str(as_wrapper.tell_app(self.name, f'tell front document to return name'))
+    def document_name(self) -> str: return str(as_wrapper.tell_app(self.name, 'tell front document to return name'))
 
     @property
-    def document_html(self) -> str: return str(as_wrapper.tell_app(self.name, f'tell front document to return source'))
+    def document_html(self) -> str: return str(as_wrapper.tell_app(self.name, 'tell front document to return source'))
 
     def __get_address_bar_value(self) -> str:
         return self.address_bar.AXValue
