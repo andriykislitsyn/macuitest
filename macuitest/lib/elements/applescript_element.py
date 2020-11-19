@@ -92,38 +92,38 @@ class BaseUIElement:
         """Perform click action the element."""
         self.__assert_visible()
         time.sleep(pause)
-        self.__execute('click')
+        self._execute('click')
         time.sleep(.25)
         return True
 
     def _select(self):
         """Click an element."""
         self.__assert_visible()
-        return self.__execute('select')
+        return self._execute('select')
 
     def _set_focus(self, value):
         """Make element focused."""
         self.__assert_visible()
-        return self.__execute('set focused of', params=f'to "{value}"')
+        return self._execute('set focused of', params=f'to "{value}"')
 
     def _show_context_menu(self):
         self.__assert_visible()
-        return self.__execute('perform action "AXShowMenu" of')
+        return self._execute('perform action "AXShowMenu" of')
 
     def _set_value(self, value):
         """Set element value."""
         self.__assert_visible()
-        return self.__execute('set value of', params=f'to "{value}"')
+        return self._execute('set value of', params=f'to "{value}"')
 
     def _get_value(self):
         """Get element value."""
         self.__assert_visible()
-        return self.__execute('get value of')
+        return self._execute('get value of')
 
     def _count_elements(self) -> int:
         """Count UI elements """
         self.__assert_visible()
-        return self.__execute('count UI elements of')
+        return self._execute('count UI elements of')
 
     @property
     def _children(self):
@@ -133,7 +133,7 @@ class BaseUIElement:
     @property
     def _rows(self) -> int:
         self.__assert_visible()
-        return self.__execute('count rows of')
+        return self._execute('count rows of')
 
     @property
     def title(self) -> str:
@@ -181,34 +181,34 @@ class BaseUIElement:
         return wait_condition(self.is_exists, timeout=timeout)
 
     def perform_action(self, action):
-        self.__execute(f'perform action "{action}" of')
+        self._execute(f'perform action "{action}" of')
 
     @property
     def actions(self) -> List[str]:
         try:
-            return self.__execute(f'get name of every action of')
+            return self._execute(f'get name of every action of')
         except AppleScriptError:
             return []
 
     def _set_attribute(self, attribute, value) -> Any:
-        return self.__execute(f'set value of attribute "{attribute}" of', params=f'to {value}')
+        return self._execute(f'set value of attribute "{attribute}" of', params=f'to {value}')
 
     def get_attribute_value(self, attribute) -> Any:
         try:
-            return self.__execute(f'get value of attribute "{attribute}" of')
+            return self._execute(f'get value of attribute "{attribute}" of')
         except AppleScriptError:
             return None
 
     @property
     def attributes(self) -> List[str]:
         try:
-            return self.__execute(f'get name of every attribute of')
+            return self._execute(f'get name of every attribute of')
         except AppleScriptError:
             return []
 
     def is_exists(self) -> bool:
         try:
-            return self.__execute(f'return exists')
+            return self._execute(f'return exists')
         except AppleScriptError as e:
             if e.number == -10000:
                 pass
@@ -219,7 +219,7 @@ class BaseUIElement:
         if not self.is_visible:
             raise LookupError(self)
 
-    def __execute(self, command: str, params: str = ''):
+    def _execute(self, command: str, params: str = ''):
         """Execute a command.
                :param str command: The name of the command to _execute as a string.
                :param str params: Command parameters.
@@ -449,6 +449,18 @@ class Window(BaseUIElement):
     def __init__(self, locator, process):
         super().__init__(locator, process)
 
+    def set_position(self, point: Tuple[int, int]):
+        self._execute('set position of', params='to {%s, %s}' % (point[0], point[1]))
+
+    def get_position(self) -> Tuple[int, int]:
+        return tuple(self._execute('get position of'))
+
+    def set_size(self, size: Tuple[int, int]):
+        self._execute('set size of', params='to {%s, %s}' % (size[0], size[1]))
+
+    def get_size(self) -> Tuple[int, int]:
+        return tuple(self._execute('get size of'))
+
     def set_minimized(self, value):
         converted = {True: 'true', False: 'false'}.get(value)
         self._set_attribute('AXMinimized', converted)
@@ -467,6 +479,8 @@ class Window(BaseUIElement):
     def is_keyboard_focused(self) -> bool:
         return self.get_attribute_value('AXFocused')
 
+    position = property(get_position, set_position)
+    size = property(get_size, set_size)
     minimized = property(is_minimized, set_minimized)
     full_screen = property(is_full_screen, set_full_screen)
 
@@ -492,17 +506,9 @@ class Elements:
 
 class ASElement:
     """AppleScript element factory."""
-    __slots__ = ()
-    window: str = 'of window 1'
-
-    def __new__(cls, locator: str, process: str) -> Union[BaseUIElement, Button, BusyIndicator, TextArea, TextField,
-                                                          Checkbox, ComboBox, MenuItem, Group, Row, ScrollArea, Table,
-                                                          Image, List, Outline, Popover, Sheet, Window]:
-        locator = locator.replace('of of', 'of')
-        return cls.__define_locator_type(locator)(locator, process)
-
-    @staticmethod
-    def __define_locator_type(locator: str):
-        _l = locator.split(' of')[0]
-        _l = (''.join((i for i in _l if not i.isdigit())) if _l[-1].isdigit() else _l.split('"')[0]).strip()
-        return Elements.all.get(_l, BaseUIElement)
+    def __new__(cls, locator: str, process: str) -> Union[
+            BaseUIElement, Button, BusyIndicator, TextArea, TextField, Checkbox, ComboBox, MenuItem,
+            Group, Row, ScrollArea, Table, Image, List, Outline, Popover, Sheet, Window]:
+        loc = locator.split(' of')[0]
+        loc = (''.join((i for i in loc if not i.isdigit())) if loc[-1].isdigit() else loc.split('"')[0]).strip()
+        return Elements.all.get(loc, BaseUIElement)(locator, process)
