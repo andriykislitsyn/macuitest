@@ -24,7 +24,7 @@ class TCCManager:
         self.db_manager = DataBaseManager(self.db)
 
     def list_access_policies(self, client: str) -> Dict[str, int]:
-        is_allowed = 'allowed' if env.version < (11, 0) else 'client_type'
+        is_allowed = 'allowed' if env.version < (11, 0) else 'auth_value'
         query = f'SELECT service, {is_allowed} FROM access WHERE client is "{client}"'
         return dict(self.db_manager.cursor.execute(query).fetchall())
 
