@@ -36,11 +36,11 @@ class Safari(Application):
 
     def did_webpage_load(self, expected_address: str, timeout: float = 15) -> bool:
         assert self.did_launch
-        assert wait_condition(lambda: self.native_window is not None)
+        assert wait_condition(lambda: self.native_window is not None, exceptions=(AttributeError, ValueError))
         wait_condition(lambda: self.execute_js_command('document.readyState') == 'complete', timeout=timeout)
         assert self.did_reload_button_appear
         return wait_condition(lambda: expected_address in self.document_url, timeout=3,
-                              exceptions=(AttributeError, AXErrorInvalidUIElement))
+                              exceptions=(AttributeError, AXErrorInvalidUIElement, ValueError))
 
     def execute_js_command(self, command: str):
         try:
