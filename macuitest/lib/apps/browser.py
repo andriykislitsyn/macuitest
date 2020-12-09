@@ -1,4 +1,5 @@
 import glob
+import logging
 import os
 import time
 from typing import ClassVar, List
@@ -10,6 +11,8 @@ from macuitest.lib.core import wait_condition
 from macuitest.lib.elements.native.errors import AXErrorInvalidUIElement
 from macuitest.lib.elements.native.native_ui_element import NativeUIElement
 from macuitest.lib.operating_system.env import env
+
+EXCEPTIONS = (AttributeError, AXErrorInvalidUIElement, ValueError)
 
 
 class Safari(Application):
@@ -30,25 +33,28 @@ class Safari(Application):
         wait_condition(lambda: self.native_window is not None)
 
     def close_tabs(self):
-        if self.is_running:
+        if not self.is_running:
+            return
+        try:
             as_wrapper.tell_app(self.name, 'close tabs of every window', ignoring_responses=True)
             assert wait_condition(lambda: as_wrapper.tell_app(self.name, 'return the number of tabs in windows') == 0)
+        except AssertionError:
+            as_wrapper.tell_app(self.name, 'close every window', ignoring_responses=True)
 
     def did_webpage_load(self, expected_address: str, timeout: float = 15) -> bool:
         assert self.did_launch
-        assert wait_condition(lambda: self.native_window is not None, exceptions=(AttributeError, ValueError))
+        assert wait_condition(lambda: self.native_window is not None, exceptions=EXCEPTIONS)
         wait_condition(lambda: self.execute_js_command('document.readyState') == 'complete', timeout=timeout)
-        assert self.did_reload_button_appear
-        return wait_condition(lambda: expected_address in self.document_url, timeout=3,
-                              exceptions=(AttributeError, AXErrorInvalidUIElement, ValueError))
+        if not self.did_reload_button_appear:
+            logging.warning('Reload button has not shown')
+        return wait_condition(lambda: expected_address in self.document_url, timeout=3, exceptions=EXCEPTIONS)
 
     def execute_js_command(self, command: str):
+        tell_what = f'tell front document to do JavaScript "%s"' % command.replace('"', '\\"')
         try:
-            return as_wrapper.tell_app(
-                self.name, f'tell front document to do JavaScript "%s"' % command.replace('"', '\\"')
-            )
+            return as_wrapper.tell_app(self.name, tell_what)
         except AppleScriptError:
-            pass
+            logging.warning(f'Could not execute: "{tell_what}"')
 
     def search_web(self, query: str) -> None:
         as_wrapper.tell_app(self.name, f'tell front tab to search the web for "{query}"')
@@ -84,8 +90,7 @@ class Safari(Application):
 
     @property
     def did_reload_button_appear(self) -> bool:
-        return wait_condition(lambda: self.stop_reload_button.AXTitle == 'Reload this page',
-                              exceptions=(AttributeError, AXErrorInvalidUIElement))
+        return wait_condition(lambda: self.stop_reload_button.AXTitle == 'Reload this page', exceptions=EXCEPTIONS)
 
     @property
     def stop_reload_button(self) -> NativeUIElement:
