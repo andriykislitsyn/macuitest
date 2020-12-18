@@ -31,26 +31,26 @@ class UIElement:
 
     def paste(self, x_off: int = 0, y_off: int = 0, phrase: str = '', region: Optional[Region] = None):
         center = self.get_center(region)
-        mouse.paste(center.x, center.y, x_off, y_off, phrase=phrase)
+        mouse.paste(center.x + x_off, center.y + y_off, phrase=phrase)
 
     def double_click(self, x_off: int = 0, y_off: int = 0, region: Optional[Region] = None):
         center = self.get_center(region)
-        mouse.double_click(center.x, center.y, x_off, y_off)
+        mouse.double_click(center.x + x_off, center.y + y_off)
 
     def right_click(self, x_off: int = 0, y_off: int = 0, hold: float = MouseConfig.hold,
                     pause: float = MouseConfig.pause, region: Optional[Region] = None):
         center = self.get_center(region)
-        mouse.right_click(center.x, center.y, x_off, y_off, hold=hold, pause=pause)
+        mouse.right_click(center.x + x_off, center.y + y_off, hold=hold, pause=pause)
 
     def click_mouse(self, x_off: int = 0, y_off: int = 0, hold: float = MouseConfig.hold,
                     pause: float = MouseConfig.pause, region: Optional[Region] = None):
         center = self.get_center(region)
-        mouse.click(center.x, center.y, x_off, y_off, hold=hold, pause=pause)
+        mouse.click(center.x + x_off, center.y + y_off, hold=hold, pause=pause)
 
     def hover_mouse(self, x_off: int = 0, y_off: int = 0, duration: float = MouseConfig.move,
                     region: Optional[Region] = None):
         center = self.get_center(region)
-        mouse.hover(center.x, center.y, x_off, y_off, duration=duration)
+        mouse.hover(center.x + x_off, center.y + y_off, duration=duration)
 
     @property
     def is_visible(self) -> bool:

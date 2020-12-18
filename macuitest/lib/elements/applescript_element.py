@@ -59,25 +59,25 @@ class BaseUIElement:
 
     def scroll(self, x_off: int = 0, y_off: int = 0, clicks: int = 1):
         c = self.frame.center
-        mouse.scroll(c.x, c.y, x_off, y_off, scrolls=clicks)
+        mouse.scroll(c.x + x_off, c.y + y_off, scrolls=clicks)
 
     def doubleclick_mouse(self, x_off: int = 0, y_off: int = 0, duration: float = MouseConfig.move):
         c = self.frame.center
-        mouse.double_click(c.x, c.y, x_off, y_off, duration=duration)
+        mouse.double_click(c.x + x_off, c.y + y_off, duration=duration)
 
     def rightclick_mouse(self, x_off: int = 0, y_off: int = 0, hold: float = MouseConfig.hold,
                     duration: float = MouseConfig.move, pause: float = MouseConfig.pause) -> None:
         c = self.frame.center
-        mouse.right_click(c.x, c.y, x_off, y_off, hold, duration, pause)
+        mouse.right_click(c.x + x_off, c.y + y_off, hold, duration, pause)
 
     def click_mouse(self, x_off: int = 0, y_off: int = 0, hold: float = MouseConfig.hold,
                     duration: float = MouseConfig.move, pause: float = MouseConfig.pause) -> None:
         c = self.frame.center
-        mouse.click(c.x, c.y, x_off, y_off, hold, duration, pause)
+        mouse.click(c.x + x_off, c.y + y_off, hold, duration, pause)
 
     def hover_mouse(self, x_off: int = 0, y_off: int = 0, duration: float = MouseConfig.move) -> None:
         c = self.frame.center
-        mouse.hover(c.x, c.y, x_off, y_off, duration=duration)
+        mouse.hover(c.x + x_off, c.y + y_off, duration=duration)
 
     @property
     def frame(self) -> Frame:
