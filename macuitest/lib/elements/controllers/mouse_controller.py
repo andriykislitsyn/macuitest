@@ -58,11 +58,13 @@ class MouseController:
         self._send_mouse_event(kcg_event, x, y, mouse_button)
 
     @staticmethod
-    def vertical_scroll(scrolls: int):
-        for _ in range(scrolls):
-            swe = Quartz.CGEventCreateScrollWheelEvent(None, Quartz.kCGScrollEventUnitLine, 1, 10)
+    def vertical_scroll(scrolls: int, speed: int = 10):
+        if scrolls < 0:
+            speed *= -1
+        for _ in range(abs(scrolls)):
+            swe = Quartz.CGEventCreateScrollWheelEvent(None, Quartz.kCGScrollEventUnitLine, 1, speed)
             Quartz.CGEventPost(Quartz.kCGHIDEventTap, swe)
-            time.sleep(.03)
+            time.sleep(.05)
 
     @staticmethod
     def multi_click(x: int, y: int, button: str, clicks: int):

@@ -24,7 +24,7 @@ class Mouse:
         """Hover over the position and click once. Then paste `phrase` from clipboard."""
         self.double_click(x + _x, y + _y)
         time.sleep(.75)
-        KeyBoardController().write(phrase, pause=.005)
+        KeyBoardController().write(phrase, pause=.02)
 
     def double_click(self, x: int, y: int, _x: int = 0, _y: int = 0, duration: float = MouseConfig.move) -> None:
         """Hover over position and click twice."""

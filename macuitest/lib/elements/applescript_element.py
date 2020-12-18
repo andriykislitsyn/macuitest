@@ -54,30 +54,30 @@ class BaseUIElement:
         return ColorMeter().get_most_common_color(f.x1, f.x2, f.y1, f.y2, ignore_colors)
 
     def color(self, x_off: int = 0, y_off: int = 0) -> str:
-        f = self.frame
-        return ColorMeter().get_color(Point(f.center.x + x_off, f.center.y + y_off)).replace('gray', 'grey')
+        c = self.frame.center
+        return ColorMeter().get_color(Point(c.x + x_off, c.y + y_off)).replace('gray', 'grey')
 
-    def scroll(self, clicks: int, x_off: int = 0, y_off: int = 0):
-        f = self.frame
-        mouse.scroll(f.center.x + x_off, f.center.y + y_off, clicks, x_off, y_off)
+    def scroll(self, x_off: int = 0, y_off: int = 0, clicks: int = 1):
+        c = self.frame.center
+        mouse.scroll(c.x, c.y, x_off, y_off, scrolls=clicks)
 
     def doubleclick_mouse(self, x_off: int = 0, y_off: int = 0, duration: float = MouseConfig.move):
-        f = self.frame
-        mouse.double_click(f.center.x + x_off, f.center.y + y_off, duration=duration)
+        c = self.frame.center
+        mouse.double_click(c.x, c.y, x_off, y_off, duration=duration)
 
     def rightclick_mouse(self, x_off: int = 0, y_off: int = 0, hold: float = MouseConfig.hold,
                     duration: float = MouseConfig.move, pause: float = MouseConfig.pause) -> None:
-        f = self.frame
-        mouse.right_click(f.center.x + x_off, f.center.y + y_off, hold=hold, duration=duration, pause=pause)
+        c = self.frame.center
+        mouse.right_click(c.x, c.y, x_off, y_off, hold, duration, pause)
 
     def click_mouse(self, x_off: int = 0, y_off: int = 0, hold: float = MouseConfig.hold,
                     duration: float = MouseConfig.move, pause: float = MouseConfig.pause) -> None:
-        f = self.frame
-        mouse.click(f.center.x + x_off, f.center.y + y_off, hold=hold, duration=duration, pause=pause)
+        c = self.frame.center
+        mouse.click(c.x, c.y, x_off, y_off, hold, duration, pause)
 
     def hover_mouse(self, x_off: int = 0, y_off: int = 0, duration: float = MouseConfig.move) -> None:
-        f = self.frame
-        mouse.hover(f.center.x + x_off, f.center.y + y_off, duration=duration)
+        c = self.frame.center
+        mouse.hover(c.x, c.y, x_off, y_off, duration=duration)
 
     @property
     def frame(self) -> Frame:
