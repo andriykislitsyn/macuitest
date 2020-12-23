@@ -17,7 +17,7 @@ class ScreenshotPathBuilder:
 
     def build_path(self, section: str, scr_name: str) -> str:
         """Build absolute path to a screenshot."""
-        _base = self.root.joinpath(section).joinpath(f'{scr_name}.png')
-        _macos_specific = self.root.joinpath(section).joinpath(f'{scr_name}_{env.version[1]}.png')
-        _path = _macos_specific if _macos_specific.exists() else _base
-        return _path.as_posix()
+        base = self.root.joinpath(section).joinpath(f'{scr_name}.png')
+        os_ver = env.version[1] if env.version < (11, 0) else env.version[0]
+        os_specific = self.root.joinpath(section).joinpath(f'{scr_name}_{os_ver}.png')
+        return (os_specific if os_specific.exists() else base).as_posix()
