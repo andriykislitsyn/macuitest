@@ -1,6 +1,5 @@
 biplist
 opencv-python
-pillow
 pyobjc-framework-ApplicationServices
 pyobjc-framework-AVFoundation
 pyobjc-framework-Cocoa
