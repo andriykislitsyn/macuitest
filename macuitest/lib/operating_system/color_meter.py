@@ -1,7 +1,5 @@
 """This module implements a basic color meter. It finds the value of a colour on given coordinates."""
-import os
 from collections import Counter
-from multiprocessing import Pool
 from typing import Optional, Tuple
 
 import cv2
@@ -12,15 +10,11 @@ from macuitest.lib.elements.ui.monitor import monitor
 
 
 class ColorMeter:
-    def __init__(self):
-        self.__pixels = None
-
     def get_most_common_color(self, x1: int, x2: int, y1: int, y2: int,
                               ignore_colors: Optional[Tuple[str, ...]] = None):
-        pool = Pool(os.cpu_count())
         _pixels = self._pixels
         pixels = [_pixels[x, y] for x in range(x1, x2) for y in range(y1, y2)]
-        colors = pool.map(self.get_closest_color, pixels)
+        colors = (self.get_closest_color(pixel) for pixel in pixels)
         if ignore_colors:
             colors = (c for c in colors if c not in ignore_colors)
         return Counter(colors).most_common()[0][0]
