@@ -174,6 +174,10 @@ class NativeUIElement:
         """Return application windows."""
         return self.application.get_ax_attribute('AXWindows')
 
+    @property
+    def children(self) -> list:
+        return self.get_ax_attribute('AXChildren')
+
     def find_element(self, recursive: bool = False, **kwargs):
         """Return the first object that matches lookup criteria."""
         for item in self.get_children(recursive=recursive):
