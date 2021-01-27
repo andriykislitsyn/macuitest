@@ -5,7 +5,7 @@ from macuitest.config.constants import Frame, Point, Region
 from macuitest.lib import core
 from macuitest.lib.core import wait_condition
 from macuitest.lib.elements.controllers.mouse import mouse, MouseConfig
-from macuitest.lib.elements.native.errors import AXErrorFactory, AXErrorInvalidUIElement
+from macuitest.lib.elements.native.calls import AXErrorInvalidUIElement
 
 
 class NativeElement:
@@ -13,11 +13,11 @@ class NativeElement:
         self.item = item
 
     def _select(self):
-        self.item.AXSelected = True
+        self.item.set_ax_attribute('AXSelected', True)
 
     def _press(self, pause: float = .4):
         time.sleep(pause)
-        self.item.AXPress()
+        self.item.press()
         time.sleep(.24)
 
     def double_click_mouse(self, x_off: int = 0, y_off: int = 0, duration: float = MouseConfig.move):
@@ -38,7 +38,7 @@ class NativeElement:
 
     @property
     def frame(self) -> Frame:
-        _frame = [*self.item.AXPosition, *self.item.AXSize]
+        _frame = [*self.item.get_ax_attribute('AXPosition'), *self.item.get_ax_attribute('AXSize')]
         x1, y1, width, height = _frame
         x2, y2 = x1 + width, y1 + height
         center = Point(int((x1 + width / 2)), int((y1 + height / 2)))
@@ -46,30 +46,30 @@ class NativeElement:
 
     @property
     def characters_number(self) -> int:
-        return self.item.AXNumberOfCharacters
+        return self.item.get_ax_attribute('AXNumberOfCharacters')
 
     @property
     def title(self) -> str:
-        return self.item.AXTitle
+        return self.item.get_ax_attribute('AXTitle')
 
     @property
     def help(self) -> str:
-        return self.item.AXHelp
+        return self.item.get_ax_attribute('AXHelp')
 
     @property
     def parent(self):
-        return NativeElement(self.item.AXParent)
+        return NativeElement(self.item.get_ax_attribute('AXParent'))
 
     @property
     def children(self):
         try:
-            return self.item.AXChildren
+            return self.item.get_ax_attribute('AXChildren')
         except AttributeError:
             return []
 
     @property
     def value(self) -> Any:
-        return self.item.AXValue
+        return self.item.get_ax_attribute('AXValue')
 
     @value.setter
     def value(self, value_) -> None:
@@ -88,7 +88,7 @@ class NativeElement:
 
     def __get_axrole(self) -> Optional[str]:
         try:
-            return self.item.AXRole
+            return self.item.get_ax_attribute('AXRole')
         except (AttributeError, IndexError):
             pass
 
@@ -100,7 +100,7 @@ class NativeElement:
 class Clickable(NativeElement):
     @property
     def is_enabled(self) -> bool:
-        return self.item.AXEnabled
+        return self.item.get_ax_attribute('AXEnabled')
 
     def press(self, pause: float = .375):
         self._press(pause=pause)
@@ -120,11 +120,11 @@ class Row(NativeElement):
 
     @property
     def is_selected(self) -> bool:
-        return self.item.AXSelected
+        return self.item.get_ax_attribute('AXSelected')
 
     @is_selected.setter
     def is_selected(self, value):
-        self.item.AXSelected = value
+        self.item.set_ax_attribute('AXSelected', value)
 
 
 class Button(Clickable):
@@ -134,7 +134,7 @@ class Button(Clickable):
 class Image(NativeElement):
     @property
     def label(self) -> str:
-        return self.item.AXLabel
+        return self.item.get_ax_attribute('AXLabel')
 
 
 class StaticText(NativeElement):
@@ -153,23 +153,23 @@ class StaticText(NativeElement):
 class TextField(StaticText):
     @property
     def text(self) -> str:
-        return str(self.item.AXValue)
+        return str(self.item.get_ax_attribute('AXValue'))
 
     @text.setter
     def text(self, value):
-        self.item.AXValue = value
+        self.item.set_ax_attribute('AXValue', value)
 
     @property
     def placeholder(self) -> str:
-        return str(self.item.AXPlaceholderValue)
+        return str(self.item.get_ax_attribute('AXPlaceholderValue'))
 
     @property
     def keyboard_focused(self) -> bool:
-        return self.item.AXFocused
+        return self.item.get_ax_attribute('AXFocused')
 
     @keyboard_focused.setter
     def keyboard_focused(self, value):
-        self.item.AXFocused = bool(value)
+        self.item.set_ax_attribute('AXFocused', bool(value))
 
     def __eq__(self, other):
         return wait_condition(lambda: self.text == other, timeout=2)
@@ -199,7 +199,7 @@ class Link(NativeElement):
 
     @property
     def url(self) -> str:
-        return str(self.item.AXURL)
+        return str(self.item.get_ax_attribute('AXURL'))
 
 
 class WebView(NativeElement):
@@ -207,18 +207,13 @@ class WebView(NativeElement):
     @property
     def url(self) -> str:
         webview = self.__perform_lookup()
-        wait_condition(lambda: webview.AXURL, timeout=30)
-        wait_condition(lambda: webview.AXURL.startswith('https://'), timeout=30)
-        return str(webview.AXURL)
+        wait_condition(lambda: webview.get_ax_attribute('AXURL'), timeout=30)
+        wait_condition(lambda: webview.get_ax_attribute('AXURL').startswith('https://'), timeout=30)
+        return str(webview.get_ax_attribute('AXURL'))
 
     def __perform_lookup(self):
         self.__wait_children()
         return self.item.find_element(AXRole='AXUnknown', recursive=True)
 
     def __wait_children(self):
-        for _ in range(20):
-            try:
-                time.sleep(.3)
-                return self.item.AXChildren
-            except (AttributeError, AXErrorInvalidUIElement, AXErrorFactory):
-                continue
+        wait_condition(lambda: self.item.get_ax_attribute('AXChildren'), exceptions=(AttributeError, AXErrorInvalidUIElement))

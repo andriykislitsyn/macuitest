@@ -8,11 +8,11 @@ from macuitest.config.constants import MINUTE
 from macuitest.lib.applescript_lib.applescript_wrapper import as_wrapper, AppleScriptError
 from macuitest.lib.apps.application import Application
 from macuitest.lib.core import wait_condition
-from macuitest.lib.elements.native.errors import AXErrorInvalidUIElement
+from macuitest.lib.elements.native.calls import AXErrorInvalidUIElement
 from macuitest.lib.elements.native.native_ui_element import NativeUIElement
 from macuitest.lib.operating_system.env import env
 
-EXCEPTIONS = (AttributeError, AXErrorInvalidUIElement, ValueError)
+EXCEPTIONS = (AttributeError, ValueError, AXErrorInvalidUIElement)
 
 
 class Safari(Application):
@@ -62,7 +62,7 @@ class Safari(Application):
     def confirm_download(self) -> None:
         time.sleep(.5)
         if confirm_download_dialog := self.confirm_download_dialog:
-            confirm_download_dialog.find_element(AXRole='AXButton', AXTitle='Allow').AXPress()
+            confirm_download_dialog.find_element(AXRole='AXButton', AXTitle='Allow').perform_ax_action('AXPress')
 
     @property
     def document_cookies(self):
@@ -78,19 +78,19 @@ class Safari(Application):
     def document_html(self) -> str: return str(as_wrapper.tell_app(self.name, 'tell front document to return source'))
 
     def __get_address_bar_value(self) -> str:
-        return self.address_bar.AXValue
+        return self.address_bar.get_ax_attribute('AXValue')
 
     def __set_address_bar_value(self, new_value: str) -> None:
         address_bar = self.address_bar
-        address_bar.AXFocused = True
+        address_bar.set_ax_attribute('AXFocused', True)
         time.sleep(.5)
-        address_bar.AXValue = new_value
+        address_bar.set_ax_attribute('AXValue', new_value)
 
     address_bar_value = property(__get_address_bar_value, __set_address_bar_value)
 
     @property
     def did_reload_button_appear(self) -> bool:
-        return wait_condition(lambda: self.stop_reload_button.AXTitle == 'Reload this page', exceptions=EXCEPTIONS)
+        return wait_condition(lambda: self.stop_reload_button.get_ax_attribute('AXTitle') == 'Reload this page', exceptions=EXCEPTIONS)
 
     @property
     def stop_reload_button(self) -> NativeUIElement:
@@ -104,7 +104,7 @@ class Safari(Application):
     @property
     def tabs(self) -> List[NativeUIElement]:
         try:
-            result = self.native_window.find_element(AXIdentifier='TabBar').AXChildren
+            result = self.native_window.find_element(AXIdentifier='TabBar').get_ax_attribute('AXChildren')
         except AttributeError:
             result = []
         return result

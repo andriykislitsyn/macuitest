@@ -5,7 +5,7 @@ import struct
 
 from Foundation import NSAppleEventDescriptor, NSURL
 
-from macuitest.lib.applescript_lib import aeobjects
+from . import aeobjects
 
 __all__ = ['AEConverter', 'AEType', 'AEEnum', 'four_characters_code']
 
@@ -263,3 +263,6 @@ class AEType(AETypeBase):
 
 class AEEnum(AETypeBase):
     """An AE enumeration. Maps to an AppleScript constant, e.g. AEEnum(b'yes ') <=> 'yes'."""
+
+
+ae_converter = AEConverter()
