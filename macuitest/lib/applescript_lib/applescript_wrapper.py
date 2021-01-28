@@ -3,7 +3,7 @@ import time
 from Foundation import (NSAppleScript, NSAppleScriptErrorMessage, NSAppleScriptErrorBriefMessage,
                         NSAppleScriptErrorNumber)
 
-from .aeconverter import ae_converter
+from macuitest.lib.applescript_lib.aeconverter import ae_converter
 
 
 class AppleScriptError(Exception):
