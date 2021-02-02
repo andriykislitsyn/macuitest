@@ -183,7 +183,6 @@ class NativeUIElement:
         for item in self.get_children(recursive=recursive):
             if match_filter(**kwargs)(item):
                 return item
-        raise LookupError(f'Could not find item specified by: {kwargs}')
 
     def find_elements(self, recursive: bool = False, **kwargs):
         """Return a list of all child elements that match lookup criteria."""
