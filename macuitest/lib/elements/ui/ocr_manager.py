@@ -1,10 +1,10 @@
 import os
+import warnings
 from pathlib import Path
 from typing import ClassVar
 
 import cv2
 import pytesseract
-import requests
 
 from macuitest.config.constants import Region
 from macuitest.lib.core import wait_condition
@@ -17,6 +17,8 @@ class OCRManager:
     tesseract_config: ClassVar[str] = f'--oem {ocr_engine_mode} --psm {page_segmentation_mode}'
 
     def __init__(self, language: str = 'eng'):
+        if os.system('tesseract --help > /dev/null 2>&1') != 0:
+            warnings.warn('Tesseract is not installed, please install: brew install tesseract')
         self.language = language
         self.trained_data = f'{self.language}.traineddata'
         self.trained_data_path: Path = Path('/usr/local/share/tessdata')
@@ -35,9 +37,8 @@ class OCRManager:
     def __assert_trained_data_present(self):
         if not self.trained_data_path.joinpath(self.trained_data).exists():
             Path(self.trained_data_path).mkdir(parents=True, exist_ok=True)
-            response = requests.get(f'https://github.com/tesseract-ocr/tessdata_best/raw/master/{self.trained_data}')
-            with open(self.trained_data_path.joinpath(self.trained_data), 'wb') as dataset:
-                dataset.write(response.content)
+            raise FileNotFoundError(f'Download trained data from: https://github.com/tesseract-ocr/tessdata_best/raw/master/{self.trained_data}'
+                                    f'and save it to: {self.trained_data_path.joinpath(self.trained_data)}')
 
 
 ocr_manager = OCRManager()

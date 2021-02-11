@@ -12,7 +12,7 @@ from macuitest.lib.core import wait_condition, is_close
 from macuitest.lib.elements.controllers.keyboard_controller import keyboard
 from macuitest.lib.elements.controllers.mouse import mouse, MouseConfig
 from macuitest.lib.elements.ui.monitor import monitor
-from macuitest.lib.operating_system.color_meter import ColorMeter
+from macuitest.lib.operating_system.color_meter import get_color, get_most_common_color
 from macuitest.lib.operating_system.env import env
 
 
@@ -37,9 +37,7 @@ class BaseUIElement:
     def snapshot(self, margin: int = 4) -> str:
         frame = self.frame
         element_region = (frame.x1 - margin, frame.y1 - margin, frame.width + margin * 2, frame.height + margin * 2)
-        screenshot_name = f'{env.desktop}/scr_{datetime.now().strftime("%Y%m%d%H%M%S%f")}.png'
-        monitor.save_screenshot(region=element_region, where=screenshot_name)
-        return screenshot_name
+        return monitor.save_screenshot(region=element_region, where=f'{env.desktop}/scr_{datetime.now().strftime("%Y%m%d%H%M%S%f")}.png')
 
     @property
     def region(self):
@@ -51,11 +49,11 @@ class BaseUIElement:
 
     def most_common_color(self, ignore_colors: Optional[Tuple[str, ...]] = None):
         f = self.frame
-        return ColorMeter().get_most_common_color(f.x1, f.x2, f.y1, f.y2, ignore_colors)
+        return get_most_common_color(f.x1, f.x2, f.y1, f.y2, ignore_colors)
 
     def color(self, x_off: int = 0, y_off: int = 0) -> str:
         c = self.frame.center
-        return ColorMeter().get_color(Point(c.x + x_off, c.y + y_off)).replace('gray', 'grey')
+        return get_color(Point(c.x + x_off, c.y + y_off)).replace('gray', 'grey')
 
     def scroll(self, x_off: int = 0, y_off: int = 0, clicks: int = 1):
         c = self.frame.center

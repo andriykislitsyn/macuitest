@@ -1,35 +1,33 @@
 """This module implements a basic color meter. It finds the value of a colour on given coordinates."""
+import multiprocessing
 from collections import Counter
 from typing import Optional, Tuple
 
 import cv2
-import webcolors
 
+from macuitest.config.colors import CSS3_COLORS
 from macuitest.config.constants import Point
 from macuitest.lib.elements.ui.monitor import monitor
 
 
-class ColorMeter:
-    def get_most_common_color(self, x1: int, x2: int, y1: int, y2: int,
-                              ignore_colors: Optional[Tuple[str, ...]] = None):
-        _pixels = self._pixels
-        pixels = [_pixels[x, y] for x in range(x1, x2) for y in range(y1, y2)]
-        colors = (self.get_closest_color(pixel) for pixel in pixels)
-        if ignore_colors:
-            colors = (c for c in colors if c not in ignore_colors)
-        return Counter(colors).most_common()[0][0]
+def get_most_common_color(x1: int, y1: int, x2: int, y2: int, ignore_colors: Optional[Tuple[str, ...]] = None) -> str:
+    pixels = cv2.cvtColor(monitor.make_snapshot(), cv2.COLOR_BGR2RGB)
+    with multiprocessing.Pool() as pool:
+        colors = pool.map(get_closest_color, list(pixels[y, x] for x in range(x1, x2) for y in range(y1, y2)))
+    if ignore_colors:
+        colors = (c for c in colors if c not in ignore_colors)
+    return Counter(colors).most_common()[0][0]
 
-    def get_color(self, point: Point) -> str:
-        return self.get_closest_color(self._pixels[point.y, point.x])
 
-    @staticmethod
-    def get_closest_color(pixel) -> str:
-        min_colours = {}
-        for key, name in webcolors.CSS3_HEX_TO_NAMES.items():
-            r_c, g_c, b_c = webcolors.hex_to_rgb(key)
-            min_colours[((r_c - pixel[0]) ** 2 + (g_c - pixel[1]) ** 2 + (b_c - pixel[2]) ** 2)] = name
-        return min_colours[min(min_colours.keys())].replace('gray', 'grey')
+def get_color(point: Point) -> str:
+    return get_closest_color(cv2.cvtColor(monitor.make_snapshot(), cv2.COLOR_BGR2RGB)[point.y, point.x])
 
-    @property
-    def _pixels(self):
-        return cv2.cvtColor(monitor.make_snapshot(), cv2.COLOR_BGR2RGB)
+
+def get_closest_color(pixel) -> str:
+    """ Calculate RGB difference between `pixel` and every CSS3_COLOR
+        and return name of the color with the minimal difference. """
+    min_colours = dict()
+    pr, pg, pb = pixel
+    for name, cr, cg, cb in CSS3_COLORS:
+        min_colours[abs(cr - pr) + abs(cg - pg) + abs(cb - pb)] = name
+    return min_colours[min(min_colours)]

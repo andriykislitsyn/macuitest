@@ -1,5 +1,3 @@
-from typing import ClassVar
-
 from macuitest.lib.operating_system.crash_reporter import CrashReporter
 from macuitest.lib.operating_system.defaults import Defaults
 from macuitest.lib.operating_system.disk_util import DiskUtil
@@ -18,9 +16,6 @@ __all__ = ['macos']
 
 
 class MacOS:
-    user_notification_center: ClassVar[str] = 'UserNotificationCenter'
-    problem_reporter: ClassVar[str] = 'Problem Reporter'
-
     def __init__(self, shell_executor: ShellExecutor):
         self.shell_executor = shell_executor
         self.crash_reporter = CrashReporter(self.shell_executor)

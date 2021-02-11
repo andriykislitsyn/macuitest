@@ -1,13 +1,12 @@
 import time
+from typing import Tuple
 
 import AppKit
 import Quartz
-import pytweening
 
 
 class MouseController:
-    def __init__(self, tween_type=pytweening.easeOutQuad):
-        self.tween_type = tween_type
+    def __init__(self):
         self.__screen_size = None
 
     def move_to(self, x: int, y: int, duration: float = .35):
@@ -42,7 +41,7 @@ class MouseController:
         kcg_event, mouse_button = Quartz.kCGEventMouseMoved, 0
         if move == 'drag':
             kcg_event, mouse_button = Quartz.kCGEventLeftMouseDragged, Quartz.kCGMouseButtonLeft
-        start_x, start_y = self._position
+        start_x, start_y = self.position
         width, height = self.screen_size
         x = max(0, min(x, width - 1))  # Make sure x and y are within the screen bounds.
         y = max(0, min(y, height - 1))
@@ -50,21 +49,19 @@ class MouseController:
         if steps_count < 50:
             duration /= 3
         pause = duration / steps_count
-        steps = [pytweening.getPointOnLine(start_x, start_y, x, y, self.tween_type(n / steps_count))
-                 for n in range(steps_count)]
-        for tween_x, tween_y in steps:
-            self._send_mouse_event(kcg_event, tween_x, tween_y, mouse_button)
+        for step in (get_point_on_line(start_x, start_y, x, y, ease_out_quad(n / steps_count)) for n in range(steps_count)):
+            self._send_mouse_event(kcg_event, *step, mouse_button)
             time.sleep(pause)
         self._send_mouse_event(kcg_event, x, y, mouse_button)
 
     @staticmethod
-    def vertical_scroll(scrolls: int, speed: int = 10):
+    def vertical_scroll(scrolls: int, speed: int = 1):
         if scrolls < 0:
             speed *= -1
         for _ in range(abs(scrolls)):
             swe = Quartz.CGEventCreateScrollWheelEvent(None, Quartz.kCGScrollEventUnitLine, 1, speed)
             Quartz.CGEventPost(Quartz.kCGHIDEventTap, swe)
-            time.sleep(.05)
+            time.sleep(.003)
 
     @staticmethod
     def multi_click(x: int, y: int, button: str, clicks: int):
@@ -94,19 +91,30 @@ class MouseController:
             Quartz.CGEventSetType(mouse_event, up)
             Quartz.CGEventPost(Quartz.kCGHIDEventTap, mouse_event)
 
-    @staticmethod
-    def _send_mouse_event(event, x: int, y: int, button):
-        event = Quartz.CGEventCreateMouseEvent(None, event, (x, y), button)
-        Quartz.CGEventPost(Quartz.kCGHIDEventTap, event)
-
     @property
-    def _position(self):
+    def position(self):
+        # noinspection PyUnresolvedReferences
         loc = AppKit.NSEvent.mouseLocation()
         return int(loc.x), int(Quartz.CGDisplayPixelsHigh(0) - loc.y)
 
     @property
     def screen_size(self):
         if self.__screen_size is None:
-            self.__screen_size = Quartz.CGDisplayPixelsWide(Quartz.CGMainDisplayID()), Quartz.CGDisplayPixelsHigh(
-                Quartz.CGMainDisplayID())
+            display = Quartz.CGMainDisplayID()
+            self.__screen_size = Quartz.CGDisplayPixelsWide(display), Quartz.CGDisplayPixelsHigh(display)
         return self.__screen_size
+
+    @staticmethod
+    def _send_mouse_event(event, x: int, y: int, button):
+        event = Quartz.CGEventCreateMouseEvent(None, event, (x, y), button)
+        Quartz.CGEventPost(Quartz.kCGHIDEventTap, event)
+
+
+def ease_out_quad(n: float) -> float:
+    """A quadratic tween function that begins fast and then decelerates."""
+    return -n * (n - 2)
+
+
+def get_point_on_line(x1: int, y1: int, x2: int, y2: int, n: float) -> Tuple[float, float]:
+    """Return point that has progressed a proportion n along the line defined by the two x, y coordinates."""
+    return ((x2 - x1) * n) + x1, ((y2 - y1) * n) + y1
