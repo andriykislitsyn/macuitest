@@ -1,4 +1,4 @@
-![Tests](https://github.com/andriykislitsyn/macuitest/actions/workflows/tests.yml/badge.svg)
+![Tests](https://github.com/andriykislitsyn/macuitest/actions/workflows/tests.yaml/badge.svg)
 
 # MacUITest
 
