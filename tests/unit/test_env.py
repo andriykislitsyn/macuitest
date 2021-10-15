@@ -1,5 +1,5 @@
-from macuitest.lib.operating_system.macos import macos
 from macuitest.lib.operating_system.env import env
+from macuitest.lib.operating_system.macos import macos
 
 
 def test_macos_version():
@@ -18,15 +18,15 @@ def test_major_macos_version():
 
 def test_printable_macos_version():
     assert isinstance(env.version_major_str, str)
-    assert env.version_major_str.startswith('10.')
+    assert env.version_major_str.startswith("10.")
 
 
 def test_paths():
-    assert env.home.startswith('/Users')
-    assert '.Trash' in env.trash
-    assert 'Desktop' in env.desktop
-    assert 'Documents' in env.documents
-    assert '/Library' in env.user_lib and '/Users' in env.user_lib
+    assert env.home.startswith("/Users")
+    assert ".Trash" in env.trash
+    assert "Desktop" in env.desktop
+    assert "Documents" in env.documents
+    assert "/Library" in env.user_lib and "/Users" in env.user_lib
 
 
 def test_mac_model():
@@ -34,4 +34,4 @@ def test_mac_model():
     assert macos.sys_info.hw_uuid is not None
     assert macos.sys_info.mac_model is not None
     assert macos.sys_info.computer_name is not None
-    assert 'Mac' in macos.sys_info.model_name
+    assert "Mac" in macos.sys_info.model_name or "Apple device" in macos.sys_info.model_name
