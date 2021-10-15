@@ -34,4 +34,4 @@ def test_mac_model():
     assert macos.sys_info.hw_uuid is not None
     assert macos.sys_info.mac_model is not None
     assert macos.sys_info.computer_name is not None
-    assert "Mac" in macos.sys_info.model_name
+    assert "Mac" in macos.sys_info.model_name or "Apple device" in macos.sys_info.model_name
