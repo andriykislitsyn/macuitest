@@ -23,7 +23,8 @@ def wait_condition(
     while time.time() < end:
         time.sleep(0.005)
         try:
-            if result := predicate(*args, **kwargs):
+            result = predicate(*args, **kwargs)
+            if result:
                 return result
         except exceptions:
             continue
