@@ -1,3 +1,5 @@
+![Tests](https://github.com/andriykislitsyn/macuitest/actions/workflows/tests.yml/badge.svg)
+
 # MacUITest
 
 > A simple framework that helps to create functional and UI tests against almost any macOS application.
