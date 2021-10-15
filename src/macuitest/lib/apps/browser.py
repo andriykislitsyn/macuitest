@@ -75,9 +75,7 @@ class Safari(Application):
         time.sleep(0.5)
         confirm_download_dialog = self.confirm_download_dialog
         if confirm_download_dialog:
-            confirm_download_dialog.find_element(
-                AXRole="AXButton", AXTitle="Allow"
-            ).press()
+            confirm_download_dialog.find_element(AXRole="AXButton", AXTitle="Allow").press()
 
     @property
     def document_cookies(self):
