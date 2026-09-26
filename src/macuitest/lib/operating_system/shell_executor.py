@@ -16,9 +16,7 @@ class ShellExecutor:
 
     def sudo_get_output(self, cmd: str, timeout: Optional[int] = None) -> Optional[str]:
         """Execute shell instruction with elevated privileges and return execution output."""
-        response = self.__execute(
-            cmd=f'echo "{self.get_admin_password()}" | sudo -S -p "" {cmd}', timeout=timeout
-        )
+        response = self.sudo(cmd, timeout=timeout)
         if isinstance(response, subprocess.CompletedProcess):
             return response.stdout.decode(encoding="utf-8").strip()
 
@@ -33,7 +31,7 @@ class ShellExecutor:
     ) -> Union[subprocess.CompletedProcess, int]:
         """Execute shell instruction with elevated privileges and return execution code."""
         return self.__execute(
-            cmd=f'echo "{self.get_admin_password()}" | sudo -S -p "" {cmd}', timeout=timeout
+            cmd=f'sudo -S -p "" {cmd}', timeout=timeout, stdin=f"{self.get_admin_password()}\n"
         )
 
     def execute(
@@ -48,19 +46,11 @@ class ShellExecutor:
             _password = subprocess.getoutput(
                 f"security find-generic-password -a {auto_keychain} -w 2>/dev/null"
             )
-            if (
-                subprocess.call(f'echo "{_password}" |sudo -S -p "" -v --', shell=True, stderr=-3)
-                == 0
-            ):
+            if self._is_sudo_password(_password):
                 self.__password = _password
             else:  # Fallback. Reading environment variables.
                 _password = os.environ.get("MACUITEST_PASSWORD")
-                if (
-                    subprocess.call(
-                        f'echo "{_password}" |sudo -S -p "" -v --', shell=True, stderr=-3
-                    )
-                    == 0
-                ):
+                if _password is not None and self._is_sudo_password(_password):
                     self.__password = _password
                 else:
                     raise SystemExit(
@@ -72,13 +62,28 @@ class ShellExecutor:
                     )
         return self.__password
 
+    @staticmethod
+    def _is_sudo_password(password: str) -> bool:
+        validation = subprocess.run(
+            ["sudo", "-S", "-p", "", "-v", "--"],
+            input=f"{password}\n",
+            text=True,
+            stderr=subprocess.DEVNULL,
+        )
+        return validation.returncode == 0
+
     def __execute(
-        self, cmd: str, timeout: Optional[int] = None
+        self, cmd: str, timeout: Optional[int] = None, stdin: Optional[str] = None
     ) -> Union[subprocess.CompletedProcess, int]:
-        """Send instruction to shell."""
+        """Run `cmd` in a shell, writing `stdin` to its standard input when given."""
         try:
             response = subprocess.run(
-                cmd, shell=True, stderr=self.pipe, stdout=self.pipe, timeout=timeout
+                cmd,
+                shell=True,
+                input=stdin.encode() if stdin is not None else None,
+                stderr=self.pipe,
+                stdout=self.pipe,
+                timeout=timeout,
             )
             if response.returncode:
                 warning_message = (
