@@ -1,4 +1,5 @@
 """Implements a basic color meter. It finds the value of a colour on given coordinates."""
+
 import multiprocessing
 from collections import Counter
 from typing import Optional

@@ -106,8 +106,9 @@ class MouseController:
     def screen_size(self):
         if self.__screen_size is None:
             display = Quartz.CGMainDisplayID()
-            self.__screen_size = Quartz.CGDisplayPixelsWide(display), Quartz.CGDisplayPixelsHigh(
-                display
+            self.__screen_size = (
+                Quartz.CGDisplayPixelsWide(display),
+                Quartz.CGDisplayPixelsHigh(display),
             )
         return self.__screen_size
 

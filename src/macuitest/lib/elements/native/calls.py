@@ -1,4 +1,5 @@
 """Wrap objc calls to raise python exception."""
+
 import AppKit
 from ApplicationServices import AXIsProcessTrusted
 from ApplicationServices import AXUIElementCopyActionNames
