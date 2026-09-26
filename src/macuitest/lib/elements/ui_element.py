@@ -9,6 +9,7 @@ from macuitest.config.constants import Point
 from macuitest.config.constants import Region
 from macuitest.lib.core import wait_condition
 from macuitest.lib.elements.controllers.mouse import mouse
+from macuitest.lib.elements.ui.matching import find_template
 from macuitest.lib.elements.ui.monitor import monitor
 
 
@@ -22,7 +23,10 @@ class UIElement:
     def __init__(self, screenshot_path: Union[str, Path], similarity: float = 0.925):
         self.path = screenshot_path.strip() if isinstance(screenshot_path, str) else screenshot_path
         self.similarity: float = similarity
+        # Patterns are assumed captured on the main display, at its pixels per point.
+        self.__template_scale = 2 if monitor.is_retina else 1
         self.image, self.width, self.height = self.__load_image()
+        self.__templates = {float(self.__template_scale): self.image}
 
     def __repr__(self):
         return f'<UIElement "{self.path}", similarity={self.similarity}>'
@@ -88,28 +92,34 @@ class UIElement:
     def wait_vanish(self, timeout: int = 15, region: Optional[Region] = None) -> bool:
         return wait_condition(lambda: self.detect_on_screen(region) is None, timeout=timeout)
 
-    def detect_on_screen(self, region: Optional[Region] = None):
-        """Locate pattern on the screen and return its center.
-        OpenCV (Open Source Computer Vision Library) is an open source computer vision
-        and machine learning software library. It's built to provide a common infrastructure
-        for computer vision applications and to accelerate the use of machine perception
-        in the commercial products."""
+    def detect_on_screen(self, region: Optional[Region] = None) -> Optional[Point]:
+        """Return the top-left point of the best match in `region`, or None below `similarity`.
+
+        `region` defaults to every connected display.
+
+        Raises:
+            cv2.error: `region` is smaller than the pattern.
+        """
         region = region or monitor.bounds
-        _, similarity, _, position = cv2.minMaxLoc(
-            cv2.matchTemplate(
-                cv2.cvtColor(monitor.make_snapshot(region), cv2.COLOR_BGR2GRAY),
-                self.image,
-                cv2.TM_CCOEFF_NORMED,
-            )
-        )
-        # In case of AssertionError in cv2.error:
-        # `_img.size().height <= _templ.size().height && _img.size().width <= _templ.size().width`
-        # You need to check that the `region` size is larger than `pattern` size.
-        if round(similarity, 3) >= self.similarity:
-            denominator = 2 if monitor.is_retina else 1
+        screen = cv2.cvtColor(monitor.make_snapshot(region), cv2.COLOR_BGRA2GRAY)
+        capture_scale = screen.shape[1] / (region.x2 - region.x1)
+        match = find_template(screen, self.__template_at(capture_scale), self.similarity)
+        if match is not None:
             return Point(
-                region.x1 + position[0] // denominator, region.y1 + position[1] // denominator
+                region.x1 + int(match[0] / capture_scale), region.y1 + int(match[1] / capture_scale)
             )
+        return None
+
+    def __template_at(self, capture_scale: float) -> numpy.ndarray:
+        """Return the pattern resampled to `capture_scale` pixels per point, cached per scale."""
+        capture_scale = round(capture_scale, 2)
+        if capture_scale not in self.__templates:
+            ratio = capture_scale / self.__template_scale
+            interpolation = cv2.INTER_AREA if ratio < 1 else cv2.INTER_CUBIC
+            self.__templates[capture_scale] = cv2.resize(
+                self.image, None, fx=ratio, fy=ratio, interpolation=interpolation
+            )
+        return self.__templates[capture_scale]
 
     def __load_image(self) -> tuple[numpy.ndarray, float, float]:
         """Load the image from disk and return it with its width and height in points."""
@@ -119,5 +129,4 @@ class UIElement:
         if image is None:
             raise IOError(f"Cannot not load screenshot: {self.path}")
         height, width = image.shape
-        scale = 2 if monitor.is_retina else 1
-        return image, width / scale, height / scale
+        return image, width / self.__template_scale, height / self.__template_scale
