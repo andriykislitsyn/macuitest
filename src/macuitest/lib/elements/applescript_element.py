@@ -71,7 +71,7 @@ class BaseUIElement:
 
     def most_common_color(self, ignore_colors: Optional[Tuple[str, ...]] = None):
         f = self.frame
-        return get_most_common_color(f.x1, f.x2, f.y1, f.y2, ignore_colors)
+        return get_most_common_color(f.x1, f.y1, f.x2, f.y2, ignore_colors)
 
     def color(self, x_off: int = 0, y_off: int = 0) -> str:
         c = self.frame.center
