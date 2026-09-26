@@ -74,7 +74,6 @@ replace-imports-with-any = [
 include = [
     "src/macuitest/lib/applescript_lib/aeconverter.py",
     "src/macuitest/lib/applescript_lib/applescript_wrapper.py",
-    "src/macuitest/lib/apps/application.py",
     "src/macuitest/lib/apps/browser.py",
     "src/macuitest/lib/elements/applescript_element.py",
     "src/macuitest/lib/elements/controllers/keyboard_mappings.py",
