@@ -1,57 +1,100 @@
 [build-system]
-requires = ['setuptools>=42.0', 'wheel']
-build-backend = 'setuptools.build_meta'
+requires = ["uv_build>=0.12,<0.13"]
+build-backend = "uv_build"
 
-[tool.pytest.ini_options]
-addopts = '-vvvv --junitxml ./junit.xml'
-testpaths = [
-    'tests',
+[project]
+name = "macuitest"
+version = "0.7.43"
+description = "A simple UI testing framework for macOS"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Andrii Kislitsyn", email = "andriikislitsyn@gmail.com" }]
+keywords = ["macOS", "Testing", "E2E", "UI", "Automator", "Accessibility"]
+classifiers = [
+    "Topic :: Software Development :: Testing",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Education :: Testing",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
+]
+requires-python = ">=3.13"
+dependencies = [
+    "biplist>=1.0.3",
+    "opencv-python>=4.5.3",
+    "pyobjc-framework-ApplicationServices>=7.3",
+    "pyobjc-framework-AVFoundation>=7.3",
+    "pyobjc-framework-Cocoa>=7.3",
+    "pyobjc-framework-CoreMedia>=7.3",
+    "pyobjc-framework-CoreText>=7.3",
+    "pyobjc-framework-Quartz>=7.3",
+    "pytesseract>=0.3",
 ]
 
-[tool.black]
+[project.urls]
+Homepage = "https://github.com/andriykislitsyn/macuitest"
+
+[dependency-groups]
+dev = ["pytest", "ruff", "ty"]
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+testpaths = ["tests"]
+
+[tool.ruff]
 line-length = 100
-skip-string-normalization = true
-target-version = ['py39']
-include = '\.pyi?$'
-exclude = '''
-(
-  /(
-      \.eggs
-    | \.git
-    | \.hg
-    | \.mypy_cache
-    | \.tox
-    | \.venv
-    | _build
-    | buck-out
-    | build
-    | dist
-  )/
-)
-'''
 
-[tool.isort]
-# See https://pycqa.github.io/isort/docs/configuration/profiles.html
-profile = 'black'
-# Override profile setup:
-line_length = 100
-force_single_line = true
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
 
-[tool.flake8]
-max-line-length = 100
-extend-ignore = 'E203,'
-max-complexity = 7
+[tool.ruff.lint.isort]
+force-single-line = true
 
-[tool.mypy]
-mypy_path = 'src'
-check_untyped_defs = true
-disallow_any_generics = true
-ignore_missing_imports = true
-no_implicit_optional = true
-show_error_codes = true
-strict_equality = true
-warn_redundant_casts = true
-warn_return_any = true
-warn_unreachable = true
-warn_unused_configs = true
-no_implicit_reexport = true
+[tool.ruff.format]
+quote-style = "preserve"
+
+[tool.ty.analysis]
+# pyobjc resolves framework symbols lazily at runtime, so no static checker can see them.
+replace-imports-with-any = [
+    "AppKit",
+    "ApplicationServices",
+    "AVFoundation",
+    "CoreFoundation",
+    "CoreText",
+    "Foundation",
+    "Quartz",
+    "Quartz.**",
+    "objc",
+]
+
+# Files with pre-existing type errors. Remove an entry once its file type-checks.
+[[tool.ty.overrides]]
+include = [
+    "src/macuitest/lib/applescript_lib/aeconverter.py",
+    "src/macuitest/lib/applescript_lib/applescript_wrapper.py",
+    "src/macuitest/lib/apps/application.py",
+    "src/macuitest/lib/apps/browser.py",
+    "src/macuitest/lib/elements/applescript_element.py",
+    "src/macuitest/lib/elements/controllers/keyboard_mappings.py",
+    "src/macuitest/lib/elements/controllers/mouse_controller.py",
+    "src/macuitest/lib/elements/native/calls.py",
+    "src/macuitest/lib/elements/native/converter.py",
+    "src/macuitest/lib/elements/native_element.py",
+    "src/macuitest/lib/elements/ui/monitor.py",
+    "src/macuitest/lib/elements/ui/ocr_manager.py",
+    "src/macuitest/lib/elements/ui/screenshot_path_builder.py",
+    "src/macuitest/lib/elements/ui_element.py",
+    "src/macuitest/lib/operating_system/color_meter.py",
+    "src/macuitest/lib/operating_system/db_manager.py",
+    "src/macuitest/lib/operating_system/env.py",
+    "src/macuitest/lib/operating_system/memory_manager.py",
+    "src/macuitest/lib/operating_system/networking.py",
+    "src/macuitest/lib/operating_system/service_manager.py",
+    "src/macuitest/lib/operating_system/system_information.py",
+    "src/macuitest/lib/operating_system/tcc.py",
+    "src/macuitest/lib/operating_system/time_manager.py",
+]
+rules = { all = "ignore" }
