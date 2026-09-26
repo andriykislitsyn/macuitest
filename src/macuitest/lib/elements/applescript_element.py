@@ -20,7 +20,6 @@ from macuitest.lib.applescript_lib.applescript_wrapper import as_wrapper
 from macuitest.lib.core import is_close
 from macuitest.lib.core import wait_condition
 from macuitest.lib.elements.controllers.keyboard_controller import keyboard
-from macuitest.lib.elements.controllers.mouse import MouseConfig
 from macuitest.lib.elements.controllers.mouse import mouse
 from macuitest.lib.elements.ui.monitor import monitor
 from macuitest.lib.operating_system.color_meter import get_color
@@ -82,7 +81,7 @@ class BaseUIElement:
         c = self.frame.center
         mouse.scroll(c.x + x_off, c.y + y_off, scrolls=clicks)
 
-    def doubleclick_mouse(self, x_off: int = 0, y_off: int = 0, duration: float = MouseConfig.move):
+    def doubleclick_mouse(self, x_off: int = 0, y_off: int = 0, duration: Optional[float] = None):
         c = self.frame.center
         mouse.double_click(c.x + x_off, c.y + y_off, duration=duration)
 
@@ -90,9 +89,9 @@ class BaseUIElement:
         self,
         x_off: int = 0,
         y_off: int = 0,
-        hold: float = MouseConfig.hold,
-        duration: float = MouseConfig.move,
-        pause: float = MouseConfig.pause,
+        hold: Optional[float] = None,
+        duration: Optional[float] = None,
+        pause: Optional[float] = None,
     ) -> None:
         c = self.frame.center
         mouse.right_click(c.x + x_off, c.y + y_off, hold, duration, pause)
@@ -101,16 +100,14 @@ class BaseUIElement:
         self,
         x_off: int = 0,
         y_off: int = 0,
-        hold: float = MouseConfig.hold,
-        duration: float = MouseConfig.move,
-        pause: float = MouseConfig.pause,
+        hold: Optional[float] = None,
+        duration: Optional[float] = None,
+        pause: Optional[float] = None,
     ) -> None:
         c = self.frame.center
         mouse.click(c.x + x_off, c.y + y_off, hold, duration, pause)
 
-    def hover_mouse(
-        self, x_off: int = 0, y_off: int = 0, duration: float = MouseConfig.move
-    ) -> None:
+    def hover_mouse(self, x_off: int = 0, y_off: int = 0, duration: Optional[float] = None) -> None:
         c = self.frame.center
         mouse.hover(c.x + x_off, c.y + y_off, duration=duration)
 
@@ -204,7 +201,7 @@ class BaseUIElement:
     def did_vanish(self) -> bool:
         return self.wait_vanish()
 
-    def wait_vanish(self, timeout: [int, float] = 5) -> bool:
+    def wait_vanish(self, timeout: float = 5) -> bool:
         self.wait_displayed(timeout=0.3)
         return wait_condition(lambda: self.is_exists() is False, timeout=timeout)
 

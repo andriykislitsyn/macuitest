@@ -198,7 +198,7 @@ class FileManager:
     def zip_file(src, dst):
         relroot = os.path.abspath(os.path.join(src, os.pardir))
         with zipfile.ZipFile(dst, "w", zipfile.ZIP_DEFLATED) as zip_:
-            for root, dirs, files in os.walk(src):
+            for root, _dirs, files in os.walk(src):
                 zip_.write(root, os.path.relpath(root, relroot))
                 for file_ in files:
                     filename = os.path.join(root, file_)
@@ -226,7 +226,7 @@ class FileManager:
     @staticmethod
     def change_files_permissions(folder, permissions):
         """Change file permissions in `folder`."""
-        for root, subfolders, files in os.walk(folder):
+        for root, _subfolders, files in os.walk(folder):
             [os.chmod(os.path.join(root, file_), permissions) for file_ in files]
 
     @staticmethod
@@ -258,7 +258,7 @@ class FileManager:
         hashes: dict = dict()
         duplicates: dict = dict()
         for folder in folders:
-            for dirpath, dirnames, files_list in os.walk(folder):
+            for dirpath, _dirnames, files_list in os.walk(folder):
                 for filename in files_list:
                     if not filename.startswith("."):
                         full_path = os.path.join(dirpath, filename)

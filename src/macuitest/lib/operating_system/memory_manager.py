@@ -1,9 +1,8 @@
+import plistlib
 import threading
 from typing import Dict
 from typing import List
 from typing import Optional
-
-import biplist
 
 from macuitest.lib import core
 
@@ -52,6 +51,6 @@ class MemoryManager:
         _info = bytes(
             self.executor.get_output("system_profiler -xml SPMemoryDataType"), encoding="utf-8"
         )
-        _slots = biplist.readPlistFromString(_info)[0].get("_items")[0].get("_items")
+        _slots = plistlib.loads(_info)[0].get("_items")[0].get("_items")
         self._memory_slots = _slots
         return _slots

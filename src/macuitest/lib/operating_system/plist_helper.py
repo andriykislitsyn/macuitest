@@ -1,8 +1,7 @@
 import os
+import plistlib
 from typing import Any
 from typing import Dict
-
-import biplist
 
 from macuitest.lib.core import wait_condition
 
@@ -32,15 +31,19 @@ class PlistHelper:
         self.write_plist(_content)
 
     def write_plist(self, content):
-        return biplist.writePlist(content, self.plist, binary=False)
+        with open(self.plist, "wb") as f:
+            plistlib.dump(content, f)
 
     def read_plist(self) -> Dict[str, Any]:
-        payload = dict()
+        """Wait up to 15 seconds for the file, then parse it as an XML or binary property list.
+
+        Raises:
+            PropertyListMissing: The file didn't appear within 15 seconds.
+            plistlib.InvalidFileException: The file isn't a valid property list.
+            xml.parsers.expat.ExpatError: The file is malformed XML.
+            ValueError: An element holds an invalid value.
+        """
         if not wait_condition(lambda: os.path.exists(self.plist), timeout=15):
             raise PropertyListMissing
-        try:
-            payload = biplist.readPlist(self.plist)
-        except (biplist.NotBinaryPlistException, biplist.InvalidPlistException):
-            raise
-        finally:
-            return payload
+        with open(self.plist, "rb") as f:
+            return plistlib.load(f)

@@ -8,15 +8,22 @@ from macuitest.lib.elements.controllers.keyboard_mappings import SPECIAL_KEYS
 
 
 class KeyBoardController:
+    # Apps act on these as keys, not text, so they go out as virtual keycodes.
+    KEYCODE_CHARS = frozenset("\t\n\r")
+
     def __init__(self):
         pass
 
     def write(self, message: str, pause: float = 0.001):
-        """Press key for each of the characters in message."""
+        """Type `message` as Unicode text, independent of the keyboard layout.
+
+        Tabs and line breaks go out as their physical keys.
+        """
         for char in message:
-            self.__send_key_event(char, "down")
+            send = self.__send_key_event if char in self.KEYCODE_CHARS else self.send_unicode_event
+            send(char, "down")
             time.sleep(pause)
-            self.__send_key_event(char, "up")
+            send(char, "up")
             time.sleep(pause)
 
     def hotkey(self, *args):
@@ -31,6 +38,19 @@ class KeyBoardController:
                 c = c.lower()
             self.__send_key_event(c, "up")
             time.sleep(0.025)
+
+    @staticmethod
+    def send_unicode_event(char: str, event_type: str):
+        """Post `char` as a text keystroke with no modifier flags.
+
+        Args:
+            char: The character to type.
+            event_type: "down" for key down, anything else for key up.
+        """
+        event = Quartz.CGEventCreateKeyboardEvent(None, 0, event_type == "down")
+        Quartz.CGEventSetFlags(event, 0)
+        Quartz.CGEventKeyboardSetUnicodeString(event, len(char.encode("utf-16-le")) // 2, char)
+        Quartz.CGEventPost(Quartz.kCGHIDEventTap, event)
 
     def __send_key_event(self, key: str, event: str):
         send = self.send_special_key_event if key in SPECIAL_KEYS else self.send_regular_key_event

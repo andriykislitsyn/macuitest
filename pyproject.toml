@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "macuitest"
-version = "0.7.43"
+version = "0.8.0"
 description = "A simple UI testing framework for macOS"
 readme = "README.md"
 license = "MIT"
@@ -23,22 +23,20 @@ classifiers = [
 ]
 requires-python = ">=3.13"
 dependencies = [
-    "biplist>=1.0.3",
     "opencv-python>=4.5.3",
     "pyobjc-framework-ApplicationServices>=7.3",
-    "pyobjc-framework-AVFoundation>=7.3",
     "pyobjc-framework-Cocoa>=7.3",
-    "pyobjc-framework-CoreMedia>=7.3",
-    "pyobjc-framework-CoreText>=7.3",
     "pyobjc-framework-Quartz>=7.3",
-    "pytesseract>=0.3",
 ]
+
+[project.optional-dependencies]
+ocr = ["pytesseract>=0.3"]
 
 [project.urls]
 Homepage = "https://github.com/andriykislitsyn/macuitest"
 
 [dependency-groups]
-dev = ["pytest", "ruff", "ty"]
+dev = ["pytesseract>=0.3", "pytest", "ruff", "ty"]
 
 [tool.pytest.ini_options]
 addopts = "-ra"
@@ -48,7 +46,7 @@ testpaths = ["tests"]
 line-length = 100
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I"]
+select = ["E", "F", "W", "I", "B"]
 
 [tool.ruff.lint.isort]
 force-single-line = true
@@ -61,9 +59,7 @@ quote-style = "preserve"
 replace-imports-with-any = [
     "AppKit",
     "ApplicationServices",
-    "AVFoundation",
     "CoreFoundation",
-    "CoreText",
     "Foundation",
     "Quartz",
     "Quartz.**",
@@ -75,15 +71,10 @@ replace-imports-with-any = [
 include = [
     "src/macuitest/lib/applescript_lib/aeconverter.py",
     "src/macuitest/lib/applescript_lib/applescript_wrapper.py",
-    "src/macuitest/lib/apps/application.py",
     "src/macuitest/lib/apps/browser.py",
     "src/macuitest/lib/elements/applescript_element.py",
-    "src/macuitest/lib/elements/controllers/keyboard_mappings.py",
     "src/macuitest/lib/elements/native/calls.py",
     "src/macuitest/lib/elements/native/converter.py",
-    "src/macuitest/lib/elements/native_element.py",
-    "src/macuitest/lib/elements/ui/ocr_manager.py",
-    "src/macuitest/lib/elements/ui/screenshot_path_builder.py",
     "src/macuitest/lib/operating_system/color_meter.py",
     "src/macuitest/lib/operating_system/db_manager.py",
     "src/macuitest/lib/operating_system/env.py",

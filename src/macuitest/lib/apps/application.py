@@ -1,14 +1,11 @@
-import logging
 import os
 import time
-from typing import Dict
-from typing import List
 from typing import Union
 
 from macuitest.lib.applescript_lib.applescript_wrapper import AppleScriptError
 from macuitest.lib.applescript_lib.applescript_wrapper import as_wrapper
 from macuitest.lib.core import wait_condition
-from macuitest.lib.elements.applescript_element import ASElement
+from macuitest.lib.elements.applescript_element import Window
 from macuitest.lib.operating_system.env import env
 from macuitest.lib.operating_system.macos import macos
 from macuitest.lib.operating_system.plist_helper import PlistHelper
@@ -19,7 +16,12 @@ class Application:
         self.name: str = app_name
         self.application_property_list: str = f"{location}/{self.name}.app/Contents/Info.plist"
         self.contents_reader: PlistHelper = PlistHelper(self.application_property_list)
-        self.window = ASElement("window 1", process=self.name)
+        # Not "window 1": it can resolve to an overlay, such as Chrome's 66x20 phantom window.
+        # Keep the parentheses. Without them, `attribute "AXPosition" of first window whose ...`
+        # applies `whose` to the attribute, not the window.
+        self.window = Window(
+            '(first window whose subrole is "AXStandardWindow")', process=self.name
+        )
 
     def close_windows(self):
         try:
@@ -54,22 +56,22 @@ class Application:
             raise EnvironmentError(f'{self.name} has not activated')
 
     def set_window_position(self, position: str = "{1210, 670}"):
-        if self.frontmost:
-            try:
-                return as_wrapper.tell_app_process(
-                    f"set position of the front window to {position}", self.name
-                )
-            except AppleScriptError:
-                pass
+        """Move `window` to an AppleScript point such as "{1210, 670}".
+
+        Raises:
+            AppleScriptError: The app has no standard window, or System Events rejected the move.
+        """
+        as_wrapper.tell_app_process(
+            f"set position of {self.window.locator} to {position}", self.name
+        )
 
     def set_window_size(self, size: str = "{700, 400}"):
-        if self.frontmost:
-            try:
-                return as_wrapper.tell_app_process(
-                    f"set size of the front window to {size}", self.name
-                )
-            except AppleScriptError:
-                pass
+        """Resize `window` to an AppleScript size such as "{700, 400}".
+
+        Raises:
+            AppleScriptError: The app has no standard window, or System Events rejected the resize.
+        """
+        as_wrapper.tell_app_process(f"set size of {self.window.locator} to {size}", self.name)
 
     @property
     def version(self) -> int:
@@ -164,44 +166,5 @@ class Installer(Application):
         self.activate()
 
 
-class SystemPreferences(Application):
-    anchors: Dict[str, str] = {
-        "full_disk_access": "Privacy_AllFiles",
-        "camera_access": "Privacy_Camera",
-    }
-
-    def __init__(self):
-        super().__init__("System Preferences")
-
-    def authorize(self):
-        return as_wrapper.tell_app(self.name, "tell current pane to authorize")
-
-    def show_anchor(self, anchor: str, pane_id="com.apple.preference.security"):
-        return as_wrapper.tell_app(self.name, f'reveal anchor "{anchor}" of pane "{pane_id}"')
-
-    def reveal_pane(self, pane_id="com.apple.preference.security"):
-        return as_wrapper.tell_app(self.name, f'reveal pane "{pane_id}"')
-
-    def get_pane_anchors(self, pane_id: str) -> List[str]:
-        return as_wrapper.tell_app(self.name, f'return name of every anchor of pane "{pane_id}"')
-
-    @property
-    def current_pane_anchors(self) -> List[str]:
-        try:
-            return as_wrapper.tell_app(self.name, "return name of every anchor of current pane")
-        except AppleScriptError:
-            logging.warning("You must launch System Preferences first.")
-            return list()
-
-    @property
-    def current_pane_id(self):
-        return as_wrapper.tell_app(self.name, "return id of current pane")
-
-    @property
-    def pane_ids(self) -> List[str]:
-        return as_wrapper.tell_app(self.name, "return id of every pane")
-
-
 finder = Finder()
 installer = Installer()
-system_preferences_app = SystemPreferences()
