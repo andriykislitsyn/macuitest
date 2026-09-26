@@ -4,11 +4,10 @@ from typing import Tuple
 import AppKit
 import Quartz
 
+from macuitest.lib.elements.ui.monitor import monitor
+
 
 class MouseController:
-    def __init__(self):
-        self.__screen_size = None
-
     def move_to(self, x: int, y: int, duration: float = 0.35):
         self.__mouse_move_drag(x=x, y=y, duration=duration)
         time.sleep(0.125)
@@ -37,14 +36,15 @@ class MouseController:
         else:
             raise ValueError("button argument not in ('left', 'middle', 'right')")
 
-    def __mouse_move_drag(self, x: int, y: int, duration: float, move: str = "move"):
+    def __mouse_move_drag(self, x: float, y: float, duration: float, move: str = "move"):
         kcg_event, mouse_button = Quartz.kCGEventMouseMoved, 0
         if move == "drag":
             kcg_event, mouse_button = Quartz.kCGEventLeftMouseDragged, Quartz.kCGMouseButtonLeft
         start_x, start_y = self.position
-        width, height = self.screen_size
-        x = max(0, min(x, width - 1))  # Make sure x and y are within the screen bounds.
-        y = max(0, min(y, height - 1))
+        bounds = monitor.bounds
+        # Keep the target on the virtual desktop, which spans every connected display.
+        x = max(bounds.x1, min(x, bounds.x2 - 1))
+        y = max(bounds.y1, min(y, bounds.y2 - 1))
         steps_count = int(max(abs(x - start_x), abs(y - start_y))) or 1
         if steps_count < 50:
             duration /= 3
@@ -102,18 +102,8 @@ class MouseController:
         loc = AppKit.NSEvent.mouseLocation()
         return int(loc.x), int(Quartz.CGDisplayPixelsHigh(0) - loc.y)
 
-    @property
-    def screen_size(self):
-        if self.__screen_size is None:
-            display = Quartz.CGMainDisplayID()
-            self.__screen_size = (
-                Quartz.CGDisplayPixelsWide(display),
-                Quartz.CGDisplayPixelsHigh(display),
-            )
-        return self.__screen_size
-
     @staticmethod
-    def _send_mouse_event(event, x: int, y: int, button):
+    def _send_mouse_event(event, x: float, y: float, button):
         event = Quartz.CGEventCreateMouseEvent(None, event, (x, y), button)
         Quartz.CGEventPost(Quartz.kCGHIDEventTap, event)
 
@@ -123,7 +113,7 @@ def ease_out_quad(n: float) -> float:
     return -n * (n - 2)
 
 
-def get_point_on_line(x1: int, y1: int, x2: int, y2: int, n: float) -> Tuple[float, float]:
+def get_point_on_line(x1: float, y1: float, x2: float, y2: float, n: float) -> Tuple[float, float]:
     """Return point that has progressed a proportion n
     along the line defined by the two x, y coordinates."""
     return ((x2 - x1) * n) + x1, ((y2 - y1) * n) + y1
