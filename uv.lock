@@ -32,11 +32,16 @@ dependencies = [
     { name = "pyobjc-framework-coremedia" },
     { name = "pyobjc-framework-coretext" },
     { name = "pyobjc-framework-quartz" },
+]
+
+[package.optional-dependencies]
+ocr = [
     { name = "pytesseract" },
 ]
 
 [package.dev-dependencies]
 dev = [
+    { name = "pytesseract" },
     { name = "pytest" },
     { name = "ruff" },
     { name = "ty" },
@@ -51,11 +56,13 @@ requires-dist = [
     { name = "pyobjc-framework-coremedia", specifier = ">=7.3" },
     { name = "pyobjc-framework-coretext", specifier = ">=7.3" },
     { name = "pyobjc-framework-quartz", specifier = ">=7.3" },
-    { name = "pytesseract", specifier = ">=0.3" },
+    { name = "pytesseract", marker = "extra == 'ocr'", specifier = ">=0.3" },
 ]
+provides-extras = ["ocr"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "pytesseract", specifier = ">=0.3" },
     { name = "pytest" },
     { name = "ruff" },
     { name = "ty" },

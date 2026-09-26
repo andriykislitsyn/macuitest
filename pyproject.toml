@@ -30,14 +30,16 @@ dependencies = [
     "pyobjc-framework-CoreMedia>=7.3",
     "pyobjc-framework-CoreText>=7.3",
     "pyobjc-framework-Quartz>=7.3",
-    "pytesseract>=0.3",
 ]
+
+[project.optional-dependencies]
+ocr = ["pytesseract>=0.3"]
 
 [project.urls]
 Homepage = "https://github.com/andriykislitsyn/macuitest"
 
 [dependency-groups]
-dev = ["pytest", "ruff", "ty"]
+dev = ["pytesseract>=0.3", "pytest", "ruff", "ty"]
 
 [tool.pytest.ini_options]
 addopts = "-ra"
@@ -78,7 +80,6 @@ include = [
     "src/macuitest/lib/elements/applescript_element.py",
     "src/macuitest/lib/elements/native/calls.py",
     "src/macuitest/lib/elements/native/converter.py",
-    "src/macuitest/lib/elements/ui/ocr_manager.py",
     "src/macuitest/lib/operating_system/color_meter.py",
     "src/macuitest/lib/operating_system/db_manager.py",
     "src/macuitest/lib/operating_system/env.py",
