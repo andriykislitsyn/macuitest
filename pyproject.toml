@@ -70,7 +70,6 @@ replace-imports-with-any = [
 [[tool.ty.overrides]]
 include = [
     "src/macuitest/lib/applescript_lib/aeconverter.py",
-    "src/macuitest/lib/applescript_lib/applescript_wrapper.py",
     "src/macuitest/lib/apps/browser.py",
     "src/macuitest/lib/elements/applescript_element.py",
     "src/macuitest/lib/elements/native/calls.py",

@@ -1,3 +1,4 @@
+import functools
 import time
 
 from Foundation import NSAppleScript
@@ -66,7 +67,7 @@ class AppleScriptWrapper:
         """Send keystroke event with the specified `key_code` (type it using AppleScript)."""
         self.__send_event("key code", key_code, *args)
 
-    def __send_event(self, event_type: str, message: [str, int], *args):
+    def __send_event(self, event_type: str, message: str | int, *args):
         for modifier in args:
             if modifier not in self.allowed_modifier_keys:
                 raise KeyError(f'{modifier} is not a modifier key.')
@@ -100,10 +101,16 @@ class AppleScriptWrapper:
         """Execute AppleScript command abd returns exitcode, stdout and stderr.
         :param str cmd: apple script
         :return: exitcode, stdout and stderr"""
-        result, error = NSAppleScript.alloc().initWithSource_(cmd).executeAndReturnError_(None)
+        result, error = _script(cmd).executeAndReturnError_(None)
         if error:
             raise AppleScriptError(error)
         return ae_converter.unpack(result)
+
+
+@functools.lru_cache(maxsize=256)
+def _script(source: str) -> NSAppleScript:
+    """Return a shared script for `source`. It compiles on first run and stays compiled."""
+    return NSAppleScript.alloc().initWithSource_(source)
 
 
 as_wrapper = AppleScriptWrapper()
