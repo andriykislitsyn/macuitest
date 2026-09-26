@@ -16,8 +16,12 @@ class Application:
         self.name: str = app_name
         self.application_property_list: str = f"{location}/{self.name}.app/Contents/Info.plist"
         self.contents_reader: PlistHelper = PlistHelper(self.application_property_list)
-        # "window 1" can resolve to an overlay, such as the 66x20 phantom window Chrome exposes.
-        self.window = Window('first window whose subrole is "AXStandardWindow"', process=self.name)
+        # Not "window 1": it can resolve to an overlay, such as Chrome's 66x20 phantom window.
+        # Keep the parentheses. Without them, `attribute "AXPosition" of first window whose ...`
+        # applies `whose` to the attribute, not the window.
+        self.window = Window(
+            '(first window whose subrole is "AXStandardWindow")', process=self.name
+        )
 
     def close_windows(self):
         try:

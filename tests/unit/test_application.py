@@ -5,8 +5,9 @@ import pytest
 from macuitest.lib.applescript_lib.applescript_wrapper import AppleScriptError
 from macuitest.lib.apps import application
 from macuitest.lib.apps.application import Application
+from macuitest.lib.elements import applescript_element
 
-STANDARD_WINDOW = 'first window whose subrole is "AXStandardWindow"'
+STANDARD_WINDOW = '(first window whose subrole is "AXStandardWindow")'
 
 
 @pytest.fixture
@@ -20,6 +21,18 @@ def tell_app_process():
 
 def test_window_targets_the_first_standard_window():
     assert Application("Google Chrome").window.locator == STANDARD_WINDOW
+
+
+def test_window_stays_one_reference_inside_attribute_and_child_commands():
+    window = Application("Google Chrome").window
+    with mock.patch.object(applescript_element.as_wrapper, "tell_app_process") as tell:
+        window.get_attribute_value("AXPosition")
+        window.perform_action("AXRaise")
+
+    assert [call.kwargs["command"] for call in tell.call_args_list] == [
+        f'get value of attribute "AXPosition" of {STANDARD_WINDOW}',
+        f'perform action "AXRaise" of {STANDARD_WINDOW}',
+    ]
 
 
 @pytest.mark.parametrize(
