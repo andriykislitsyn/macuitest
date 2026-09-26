@@ -17,19 +17,26 @@ def wait_condition(
     timeout: Union[int, float] = 10,
     exceptions: tuple = (WaitConditionException,),
     *args,
+    interval: float = 0.05,
     **kwargs,
 ) -> Any:
-    """Execute `predicate` and return the result."""
-    end = time.time() + timeout
-    while time.time() < end:
-        time.sleep(0.005)
+    """Call `predicate` every `interval` seconds until it returns something truthy.
+
+    Returns:
+        The first truthy result, or False once `timeout` seconds pass. Exceptions listed in
+        `exceptions` count as a falsy result.
+    """
+    end = time.monotonic() + timeout
+    while True:
         try:
             result = predicate(*args, **kwargs)
             if result:
                 return result
         except exceptions:
-            continue
-    return False
+            pass
+        if time.monotonic() >= end:
+            return False
+        time.sleep(interval)
 
 
 def _parametrized(decorator):
