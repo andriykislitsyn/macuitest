@@ -76,7 +76,6 @@ include = [
     "src/macuitest/lib/applescript_lib/applescript_wrapper.py",
     "src/macuitest/lib/apps/browser.py",
     "src/macuitest/lib/elements/applescript_element.py",
-    "src/macuitest/lib/elements/controllers/keyboard_mappings.py",
     "src/macuitest/lib/elements/native/calls.py",
     "src/macuitest/lib/elements/native/converter.py",
     "src/macuitest/lib/elements/ui/ocr_manager.py",

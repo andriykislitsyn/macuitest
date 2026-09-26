@@ -197,7 +197,7 @@ KEY_NAMES = [
     "optionright",
 ]
 
-KEYBOARD_KEYS = dict([(key, None) for key in KEY_NAMES])
+KEYBOARD_KEYS: dict[str, int | None] = dict([(key, None) for key in KEY_NAMES])
 
 """ Taken from events.h
 /System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/HIToolbox.framework/Versions/A/Headers/Events.h
