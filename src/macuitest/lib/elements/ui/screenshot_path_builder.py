@@ -6,15 +6,15 @@ from macuitest.lib.operating_system.env import env
 
 
 class ScreenshotPathBuilder:
-    """Screenshot path builder."""
+    """Build screenshot paths under `root/category`.
+
+    Args:
+        category: Screenshot subdirectory, lowercased with spaces and hyphens replaced by
+            underscores.
+        root: Screenshot root. Defaults to `$MACUITEST_SCR`, then the home directory.
+    """
 
     def __init__(self, category: str, root: Union[Path, str, None] = None):
-        """Build screenshot paths under `root/category`.
-
-        Args:
-            category: Subdirectory of `root` holding this category's screenshots.
-            root: Screenshot root. Defaults to `$MACUITEST_SCR`, then the home directory.
-        """
         self.root = Path(root or os.environ.get("MACUITEST_SCR") or Path.home())
         self.category = category.lower().replace(" ", "_").replace("-", "_")
 

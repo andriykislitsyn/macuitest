@@ -29,7 +29,7 @@ class ShellExecutor:
     def sudo(
         self, cmd: str, timeout: Optional[int] = None
     ) -> Union[subprocess.CompletedProcess, int]:
-        """Execute shell instruction with elevated privileges and return execution code."""
+        """Run `cmd` with sudo, like `execute`."""
         # -k ignores cached credentials, so sudo always consumes the password rather than passing
         # it on to the command's stdin.
         return self.__execute(
@@ -77,7 +77,12 @@ class ShellExecutor:
     def __execute(
         self, cmd: str, timeout: Optional[int] = None, stdin: Optional[str] = None
     ) -> Union[subprocess.CompletedProcess, int]:
-        """Run `cmd` in a shell, writing `stdin` to its standard input when given."""
+        """Run `cmd` in a shell, writing `stdin` to its standard input when given.
+
+        Returns:
+            The completed process with captured stdout and stderr, or `execution_timeout_code`
+            when `timeout` expires. A nonzero exit is logged at debug level, not raised.
+        """
         try:
             response = subprocess.run(
                 cmd,

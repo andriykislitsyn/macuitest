@@ -9,10 +9,10 @@ from macuitest.lib.elements.ui.monitor import monitor
 
 
 class OCRManager:
-    """Read text from the screen with Tesseract.
+    """Screen text reader backed by Tesseract.
 
-    Requires the `ocr` extra (`pip install "macuitest[ocr]"`) and a Tesseract install
-    (`brew install tesseract`).
+    Requires the `ocr` extra (`pip install "macuitest[ocr]"`) and `brew install tesseract`.
+    Languages other than `eng` also need `brew install tesseract-lang`.
     """
 
     ocr_engine_mode: ClassVar[int] = 3
@@ -30,6 +30,8 @@ class OCRManager:
 
         Raises:
             ImportError: The `ocr` extra isn't installed.
+            pytesseract.TesseractNotFoundError: The tesseract binary isn't on PATH.
+            pytesseract.TesseractError: Tesseract failed, for example on missing language data.
         """
         try:
             import pytesseract

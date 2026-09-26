@@ -35,11 +35,13 @@ class PlistHelper:
             plistlib.dump(content, f)
 
     def read_plist(self) -> Dict[str, Any]:
-        """Read the property list, XML or binary.
+        """Wait up to 15 seconds for the file, then parse it as an XML or binary property list.
 
         Raises:
             PropertyListMissing: The file didn't appear within 15 seconds.
             plistlib.InvalidFileException: The file isn't a valid property list.
+            xml.parsers.expat.ExpatError: The file is malformed XML.
+            ValueError: An element holds an invalid value.
         """
         if not wait_condition(lambda: os.path.exists(self.plist), timeout=15):
             raise PropertyListMissing

@@ -8,11 +8,15 @@ from macuitest.lib.elements.controllers.mouse_controller import MouseController
 
 @dataclass
 class MouseConfig:
-    """Mouse timings in seconds, read on every call. Change them with `MouseConfig.move = 0.36`."""
+    """Default mouse timings in seconds and the reset position.
+
+    `Mouse` methods read these whenever an argument is None, so assigning one, such as
+    `MouseConfig.move = 0.36`, changes every later call.
+    """
 
     move: float = 0.18  # Cursor roaming time.
     hold: float = 0.24  # Time to hold a button selected.
-    pause: float = 0.24  # Pause after an action.
+    pause: float = 0.24  # Pause before a click.
     default_position: tuple = (5, 3)
 
 
@@ -23,7 +27,7 @@ class Mouse:
         self.controller = controller
 
     def paste(self, x: float, y: float, phrase: str = "") -> None:
-        """Hover over the position and click once. Then paste `phrase` from clipboard."""
+        """Click the position once, then type `phrase`."""
         self.click(x, y)
         keyboard.write(phrase, pause=0.02)
 

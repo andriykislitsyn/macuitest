@@ -8,16 +8,16 @@ from macuitest.lib.elements.controllers.keyboard_mappings import SPECIAL_KEYS
 
 
 class KeyBoardController:
-    # Apps act on these as keys, not text, so they keep their virtual keycodes.
+    # Apps act on these as keys, not text, so they go out as virtual keycodes.
     KEYCODE_CHARS = frozenset("\t\n\r")
 
     def __init__(self):
         pass
 
     def write(self, message: str, pause: float = 0.001):
-        """Type `message` as text, regardless of the active keyboard layout.
+        """Type `message` as Unicode text, independent of the keyboard layout.
 
-        Any Unicode character works. Tabs and line breaks go out as their physical keys.
+        Tabs and line breaks go out as their physical keys.
         """
         for char in message:
             send = self.__send_key_event if char in self.KEYCODE_CHARS else self.send_unicode_event
@@ -41,7 +41,12 @@ class KeyBoardController:
 
     @staticmethod
     def send_unicode_event(char: str, event_type: str):
-        """Post `char` as text, with modifier flags cleared so it can't trigger a shortcut."""
+        """Post `char` as a text keystroke with no modifier flags.
+
+        Args:
+            char: The character to type.
+            event_type: "down" for key down, anything else for key up.
+        """
         event = Quartz.CGEventCreateKeyboardEvent(None, 0, event_type == "down")
         Quartz.CGEventSetFlags(event, 0)
         Quartz.CGEventKeyboardSetUnicodeString(event, len(char.encode("utf-16-le")) // 2, char)
