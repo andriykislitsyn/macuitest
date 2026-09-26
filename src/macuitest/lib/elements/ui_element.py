@@ -8,7 +8,6 @@ import numpy
 from macuitest.config.constants import Point
 from macuitest.config.constants import Region
 from macuitest.lib.core import wait_condition
-from macuitest.lib.elements.controllers.mouse import MouseConfig
 from macuitest.lib.elements.controllers.mouse import mouse
 from macuitest.lib.elements.ui.monitor import monitor
 
@@ -42,8 +41,8 @@ class UIElement:
         self,
         x_off: int = 0,
         y_off: int = 0,
-        hold: float = MouseConfig.hold,
-        pause: float = MouseConfig.pause,
+        hold: Optional[float] = None,
+        pause: Optional[float] = None,
         region: Optional[Region] = None,
     ):
         center = self.get_center(region)
@@ -53,8 +52,8 @@ class UIElement:
         self,
         x_off: int = 0,
         y_off: int = 0,
-        hold: float = MouseConfig.hold,
-        pause: float = MouseConfig.pause,
+        hold: Optional[float] = None,
+        pause: Optional[float] = None,
         region: Optional[Region] = None,
     ):
         center = self.get_center(region)
@@ -64,7 +63,7 @@ class UIElement:
         self,
         x_off: int = 0,
         y_off: int = 0,
-        duration: float = MouseConfig.move,
+        duration: Optional[float] = None,
         region: Optional[Region] = None,
     ):
         center = self.get_center(region)

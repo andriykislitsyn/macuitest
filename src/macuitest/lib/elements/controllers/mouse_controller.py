@@ -8,15 +8,15 @@ from macuitest.lib.elements.ui.monitor import monitor
 
 
 class MouseController:
-    def move_to(self, x: int, y: int, duration: float = 0.35):
+    def move_to(self, x: float, y: float, duration: float = 0.35):
         self.__mouse_move_drag(x=x, y=y, duration=duration)
         time.sleep(0.125)
 
-    def drag_to(self, x: int, y: int, duration: float = 0.35):
+    def drag_to(self, x: float, y: float, duration: float = 0.35):
         self.__mouse_move_drag(x=x, y=y, duration=duration, move="drag")
         time.sleep(0.125)
 
-    def mouse_down(self, x: int, y: int, button: str):
+    def mouse_down(self, x: float, y: float, button: str):
         if button == "left":
             self._send_mouse_event(Quartz.kCGEventLeftMouseDown, x, y, Quartz.kCGMouseButtonLeft)
         elif button == "middle":
@@ -26,7 +26,7 @@ class MouseController:
         else:
             raise ValueError("button argument not in ('left', 'middle', 'right')")
 
-    def mouse_up(self, x: int, y: int, button: str):
+    def mouse_up(self, x: float, y: float, button: str):
         if button == "left":
             self._send_mouse_event(Quartz.kCGEventLeftMouseUp, x, y, Quartz.kCGMouseButtonLeft)
         elif button == "middle":
@@ -69,7 +69,7 @@ class MouseController:
             time.sleep(0.003)
 
     @staticmethod
-    def multi_click(x: int, y: int, button: str, clicks: int):
+    def multi_click(x: float, y: float, button: str, clicks: int):
         if button == "left":
             btn = Quartz.kCGMouseButtonLeft
             down = Quartz.kCGEventLeftMouseDown

@@ -7,7 +7,6 @@ from macuitest.config.constants import Point
 from macuitest.config.constants import Region
 from macuitest.lib import core
 from macuitest.lib.core import wait_condition
-from macuitest.lib.elements.controllers.mouse import MouseConfig
 from macuitest.lib.elements.controllers.mouse import mouse
 from macuitest.lib.elements.native.calls import AXErrorInvalidUIElement
 
@@ -24,24 +23,26 @@ class NativeElement:
         self.item.press()
         time.sleep(0.24)
 
-    def double_click_mouse(
-        self, x_off: int = 0, y_off: int = 0, duration: float = MouseConfig.move
-    ):
-        mouse.double_click(self.frame.center.x + x_off, self.frame.center.y + y_off, duration)
+    def double_click_mouse(self, x_off: int = 0, y_off: int = 0, duration: Optional[float] = None):
+        mouse.double_click(
+            self.frame.center.x + x_off, self.frame.center.y + y_off, duration=duration
+        )
 
     def click_mouse(
         self,
         x_off: int = 0,
         y_off: int = 0,
-        duration: float = MouseConfig.move,
-        hold_time: float = MouseConfig.hold,
+        duration: Optional[float] = None,
+        hold_time: Optional[float] = None,
     ):
         mouse.click(self.frame.center.x + x_off, self.frame.center.y + y_off, hold_time, duration)
 
-    def rightclick_mouse(self, x_off: int = 0, y_off: int = 0, duration=MouseConfig.move):
-        mouse.right_click(self.frame.center.x + x_off, self.frame.center.y + y_off, duration)
+    def rightclick_mouse(self, x_off: int = 0, y_off: int = 0, duration: Optional[float] = None):
+        mouse.right_click(
+            self.frame.center.x + x_off, self.frame.center.y + y_off, duration=duration
+        )
 
-    def hover_mouse(self, x_off: int = 0, y_off: int = 0, duration: float = MouseConfig.move):
+    def hover_mouse(self, x_off: int = 0, y_off: int = 0, duration: Optional[float] = None):
         mouse.hover(self.frame.center.x + x_off, self.frame.center.y + y_off, duration)
 
     def region(self, margin: int = 0):
@@ -95,7 +96,7 @@ class NativeElement:
     def is_visible(self) -> bool:
         return self.exists
 
-    def wait_vanish(self, timeout: [int, float] = 5) -> bool:
+    def wait_vanish(self, timeout: float = 5) -> bool:
         return wait_condition(lambda: self.__get_axrole() is None, timeout=timeout)
 
     @property
