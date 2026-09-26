@@ -8,27 +8,44 @@ import numpy
 import Quartz
 from Foundation import NSURL
 from Quartz import CGDisplayBounds
+from Quartz import CGGetActiveDisplayList
 from Quartz import CGMainDisplayID
 from Quartz import CoreGraphics
 
 from macuitest.config.constants import Region
 from macuitest.config.constants import ScreenSize
 
+MAX_DISPLAYS = 16
+
 
 class Monitor:
     def __init__(self):
         self.__is_retina: Optional[bool] = None
         self.__screen_size: Optional[ScreenSize] = None
+        self.__bounds: Optional[Region] = None
 
     def make_snapshot(self, region: Optional[Region] = None) -> numpy.ndarray:
-        h, w = (
-            (region.y2 - region.y1, region.x2 - region.x1)
-            if region
-            else (self.size.height, self.size.width)
-        )
-        pixel_data = self.get_pixel_data(region=region)
-        _image = numpy.frombuffer(pixel_data[0], dtype=numpy.uint8)
-        return _image.reshape((h, pixel_data[1], 4))[:, :w, :]
+        pixel_data, row_stride, width, height = self.get_pixel_data(region=region)
+        _image = numpy.frombuffer(pixel_data, dtype=numpy.uint8)
+        return _image.reshape((height, row_stride, 4))[:, :width, :]
+
+    @property
+    def bounds(self) -> Region:
+        """Return the union bounding box of every connected display, in global Quartz points.
+
+        Unlike `size`, which covers only the main display, this includes displays at negative
+        offsets, such as a secondary monitor placed to the left of or above the main one.
+        """
+        if self.__bounds is None:
+            _, display_ids, count = CGGetActiveDisplayList(MAX_DISPLAYS, None, None)
+            rects = [CGDisplayBounds(display_id) for display_id in display_ids[:count]]
+            self.__bounds = Region(
+                x1=int(min(r.origin.x for r in rects)),
+                y1=int(min(r.origin.y for r in rects)),
+                x2=int(max(r.origin.x + r.size.width for r in rects)),
+                y2=int(max(r.origin.y + r.size.height for r in rects)),
+            )
+        return self.__bounds
 
     @property
     def bytes(self):
@@ -63,8 +80,10 @@ class Monitor:
             CoreGraphics.kCGWindowImageDefault,
         )
         pixel_data = CoreGraphics.CGDataProviderCopyData(CoreGraphics.CGImageGetDataProvider(image))
-        bytes_per_row = CoreGraphics.CGImageGetBytesPerRow(image) // 4
-        return pixel_data, bytes_per_row
+        row_stride = CoreGraphics.CGImageGetBytesPerRow(image) // 4
+        width = CoreGraphics.CGImageGetWidth(image)
+        height = CoreGraphics.CGImageGetHeight(image)
+        return pixel_data, row_stride, width, height
 
     @staticmethod
     def save_screenshot(

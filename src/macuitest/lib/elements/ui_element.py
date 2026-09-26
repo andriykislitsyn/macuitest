@@ -3,6 +3,7 @@ from typing import Optional
 from typing import Union
 
 import cv2
+import numpy
 
 from macuitest.config.constants import Point
 from macuitest.config.constants import Region
@@ -22,9 +23,7 @@ class UIElement:
     def __init__(self, screenshot_path: Union[str, Path], similarity: float = 0.925):
         self.path = screenshot_path.strip() if isinstance(screenshot_path, str) else screenshot_path
         self.similarity: float = similarity
-        self.image, self.width, self.height = None, None, None
-        self.__matches: Optional = list()
-        self.__load_image()
+        self.image, self.width, self.height = self.__load_image()
 
     def __repr__(self):
         return f'<UIElement "{self.path}", similarity={self.similarity}>'
@@ -96,7 +95,7 @@ class UIElement:
         and machine learning software library. It's built to provide a common infrastructure
         for computer vision applications and to accelerate the use of machine perception
         in the commercial products."""
-        region = region or Region(0, 0, monitor.size.width, monitor.size.height)
+        region = region or monitor.bounds
         _, similarity, _, position = cv2.minMaxLoc(
             cv2.matchTemplate(
                 cv2.cvtColor(monitor.make_snapshot(region), cv2.COLOR_BGR2GRAY),
@@ -110,17 +109,16 @@ class UIElement:
         if round(similarity, 3) >= self.similarity:
             denominator = 2 if monitor.is_retina else 1
             return Point(
-                (position[0] + region.x1) // denominator, (position[1] + region.y1) // denominator
+                region.x1 + position[0] // denominator, region.y1 + position[1] // denominator
             )
 
-    def __load_image(self) -> None:
-        """Load the image from the disk."""
+    def __load_image(self) -> tuple[numpy.ndarray, float, float]:
+        """Load the image from disk and return it with its width and height in points."""
         if not Path(self.path).exists():
             raise FileNotFoundError(f"Cannot find request screenshot: {self.path}")
-        image = cv2.imread(self.path, cv2.IMREAD_GRAYSCALE)
+        image = cv2.imread(str(self.path), cv2.IMREAD_GRAYSCALE)
         if image is None:
             raise IOError(f"Cannot not load screenshot: {self.path}")
         height, width = image.shape
-        if monitor.is_retina:
-            height, width = height / 2, width / 2
-        self.image, self.width, self.height = image, width, height
+        scale = 2 if monitor.is_retina else 1
+        return image, width / scale, height / scale
