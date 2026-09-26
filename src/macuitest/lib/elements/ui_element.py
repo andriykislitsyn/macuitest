@@ -73,7 +73,7 @@ class UIElement:
     @property
     def is_visible(self) -> bool:
         """Check whether the pattern is visible on the screen."""
-        return False or self.wait_displayed() is not None
+        return bool(self.wait_displayed())
 
     def get_center(self, region: Optional[Region] = None):
         match = self.wait_displayed(region=region)

@@ -89,7 +89,7 @@ class NativeElement:
 
     @value.setter
     def value(self, value_) -> None:
-        self.value = value_
+        self.item.set_ax_attribute("AXValue", value_)
 
     @property
     def is_visible(self) -> bool:

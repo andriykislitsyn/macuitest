@@ -63,3 +63,12 @@ def test_detect_on_screen_returns_none_without_a_match(fake_monitor, screen, tmp
     element = UIElement(save_template(cv2.cvtColor(unrelated, cv2.COLOR_GRAY2BGRA), tmp_path))
 
     assert element.detect_on_screen(REGION) is None
+
+
+@pytest.mark.parametrize("match, expected", [(False, False), (Point(0, 0), True)])
+def test_is_visible_reflects_whether_the_pattern_matched(
+    fake_monitor, screen, tmp_path, match, expected
+):
+    element = UIElement(save_template(screen, tmp_path))
+    with mock.patch.object(UIElement, "wait_displayed", return_value=match):
+        assert element.is_visible is expected

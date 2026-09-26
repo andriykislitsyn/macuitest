@@ -18,7 +18,9 @@ class OCRManager:
 
     def __init__(self, language: str = "eng"):
         if os.system("tesseract --help > /dev/null 2>&1") != 0:
-            warnings.warn("Tesseract is not installed, please install: brew install tesseract")
+            warnings.warn(
+                "Tesseract is not installed, please install: brew install tesseract", stacklevel=2
+            )
         self.language = language
         self.trained_data = f"{self.language}.traineddata"
         self.trained_data_path: Path = Path("/usr/local/share/tessdata")

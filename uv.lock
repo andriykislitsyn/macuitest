@@ -3,12 +3,6 @@ revision = 3
 requires-python = ">=3.13"
 
 [[package]]
-name = "biplist"
-version = "1.0.3"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/3e/56/2db170a498c9c6545cda16e93c2f2ef9302da44802787b45a8a520d01bdb/biplist-1.0.3.tar.gz", hash = "sha256:4c0549764c5fe50b28042ec21aa2e14fe1a2224e239a1dae77d9e7f3932aa4c6", size = 21258, upload-time = "2017-12-03T23:36:37.756Z" }
-
-[[package]]
 name = "colorama"
 version = "0.4.6"
 source = { registry = "https://pypi.org/simple" }
@@ -31,7 +25,6 @@ name = "macuitest"
 version = "0.7.43"
 source = { editable = "." }
 dependencies = [
-    { name = "biplist" },
     { name = "opencv-python" },
     { name = "pyobjc-framework-applicationservices" },
     { name = "pyobjc-framework-avfoundation" },
@@ -51,7 +44,6 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "biplist", specifier = ">=1.0.3" },
     { name = "opencv-python", specifier = ">=4.5.3" },
     { name = "pyobjc-framework-applicationservices", specifier = ">=7.3" },
     { name = "pyobjc-framework-avfoundation", specifier = ">=7.3" },
