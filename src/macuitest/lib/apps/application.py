@@ -1,8 +1,5 @@
-import logging
 import os
 import time
-from typing import Dict
-from typing import List
 from typing import Union
 
 from macuitest.lib.applescript_lib.applescript_wrapper import AppleScriptError
@@ -165,44 +162,5 @@ class Installer(Application):
         self.activate()
 
 
-class SystemPreferences(Application):
-    anchors: Dict[str, str] = {
-        "full_disk_access": "Privacy_AllFiles",
-        "camera_access": "Privacy_Camera",
-    }
-
-    def __init__(self):
-        super().__init__("System Preferences")
-
-    def authorize(self):
-        return as_wrapper.tell_app(self.name, "tell current pane to authorize")
-
-    def show_anchor(self, anchor: str, pane_id="com.apple.preference.security"):
-        return as_wrapper.tell_app(self.name, f'reveal anchor "{anchor}" of pane "{pane_id}"')
-
-    def reveal_pane(self, pane_id="com.apple.preference.security"):
-        return as_wrapper.tell_app(self.name, f'reveal pane "{pane_id}"')
-
-    def get_pane_anchors(self, pane_id: str) -> List[str]:
-        return as_wrapper.tell_app(self.name, f'return name of every anchor of pane "{pane_id}"')
-
-    @property
-    def current_pane_anchors(self) -> List[str]:
-        try:
-            return as_wrapper.tell_app(self.name, "return name of every anchor of current pane")
-        except AppleScriptError:
-            logging.warning("You must launch System Preferences first.")
-            return list()
-
-    @property
-    def current_pane_id(self):
-        return as_wrapper.tell_app(self.name, "return id of current pane")
-
-    @property
-    def pane_ids(self) -> List[str]:
-        return as_wrapper.tell_app(self.name, "return id of every pane")
-
-
 finder = Finder()
 installer = Installer()
-system_preferences_app = SystemPreferences()

@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "macuitest"
-version = "0.7.43"
+version = "0.8.0"
 description = "A simple UI testing framework for macOS"
 readme = "README.md"
 license = "MIT"
@@ -25,10 +25,7 @@ requires-python = ">=3.13"
 dependencies = [
     "opencv-python>=4.5.3",
     "pyobjc-framework-ApplicationServices>=7.3",
-    "pyobjc-framework-AVFoundation>=7.3",
     "pyobjc-framework-Cocoa>=7.3",
-    "pyobjc-framework-CoreMedia>=7.3",
-    "pyobjc-framework-CoreText>=7.3",
     "pyobjc-framework-Quartz>=7.3",
 ]
 
@@ -62,9 +59,7 @@ quote-style = "preserve"
 replace-imports-with-any = [
     "AppKit",
     "ApplicationServices",
-    "AVFoundation",
     "CoreFoundation",
-    "CoreText",
     "Foundation",
     "Quartz",
     "Quartz.**",
