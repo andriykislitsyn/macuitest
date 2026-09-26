@@ -30,8 +30,10 @@ class ShellExecutor:
         self, cmd: str, timeout: Optional[int] = None
     ) -> Union[subprocess.CompletedProcess, int]:
         """Execute shell instruction with elevated privileges and return execution code."""
+        # -k ignores cached credentials, so sudo always consumes the password rather than passing
+        # it on to the command's stdin.
         return self.__execute(
-            cmd=f'sudo -S -p "" {cmd}', timeout=timeout, stdin=f"{self.get_admin_password()}\n"
+            cmd=f'sudo -k -S -p "" {cmd}', timeout=timeout, stdin=f"{self.get_admin_password()}\n"
         )
 
     def execute(

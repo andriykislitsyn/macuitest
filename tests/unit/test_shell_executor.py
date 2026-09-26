@@ -30,7 +30,7 @@ def test_sudo_sends_the_password_on_stdin_not_the_command_line(run, executor):
     executor.sudo("ls /private")
 
     run.assert_called_once()
-    assert run.call_args.args[0] == 'sudo -S -p "" ls /private'
+    assert run.call_args.args[0] == 'sudo -k -S -p "" ls /private'
     assert run.call_args.kwargs["input"] == f"{PASSWORD}\n".encode()
 
 
