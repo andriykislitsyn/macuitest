@@ -4,9 +4,9 @@ from typing import Dict
 from typing import Tuple
 from typing import Union
 
-KB: int = 10 ** 3
-MB: int = 10 ** 6
-GB: int = 10 ** 9
+KB: int = 10**3
+MB: int = 10**6
+GB: int = 10**9
 
 SECOND: int = 1
 MINUTE: int = 60 * SECOND

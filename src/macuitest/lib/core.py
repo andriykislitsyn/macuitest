@@ -1,4 +1,5 @@
 """Some basic functions to be used throughout the project."""
+
 import functools
 import time
 from typing import Any

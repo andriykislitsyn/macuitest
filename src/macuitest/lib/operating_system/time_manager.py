@@ -22,8 +22,9 @@ class TimeManager:
         self.executor.sudo(f"date -f {self.time_format} {delta}")
         time.sleep(3)
         elapsed, target_time_shift = (
-            datetime.now() - start_point
-        ).seconds, hours * 3600 + minutes * 60 + seconds
+            (datetime.now() - start_point).seconds,
+            hours * 3600 + minutes * 60 + seconds,
+        )
         if elapsed <= target_time_shift:
             raise EnvironmentError(f"Elapsed: {elapsed}, target: {target_time_shift}")
 

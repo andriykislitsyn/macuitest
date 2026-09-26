@@ -116,7 +116,7 @@ class AEConverter:
         return NSAppleEventDescriptor.descriptorWithBoolean_(int(val))
 
     def pack_int(self, val):
-        if (-(2 ** 31)) <= val < (2 ** 31):
+        if (-(2**31)) <= val < (2**31):
             return NSAppleEventDescriptor.descriptorWithInt32_(val)
         else:
             return self.pack(float(val))
