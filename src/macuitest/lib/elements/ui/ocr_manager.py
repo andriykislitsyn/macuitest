@@ -1,49 +1,205 @@
-import os
-from typing import ClassVar
+"""Read and find text on screen with Apple Vision."""
 
-import cv2
+import functools
+import os
+import re
+from typing import Optional
+from typing import Sequence
+
+import Quartz
+import Vision
 
 from macuitest.config.constants import Region
 from macuitest.lib.core import wait_condition
+from macuitest.lib.elements.screen_element import ScreenConfig
 from macuitest.lib.elements.ui.monitor import monitor
+
+_FAST = Vision.VNRequestTextRecognitionLevelFast
+_ACCURATE = Vision.VNRequestTextRecognitionLevelAccurate
+# Vision misses short words such as "OK" in 1x captures and reads nearly all of them at 2x.
+_MIN_SCALE = 2
+# Vision reads typographic punctuation as ASCII, while labels copied from macOS keep it.
+_PUNCTUATION = {
+    "…": r"(?:…|\.\.\.)",
+    **dict.fromkeys("'‘’", "['‘’]"),
+    **dict.fromkeys('"“”', '["“”]'),
+    **dict.fromkeys("-–—", "[-–—]"),
+}
 
 
 class OCRManager:
-    """Screen text reader backed by Tesseract.
+    """Screen text reader backed by Apple Vision."""
 
-    Requires the `ocr` extra (`pip install "macuitest[ocr]"`) and `brew install tesseract`.
-    Languages other than `eng` also need `brew install tesseract-lang`.
-    """
-
-    ocr_engine_mode: ClassVar[int] = 3
-    page_segmentation_mode: ClassVar[int] = 6
-    tesseract_config: ClassVar[str] = f"--oem {ocr_engine_mode} --psm {page_segmentation_mode}"
-
-    def __init__(self, language: str = "eng"):
-        self.language = language
-
-    def wait_text(self, text: str, where: Region, timeout: int = 10) -> bool:
-        return wait_condition(lambda: self.recognize(region=where) == text, timeout=timeout)
-
-    def recognize(self, region: Region, is_font_white: bool = False) -> str:
-        """Return the text Tesseract reads in `region`, without blank lines.
+    def __init__(self, languages: Sequence[str] = ("en-US",)):
+        """Create a reader for `languages`, as Vision language codes such as "en-US" or "uk-UA".
 
         Raises:
-            ImportError: The `ocr` extra isn't installed.
-            pytesseract.TesseractNotFoundError: The tesseract binary isn't on PATH.
-            pytesseract.TesseractError: Tesseract failed, for example on missing language data.
+            TypeError: `languages` is a single string.
+            ValueError: Vision can't read one of `languages`.
         """
-        try:
-            import pytesseract
-        except ImportError as e:
-            raise ImportError('OCR needs the ocr extra: pip install "macuitest[ocr]"') from e
-        img_gray = cv2.cvtColor(monitor.make_snapshot(region), cv2.COLOR_BGR2GRAY)
-        if is_font_white:  # Tesseract reads dark text on a light background best.
-            img_gray = cv2.bitwise_not(img_gray)
-        payload = pytesseract.image_to_string(
-            img_gray, config=self.tesseract_config, lang=self.language
-        )
-        return os.linesep.join([s for s in payload.splitlines() if s])
+        if isinstance(languages, str):
+            raise TypeError(f"Pass languages as a sequence, such as ({languages!r},)")
+        unsupported = sorted(set(languages) - set(_supported(_ACCURATE)))
+        if unsupported:
+            raise ValueError(f"Vision can't read {unsupported}. Supported: {_supported(_ACCURATE)}")
+        self.languages = list(languages)
+        # Fast mode reads fewer languages, and returns nothing rather than an error for the rest.
+        self.__levels = [_ACCURATE]
+        if set(languages) <= set(_supported(_FAST)):
+            self.__levels.insert(0, _FAST)
+
+    def find_text(self, text: str, region: Optional[Region] = None) -> list[Region]:
+        """Return the box of every match of `text` in reading order, in global points.
+
+        A match ignores case, treats any run of whitespace as one space, and must start and end
+        on word boundaries. Typographic and ASCII punctuation match each other, such as "…" and
+        "...". `region` defaults to `ScreenConfig.search_region`, then to every display, each
+        captured separately. When every language supports fast mode, a fast pass runs first, and
+        the accurate pass runs only if it finds nothing.
+
+        Raises:
+            ValueError: `text` is blank, or `region` is empty.
+            RuntimeError: Vision fails to read the capture.
+        """
+        pattern = _pattern(text)
+        captures = [(area, _capture(area)) for area in _search_regions(region)]
+        for level in self.__levels:
+            boxes = [
+                box
+                for area, image in captures
+                for box in self.__matches(pattern, image, area, level)
+            ]
+            if boxes:
+                return _reading_order(boxes)
+        return []
+
+    def recognize(self, region: Region) -> str:
+        """Return the text in `region`, one line per text line Vision reads, top to bottom.
+
+        Raises:
+            RuntimeError: Vision fails to read the capture.
+        """
+        observations = self._read(_capture(region), _ACCURATE)
+        top_down = sorted(observations, key=lambda o: -o.boundingBox().origin.y)
+        return os.linesep.join(o.topCandidates_(1)[0].string() for o in top_down)
+
+    def wait_text(self, text: str, where: Region, timeout: int = 10) -> bool:
+        """Return whether `text` appears in `where` within `timeout` seconds.
+
+        Raises:
+            ValueError: `text` is blank.
+            RuntimeError: Vision fails to read the capture.
+        """
+        return bool(wait_condition(lambda: self.find_text(text, where), timeout=timeout))
+
+    def _read(self, image, level) -> list:
+        """Return Vision's text observations for the CGImage `image`."""
+        request = Vision.VNRecognizeTextRequest.alloc().init()
+        request.setRecognitionLevel_(level)
+        request.setRecognitionLanguages_(self.languages)
+        # Language correction rewrites identifiers and doubles recognition time.
+        request.setUsesLanguageCorrection_(False)
+        handler = Vision.VNImageRequestHandler.alloc().initWithCGImage_options_(image, {})
+        ok, error = handler.performRequests_error_([request], None)
+        if not ok:
+            raise RuntimeError(f"Vision text recognition failed: {error.localizedDescription()}")
+        return list(request.results() or [])
+
+    def __matches(self, pattern: re.Pattern, image, region: Region, level) -> list[Region]:
+        boxes = []
+        for observation in self._read(image, level):
+            candidate = observation.topCandidates_(1)[0]
+            line = candidate.string()
+            for match in pattern.finditer(line):
+                word, _ = candidate.boundingBoxForRange_error_(
+                    _utf16_range(line, match.start(), match.end()), None
+                )
+                # Vision can fail to place a range inside the line, so fall back to the whole line.
+                box = observation.boundingBox() if word is None else word.boundingBox()
+                boxes.append(_to_region(box, region))
+        return boxes
+
+
+def _pattern(text: str) -> re.Pattern:
+    words = text.split()
+    if not words:
+        raise ValueError("Text to find is blank")
+    return re.compile(r"(?<!\w)" + r"\s+".join(map(_word, words)) + r"(?!\w)", re.IGNORECASE)
+
+
+def _word(word: str) -> str:
+    word = word.replace("...", "…")
+    return "".join(_PUNCTUATION.get(char) or re.escape(char) for char in word)
+
+
+def _reading_order(boxes: list[Region]) -> list[Region]:
+    """Sort `boxes` top to bottom, and boxes on one line left to right.
+
+    A box joins the current line when its top is within half the height of that line's first box.
+    """
+    lines: list[list[Region]] = []
+    for box in sorted(boxes, key=lambda box: box.y1):
+        first = lines[-1][0] if lines else None
+        if first is not None and box.y1 - first.y1 < (first.y2 - first.y1) / 2:
+            lines[-1].append(box)
+        else:
+            lines.append([box])
+    return [box for line in lines for box in sorted(line, key=lambda box: box.x1)]
+
+
+def _search_regions(region: Optional[Region]) -> list[Region]:
+    region = region or ScreenConfig.search_region
+    # Vision downsamples a capture spanning every display so far that small text is lost.
+    return [region] if region else monitor.displays
+
+
+def _capture(region: Region):
+    """Capture `region` at `_MIN_SCALE` pixels per point or more."""
+    image = monitor.capture(region)
+    scale = Quartz.CGImageGetWidth(image) / (region.x2 - region.x1)
+    return image if scale >= _MIN_SCALE else _scaled(image, _MIN_SCALE / scale)
+
+
+def _scaled(image, factor: float):
+    width = round(Quartz.CGImageGetWidth(image) * factor)
+    height = round(Quartz.CGImageGetHeight(image) * factor)
+    context = Quartz.CGBitmapContextCreate(
+        None,
+        width,
+        height,
+        8,
+        0,
+        Quartz.CGColorSpaceCreateDeviceRGB(),
+        Quartz.kCGImageAlphaPremultipliedLast,
+    )
+    Quartz.CGContextSetInterpolationQuality(context, Quartz.kCGInterpolationHigh)
+    Quartz.CGContextDrawImage(context, Quartz.CGRectMake(0, 0, width, height), image)
+    return Quartz.CGBitmapContextCreateImage(context)
+
+
+def _to_region(box, region: Region) -> Region:
+    """Map a Vision box, normalized with a bottom-left origin, to global points in `region`."""
+    width, height = region.x2 - region.x1, region.y2 - region.y1
+    return Region(
+        x1=region.x1 + box.origin.x * width,
+        y1=region.y1 + (1 - box.origin.y - box.size.height) * height,
+        x2=region.x1 + (box.origin.x + box.size.width) * width,
+        y2=region.y1 + (1 - box.origin.y) * height,
+    )
+
+
+def _utf16_range(text: str, start: int, end: int) -> tuple[int, int]:
+    """Return `text[start:end]` as an NSRange (location, length), which counts UTF-16 units."""
+    location = len(text[:start].encode("utf-16-le")) // 2
+    return location, len(text[start:end].encode("utf-16-le")) // 2
+
+
+@functools.cache
+def _supported(level) -> tuple[str, ...]:
+    request = Vision.VNRecognizeTextRequest.alloc().init()
+    request.setRecognitionLevel_(level)
+    languages, _ = request.supportedRecognitionLanguagesAndReturnError_(None)
+    return tuple(languages)
 
 
 ocr_manager = OCRManager()

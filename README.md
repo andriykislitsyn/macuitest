@@ -22,7 +22,6 @@
 ## Installation
 
 - Install a modern Python version (at least 3.6): `brew install python3`
-- If OCR capabilities required, install Tesseract: `brew install tesseract`
 - Update pip's setup tools: `pip3 install --upgrade pip setuptools wheel`
 - Install the package: `pip3 install macuitest` and you should be ready to go
 
@@ -32,6 +31,7 @@
 - An `application` module inside `macuitest.lib.apps` may describe almost any GUI macOS app. Creating an instance of which will allow you to perform launch/quit operations, read some of its attributes, have basic control over its main window, etc.;
 - `applescript_wrapper` module under `macuitest.lib.applescript_lib` allows to run some AppleScript commands;
 - And last but not least, you can describe most if not every element of an application using `applescript_element`, `native_element` and `ui_element` modules inside `macuitest.lib.elements`. They allow working with AppleScript, PyObjC translated (Native) and UI (built on screenshots) elements retrospectively.
+- `text_element` finds elements by their visible text with Apple Vision, so you can click a label without a screenshot of it.
 
 ---
 ## Examples

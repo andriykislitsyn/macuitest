@@ -7,17 +7,16 @@ import numpy
 
 from macuitest.config.constants import Point
 from macuitest.config.constants import Region
-from macuitest.lib.core import wait_condition
-from macuitest.lib.elements.controllers.mouse import mouse
+from macuitest.lib.elements.screen_element import ScreenConfig
+from macuitest.lib.elements.screen_element import ScreenElement
+from macuitest.lib.elements.screen_element import (
+    UIElementNotFoundOnScreen as UIElementNotFoundOnScreen,  # Re-exported for existing imports.
+)
 from macuitest.lib.elements.ui.matching import find_template
 from macuitest.lib.elements.ui.monitor import monitor
 
 
-class UIElementNotFoundOnScreen(Exception):
-    """Thrown when a pattern is not found on the screen."""
-
-
-class UIElement:
+class UIElement(ScreenElement):
     """Visible user interface element. Based on automated pattern lookup algorithm (OpenCV)."""
 
     def __init__(self, screenshot_path: Union[str, Path], similarity: float = 0.925):
@@ -31,76 +30,16 @@ class UIElement:
     def __repr__(self):
         return f'<UIElement "{self.path}", similarity={self.similarity}>'
 
-    def paste(
-        self, x_off: int = 0, y_off: int = 0, phrase: str = "", region: Optional[Region] = None
-    ):
-        center = self.get_center(region)
-        mouse.paste(center.x + x_off, center.y + y_off, phrase=phrase)
-
-    def double_click(self, x_off: int = 0, y_off: int = 0, region: Optional[Region] = None):
-        center = self.get_center(region)
-        mouse.double_click(center.x + x_off, center.y + y_off)
-
-    def right_click(
-        self,
-        x_off: int = 0,
-        y_off: int = 0,
-        hold: Optional[float] = None,
-        pause: Optional[float] = None,
-        region: Optional[Region] = None,
-    ):
-        center = self.get_center(region)
-        mouse.right_click(center.x + x_off, center.y + y_off, hold=hold, pause=pause)
-
-    def click_mouse(
-        self,
-        x_off: int = 0,
-        y_off: int = 0,
-        hold: Optional[float] = None,
-        pause: Optional[float] = None,
-        region: Optional[Region] = None,
-    ):
-        center = self.get_center(region)
-        mouse.click(center.x + x_off, center.y + y_off, hold=hold, pause=pause)
-
-    def hover_mouse(
-        self,
-        x_off: int = 0,
-        y_off: int = 0,
-        duration: Optional[float] = None,
-        region: Optional[Region] = None,
-    ):
-        center = self.get_center(region)
-        mouse.hover(center.x + x_off, center.y + y_off, duration=duration)
-
-    @property
-    def is_visible(self) -> bool:
-        """Check whether the pattern is visible on the screen."""
-        return bool(self.wait_displayed())
-
-    def get_center(self, region: Optional[Region] = None):
-        match = self.wait_displayed(region=region)
-        if not match:
-            raise UIElementNotFoundOnScreen(self.path)
-        return Point(int(match.x + self.width / 2), int(match.y + self.height / 2))
-
-    def wait_displayed(
-        self, timeout: int = 5, region: Optional[Region] = None
-    ) -> Union[None, Point]:
-        return wait_condition(lambda: self.detect_on_screen(region), timeout=timeout)
-
-    def wait_vanish(self, timeout: int = 15, region: Optional[Region] = None) -> bool:
-        return wait_condition(lambda: self.detect_on_screen(region) is None, timeout=timeout)
-
     def detect_on_screen(self, region: Optional[Region] = None) -> Optional[Point]:
         """Return the top-left point of the best match in `region`, or None below `similarity`.
 
-        `region` defaults to every connected display.
+        `region` defaults to `ScreenConfig.search_region`, then to every connected display.
 
         Raises:
+            ValueError: `region` is empty.
             cv2.error: `region` is narrower or shorter than the pattern.
         """
-        region = region or monitor.bounds
+        region = region or ScreenConfig.search_region or monitor.bounds
         screen = cv2.cvtColor(monitor.make_snapshot(region), cv2.COLOR_BGRA2GRAY)
         capture_scale = screen.shape[1] / (region.x2 - region.x1)
         match = find_template(screen, self.__template_at(capture_scale), self.similarity)
@@ -109,6 +48,12 @@ class UIElement:
                 region.x1 + int(match[0] / capture_scale), region.y1 + int(match[1] / capture_scale)
             )
         return None
+
+    def locate(self, region: Optional[Region] = None) -> Optional[Region]:
+        match = self.detect_on_screen(region)
+        if match is None:
+            return None
+        return Region(match.x, match.y, match.x + self.width, match.y + self.height)
 
     def __template_at(self, capture_scale: float) -> numpy.ndarray:
         """Return the pattern resampled to `capture_scale` pixels per point, cached per scale."""
