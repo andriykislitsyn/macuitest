@@ -98,9 +98,14 @@ class AppleScriptWrapper:
 
     @staticmethod
     def execute(cmd: str):
-        """Execute AppleScript command abd returns exitcode, stdout and stderr.
-        :param str cmd: apple script
-        :return: exitcode, stdout and stderr"""
+        """Run AppleScript `cmd` and return its result as a Python value.
+
+        Runs of the same source share one script instance, so its properties and top-level
+        variables keep their values between calls.
+
+        Raises:
+            AppleScriptError: `cmd` fails to compile or run.
+        """
         result, error = _script(cmd).executeAndReturnError_(None)
         if error:
             raise AppleScriptError(error)
@@ -109,7 +114,9 @@ class AppleScriptWrapper:
 
 @functools.lru_cache(maxsize=256)
 def _script(source: str) -> NSAppleScript:
-    """Return a shared script for `source`. It compiles on first run and stays compiled."""
+    """Return the cached NSAppleScript for `source`, compiled on its first run."""
+    # Reusing the instance, not skipping compilation, is what saves time: a fresh instance loaded
+    # from compiled data runs as slowly as one compiled from source.
     return NSAppleScript.alloc().initWithSource_(source)
 
 

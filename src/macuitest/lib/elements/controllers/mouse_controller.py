@@ -6,7 +6,7 @@ import Quartz
 
 from macuitest.lib.elements.ui.monitor import monitor
 
-# Cursor updates per second during a move, above typical display refresh rates.
+# One cursor update per frame on a 120 Hz display, two on a 60 Hz one.
 MOVE_EVENTS_PER_SECOND = 120
 
 

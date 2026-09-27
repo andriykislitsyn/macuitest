@@ -53,3 +53,10 @@ def test_listed_exceptions_count_as_falsy(clock):
 
 def test_passes_extra_arguments_to_the_predicate(clock):
     assert wait_condition(lambda a, b=0: a + b, 1, (Exception,), 2, b=3) == 5
+
+
+def test_zero_timeout_still_checks_once(clock):
+    predicate = mock.Mock(return_value=None)
+
+    assert wait_condition(predicate, timeout=0) is False
+    predicate.assert_called_once()

@@ -20,11 +20,14 @@ def wait_condition(
     interval: float = 0.05,
     **kwargs,
 ) -> Any:
-    """Call `predicate` every `interval` seconds until it returns something truthy.
+    """Poll `predicate` until it returns something truthy or `timeout` seconds pass.
+
+    `predicate` runs at least once, then again after every `interval` seconds of sleep. Exceptions
+    listed in `exceptions` count as a falsy result. Extra arguments go to `predicate`, except a
+    keyword named `interval`.
 
     Returns:
-        The first truthy result, or False once `timeout` seconds pass. Exceptions listed in
-        `exceptions` count as a falsy result.
+        The first truthy result, or False on timeout.
     """
     end = time.monotonic() + timeout
     while True:
