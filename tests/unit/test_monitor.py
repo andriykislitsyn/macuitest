@@ -80,3 +80,8 @@ def test_capture_requests_the_region_in_points():
         Monitor.capture(Region(-10, -20, 30, 40))
 
     assert create.call_args.args[0] == monitor_module.CoreGraphics.CGRectMake(-10, -20, 40, 60)
+
+
+def test_unit_tests_cannot_capture_the_screen():
+    with pytest.raises(RuntimeError, match="must not capture the screen"):
+        Monitor.capture(Region(0, 0, 10, 10))

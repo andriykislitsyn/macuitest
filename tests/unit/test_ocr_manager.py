@@ -10,7 +10,8 @@ from macuitest.lib.elements.screen_element import ScreenConfig
 from macuitest.lib.elements.ui import ocr_manager as ocr_module
 from macuitest.lib.elements.ui.ocr_manager import OCRManager
 
-REGION = Region(-3008, -376, -2608, -256)  # 400x120 points on a display left of the main one.
+# Fake capture origin. Negative coordinates catch offset bugs, like a display left of the main one.
+REGION = Region(-3008, -376, -2608, -256)
 
 
 @pytest.fixture

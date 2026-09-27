@@ -2,6 +2,20 @@ import AppKit
 import pytest
 import Quartz
 
+from macuitest.lib.elements.ui import monitor as monitor_module
+
+
+@pytest.fixture(autouse=True)
+def no_screen_capture(monkeypatch):
+    """Fail any test that reaches a real screen capture, which reads nothing useful in CI."""
+
+    def capture(*args):
+        raise RuntimeError(
+            "Unit tests must not capture the screen. Patch monitor.capture or use text_image."
+        )
+
+    monkeypatch.setattr(monitor_module.CoreGraphics, "CGWindowListCreateImage", capture)
+
 
 def render_text(labels, width, height, scale=2, size=16):
     """Return a CGImage of black `labels` on white, each an (text, x, y) top-left in points."""
