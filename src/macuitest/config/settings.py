@@ -1,8 +1,9 @@
 """macuitest settings, loaded from a TOML file and changeable from code.
 
-The file is the first of `$MACUITEST_CONFIG`, `./macuitest.toml`, and the `[tool.macuitest]`
-table of `./pyproject.toml`. `default.toml` next to this module documents every key. Assigning
-a setting, such as `settings.mouse.move = 0.36`, overrides the file until the next `load`.
+The module-level `settings` loads on import from the first of `$MACUITEST_CONFIG`,
+`./macuitest.toml`, and the `[tool.macuitest]` table of `./pyproject.toml`. `default.toml` next to
+this module documents every key. Assigning a setting, such as `settings.mouse.move = 0.36`,
+overrides the file until the next `load`.
 """
 
 import dataclasses
@@ -16,9 +17,8 @@ from typing import Callable
 from typing import Optional
 from typing import Union
 
+from macuitest.config import DEFAULT_FILE as DEFAULT_FILE  # Re-exported for callers.
 from macuitest.config.constants import Region
-
-DEFAULT_FILE = Path(__file__).with_name("default.toml")
 
 
 class ConfigError(ValueError):
@@ -27,6 +27,8 @@ class ConfigError(ValueError):
 
 @dataclass
 class MouseSettings:
+    """The [mouse] table: timings in seconds, `default_position` in points."""
+
     move: float = 0.18
     hold: float = 0.24
     pause: float = 0.24
@@ -35,17 +37,23 @@ class MouseSettings:
 
 @dataclass
 class KeyboardSettings:
+    """The [keyboard] table: `pause` between key events in `keyboard.write`, in seconds."""
+
     pause: float = 0.001
 
 
 @dataclass
 class ScreenSettings:
+    """The [screen] table: the default search area for screen elements and OCR."""
+
     display: Optional[int] = None
     search_region: Optional[Region] = None  # Code only. Wins over `display`.
 
 
 @dataclass
 class ElementSettings:
+    """The [elements] table: `UIElement` match threshold and wait timeouts in seconds."""
+
     similarity: float = 0.925
     timeout: float = 5
     vanish_timeout: float = 15
@@ -53,17 +61,24 @@ class ElementSettings:
 
 @dataclass
 class OCRSettings:
+    """The [ocr] table: Vision language codes for `OCRManager` built without `languages`."""
+
     languages: tuple[str, ...] = ("en-US",)
 
 
 @dataclass
 class PathSettings:
+    """The [paths] table: the `ScreenshotPathBuilder` root."""
+
     screenshots: Optional[Path] = None
 
 
 @dataclass
 class Settings:
-    """Every setting, one attribute per TOML section, and the file they came from."""
+    """All settings, one attribute per TOML table, and `source`, the file they came from.
+
+    `source` is None when no file was found and the defaults apply.
+    """
 
     mouse: MouseSettings = field(default_factory=MouseSettings)
     keyboard: KeyboardSettings = field(default_factory=KeyboardSettings)
@@ -76,7 +91,7 @@ class Settings:
     def load(self, path: Union[Path, str, None] = None) -> None:
         """Reset every setting to its default, then apply `path` or the first config file found.
 
-        Section objects are updated in place, so references to them stay valid.
+        Table objects, such as `settings.mouse`, are updated in place, so references stay valid.
 
         Raises:
             ConfigError: The file is missing, malformed, or has an unknown key or a bad value.
@@ -96,18 +111,24 @@ def _find() -> tuple[Optional[Path], dict]:
     if (local := Path("macuitest.toml")).is_file():
         return _read(local)
     if (pyproject := Path("pyproject.toml")).is_file():
-        tool = _read(pyproject)[1].get("tool", {}).get("macuitest")
+        source, table = _read(pyproject)
+        tool = table.get("tool", {}).get("macuitest")
+        if tool is not None and not isinstance(tool, dict):
+            raise ConfigError(f"{source}: tool.macuitest must be a table")
         if tool is not None:
-            return pyproject, tool
+            return source, tool
     return None, {}
 
 
 def _read(path: Path) -> tuple[Path, dict]:
+    path = path.absolute()  # Relative paths inside the file resolve against it, not the cwd.
     try:
         with path.open("rb") as file:
             return path, tomllib.load(file)
     except FileNotFoundError as e:
         raise ConfigError(f"Config file not found: {path}") from e
+    except OSError as e:
+        raise ConfigError(f"{path}: {e.strerror}") from e
     except tomllib.TOMLDecodeError as e:
         raise ConfigError(f"{path}: {e}") from e
 
@@ -116,7 +137,7 @@ def _validate(table: dict, source: Path) -> dict[tuple[str, str], Any]:
     values = {}
     for name, keys in table.items():
         if name not in _SCHEMA:
-            raise ConfigError(f"{source}: unknown section {name}")
+            raise ConfigError(f"{source}: unknown table {name}")
         if not isinstance(keys, dict):
             raise ConfigError(f"{source}: {name} must be a table")
         for key, value in keys.items():

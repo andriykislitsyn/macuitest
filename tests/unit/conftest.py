@@ -2,11 +2,15 @@ import AppKit
 import pytest
 import Quartz
 
-from macuitest.config import settings as settings_module
+from macuitest.config import DEFAULT_FILE
+from macuitest.config.settings import settings
 from macuitest.lib.elements.ui import monitor as monitor_module
 
-# Run on the shipped defaults, whatever macuitest.toml or $MACUITEST_CONFIG the machine has.
-settings_module.settings.load(settings_module.DEFAULT_FILE)
+
+@pytest.fixture(autouse=True)
+def default_settings():
+    """Run every test on the shipped defaults, so a valid local config can't change results."""
+    settings.load(DEFAULT_FILE)
 
 
 @pytest.fixture(autouse=True)

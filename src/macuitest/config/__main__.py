@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-from macuitest.config.settings import DEFAULT_FILE
+from macuitest.config import DEFAULT_FILE
 
 
 def main(argv: Optional[list[str]] = None) -> int:

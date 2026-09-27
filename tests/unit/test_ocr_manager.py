@@ -261,3 +261,10 @@ def test_an_unsupported_configured_language_raises_on_use(monkeypatch):
 
     with pytest.raises(ValueError, match=r"xx-XX.*settings\.ocr\.languages"):
         OCRManager().find_text("Send", REGION)
+
+
+def test_recognize_checks_the_configured_languages(monkeypatch):
+    monkeypatch.setattr(settings.ocr, "languages", ("xx-XX",))
+
+    with pytest.raises(ValueError, match="settings.ocr.languages"):
+        OCRManager().recognize(REGION)

@@ -5,8 +5,8 @@
 ### Breaking changes
 
 - Python 3.13 or later is required. The package builds with uv from `pyproject.toml`, and `setup.py`, `setup.cfg`, `tox.ini`, and the requirements files are gone.
-- OCR uses Apple Vision instead of Tesseract, and the `ocr` extra is gone.
-  - `OCRManager(language="eng")` is now `OCRManager(languages=("en-US",))`, with Vision language codes.
+- OCR uses Apple Vision instead of Tesseract.
+  - `OCRManager(language="eng")` is now `OCRManager(languages=("en-US",))`, with Vision language codes. `OCRManager()` follows `settings.ocr.languages`.
   - `recognize` drops `is_font_white`.
   - `wait_text` checks that the text appears in the region, not that the region's whole text equals it.
 - `wait_displayed` on `UIElement` returns the match box as a `Region`, not its top-left `Point`.
@@ -17,9 +17,12 @@
 - `KeyBoardController.write` types Unicode text, so it works on any keyboard layout. It no longer sends US virtual keycodes, except for tabs and line breaks.
 - `wait_condition` checks before its first sleep and polls every 50 ms instead of every 5 ms.
 - Mouse moves under 50 px take the full `duration` instead of a third of it.
-- Color names come from CIELAB distance, so borderline colors may get different names.
+- Color names come from CIELAB distance, so some borderline colors get different names.
 - Repeated runs of the same AppleScript source share properties and top-level variables.
+- `MouseConfig` is gone. Set `settings.mouse` from `macuitest.config.settings`, or the `[mouse]` table in the settings file.
+- `UIElement.similarity` defaults to `settings.elements.similarity` when you don't pass one.
 - `ScreenRecorder` and `SystemPreferences` are removed.
+- `pytesseract`, `biplist`, and the pyobjc AVFoundation, CoreMedia, and CoreText packages are no longer dependencies.
 
 ### Added
 

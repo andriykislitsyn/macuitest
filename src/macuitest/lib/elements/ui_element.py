@@ -22,19 +22,19 @@ class UIElement(ScreenElement):
 
     def __init__(self, screenshot_path: Union[str, Path], similarity: Optional[float] = None):
         self.path = screenshot_path.strip() if isinstance(screenshot_path, str) else screenshot_path
-        self.similarity = similarity  # None follows settings.elements.similarity.
+        self.__similarity = similarity
         # Patterns are assumed captured on the menu bar display, at its pixels per point.
         self.__template_scale = 2 if monitor.is_retina else 1
         self.image, self.width, self.height = self.__load_image()
         self.__templates = {float(self.__template_scale): self.image}
 
     def __repr__(self):
-        return f'<UIElement "{self.path}", similarity={self.__similarity()}>'
+        return f'<UIElement "{self.path}", similarity={self.similarity}>'
 
     def detect_on_screen(self, region: Optional[Region] = None) -> Optional[Point]:
         """Return the top-left point of the best match in `region`, or None below `similarity`.
 
-        `region` defaults to `settings.screen`, then to every connected display.
+        `region` defaults to `default_region()`, then to every connected display.
 
         Raises:
             ValueError: `region` is empty.
@@ -43,7 +43,7 @@ class UIElement(ScreenElement):
         region = region or default_region() or monitor.bounds
         screen = cv2.cvtColor(monitor.make_snapshot(region), cv2.COLOR_BGRA2GRAY)
         capture_scale = screen.shape[1] / (region.x2 - region.x1)
-        match = find_template(screen, self.__template_at(capture_scale), self.__similarity())
+        match = find_template(screen, self.__template_at(capture_scale), self.similarity)
         if match is not None:
             return Point(
                 region.x1 + int(match[0] / capture_scale), region.y1 + int(match[1] / capture_scale)
@@ -56,8 +56,14 @@ class UIElement(ScreenElement):
             return None
         return Region(match.x, match.y, match.x + self.width, match.y + self.height)
 
-    def __similarity(self) -> float:
-        return settings.elements.similarity if self.similarity is None else self.similarity
+    @property
+    def similarity(self) -> float:
+        """The minimum match score, `settings.elements.similarity` unless set on this element."""
+        return settings.elements.similarity if self.__similarity is None else self.__similarity
+
+    @similarity.setter
+    def similarity(self, value: Optional[float]):
+        self.__similarity = value
 
     def __template_at(self, capture_scale: float) -> numpy.ndarray:
         """Return the pattern resampled to `capture_scale` pixels per point, cached per scale."""

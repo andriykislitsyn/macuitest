@@ -150,3 +150,12 @@ def test_repr_shows_the_similarity_in_effect(fake_monitor, screen, tmp_path, mon
     monkeypatch.setattr(settings.elements, "similarity", 0.8)
 
     assert "similarity=0.8>" in repr(UIElement(save_template(screen, tmp_path)))
+
+
+def test_similarity_reads_the_value_in_effect(fake_monitor, screen, tmp_path, monkeypatch):
+    monkeypatch.setattr(settings.elements, "similarity", 0.8)
+    element = UIElement(save_template(screen, tmp_path))
+
+    assert element.similarity == 0.8
+    element.similarity = 0.6
+    assert element.similarity == 0.6

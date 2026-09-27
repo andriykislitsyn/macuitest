@@ -56,17 +56,16 @@ class OCRManager:
 
         A match ignores case, treats any run of whitespace as one space, and must start and end
         on word boundaries. Typographic and ASCII punctuation match each other, such as "…" and
-        "...". `region` defaults to `settings.screen`, then to every display, each
+        "...". `region` defaults to `default_region()`, then to every display, each
         captured separately. When every language supports fast mode, a fast pass runs first, and
         the accurate pass runs only if it finds nothing.
 
         Raises:
-            ValueError: `text` is blank, or `region` is empty.
+            ValueError: `text` is blank, `region` is empty, or Vision can't read a language.
             RuntimeError: Vision fails to read the capture.
         """
         pattern = _pattern(text)
-        origin = "settings.ocr.languages" if self.__languages is None else "languages"
-        levels = _levels(self.languages, origin)
+        levels = _levels(self.languages, self.__origin())
         captures = [(area, _capture(area)) for area in _search_regions(region)]
         for level in levels:
             boxes = [
@@ -84,6 +83,7 @@ class OCRManager:
         Raises:
             RuntimeError: Vision fails to read the capture.
         """
+        _levels(self.languages, self.__origin())
         observations = self._read(_capture(region), _ACCURATE)
         top_down = sorted(observations, key=lambda o: -o.boundingBox().origin.y)
         return os.linesep.join(o.topCandidates_(1)[0].string() for o in top_down)
@@ -96,6 +96,9 @@ class OCRManager:
             RuntimeError: Vision fails to read the capture.
         """
         return bool(wait_condition(lambda: self.find_text(text, where), timeout=timeout))
+
+    def __origin(self) -> str:
+        return "settings.ocr.languages" if self.__languages is None else "languages"
 
     def _read(self, image, level) -> list:
         """Return Vision's text observations for the CGImage `image`."""

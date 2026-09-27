@@ -1,3 +1,6 @@
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -54,7 +57,7 @@ def test_load_reads_macuitest_toml_in_the_working_directory(workdir):
     s = Settings()
     s.load()
 
-    assert (s.mouse.move, s.source) == (0.5, Path("macuitest.toml"))
+    assert (s.mouse.move, s.source) == (0.5, workdir / "macuitest.toml")
 
 
 def test_env_var_wins_over_the_local_file(workdir, monkeypatch):
@@ -81,7 +84,7 @@ def test_pyproject_tool_table_is_read_without_a_local_file(workdir):
     s = Settings()
     s.load()
 
-    assert (s.mouse.move, s.source) == (0.4, Path("pyproject.toml"))
+    assert (s.mouse.move, s.source) == (0.4, workdir / "pyproject.toml")
 
 
 def test_pyproject_without_a_tool_table_is_ignored(workdir):
@@ -215,3 +218,42 @@ def test_init_refuses_to_overwrite(tmp_path, capsys):
     assert config_cli.main(["init", str(target)]) == 1
     assert target.read_text() == "mine"
     assert "already exists" in capsys.readouterr().err
+
+
+def test_relative_screenshots_stay_with_the_config_file_after_chdir(workdir, monkeypatch):
+    write(workdir / "macuitest.toml", '[paths]\nscreenshots = "shots"\n')
+    s = Settings()
+    s.load()
+
+    monkeypatch.chdir("/")
+
+    assert s.paths.screenshots is not None
+    assert s.paths.screenshots.resolve() == (workdir / "shots").resolve()
+
+
+def test_a_non_table_tool_section_in_pyproject_raises(workdir):
+    write(workdir / "pyproject.toml", "[tool]\nmacuitest = 1\n")
+
+    with pytest.raises(ConfigError, match="pyproject.toml"):
+        Settings().load()
+
+
+def test_a_config_path_that_is_a_directory_raises(tmp_path):
+    with pytest.raises(ConfigError, match=str(tmp_path)):
+        Settings().load(tmp_path)
+
+
+def test_init_works_when_the_current_config_cannot_load(tmp_path):
+    target = tmp_path / "new.toml"
+    env = {**os.environ, "MACUITEST_CONFIG": str(target)}
+
+    result = subprocess.run(
+        [sys.executable, "-m", "macuitest.config", "init", str(target)],
+        cwd=tmp_path,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert target.read_text() == settings_module.DEFAULT_FILE.read_text()
