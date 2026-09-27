@@ -1,8 +1,10 @@
 import time
+from typing import Optional
 
 import AppKit
 import Quartz
 
+from macuitest.config.settings import settings
 from macuitest.lib.elements.controllers.keyboard_mappings import KEYBOARD_KEYS
 from macuitest.lib.elements.controllers.keyboard_mappings import SPECIAL_KEYS
 
@@ -14,11 +16,13 @@ class KeyBoardController:
     def __init__(self):
         pass
 
-    def write(self, message: str, pause: float = 0.001):
+    def write(self, message: str, pause: Optional[float] = None):
         """Type `message` as Unicode text, independent of the keyboard layout.
 
-        Tabs and line breaks go out as their physical keys.
+        Tabs and line breaks go out as their physical keys. `pause` separates key events and
+        defaults to `settings.keyboard.pause`.
         """
+        pause = settings.keyboard.pause if pause is None else pause
         for char in message:
             send = self.__send_key_event if char in self.KEYCODE_CHARS else self.send_unicode_event
             send(char, "down")

@@ -2,9 +2,9 @@ from unittest import mock
 
 import pytest
 
+from macuitest.config.settings import settings
 from macuitest.lib.elements.controllers import mouse as mouse_module
 from macuitest.lib.elements.controllers.mouse import Mouse
-from macuitest.lib.elements.controllers.mouse import MouseConfig
 
 
 @pytest.fixture
@@ -19,7 +19,7 @@ def controller(sleep):
 
 
 def test_hover_reads_move_duration_from_config_at_call_time(controller, monkeypatch):
-    monkeypatch.setattr(MouseConfig, "move", 0.5)
+    monkeypatch.setattr(settings.mouse, "move", 0.5)
 
     Mouse(controller).hover(1, 2)
 
@@ -27,7 +27,7 @@ def test_hover_reads_move_duration_from_config_at_call_time(controller, monkeypa
 
 
 def test_explicit_duration_overrides_config(controller, monkeypatch):
-    monkeypatch.setattr(MouseConfig, "move", 0.5)
+    monkeypatch.setattr(settings.mouse, "move", 0.5)
 
     Mouse(controller).hover(1, 2, duration=0.1)
 
@@ -35,8 +35,8 @@ def test_explicit_duration_overrides_config(controller, monkeypatch):
 
 
 def test_click_reads_pause_and_hold_from_config_at_call_time(controller, sleep, monkeypatch):
-    monkeypatch.setattr(MouseConfig, "pause", 0.9)
-    monkeypatch.setattr(MouseConfig, "hold", 0.7)
+    monkeypatch.setattr(settings.mouse, "pause", 0.9)
+    monkeypatch.setattr(settings.mouse, "hold", 0.7)
 
     Mouse(controller).click(1, 2)
 

@@ -2,6 +2,7 @@ from unittest import mock
 
 import pytest
 
+from macuitest.config.settings import settings
 from macuitest.lib.elements.controllers import keyboard_controller
 from macuitest.lib.elements.controllers.keyboard_controller import KeyBoardController
 from macuitest.lib.elements.controllers.keyboard_mappings import KEYBOARD_KEYS
@@ -38,3 +39,12 @@ def test_write_sends_line_breaks_as_their_physical_key(quartz):
     assert [call.args[1] for call in quartz.CGEventCreateKeyboardEvent.call_args_list] == [
         KEYBOARD_KEYS["\n"]
     ] * 2
+
+
+def test_write_pauses_per_the_keyboard_setting(quartz, monkeypatch):
+    monkeypatch.setattr(settings.keyboard, "pause", 0.2)
+
+    with mock.patch.object(keyboard_controller.time, "sleep") as sleep:
+        KeyBoardController().write("a")
+
+    assert [c.args[0] for c in sleep.call_args_list] == [0.2, 0.2]

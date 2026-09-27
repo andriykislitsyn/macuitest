@@ -3,6 +3,7 @@ from unittest import mock
 import pytest
 
 from macuitest.config.constants import Region
+from macuitest.config.settings import settings
 from macuitest.lib.elements import screen_element
 from macuitest.lib.elements.screen_element import UIElementNotFoundOnScreen
 from macuitest.lib.elements.text_element import TextElement
@@ -50,3 +51,14 @@ def test_wait_vanish_reports_when_the_text_is_gone(ocr):
     ocr.find_text.return_value = []
 
     assert TextElement("Send", ocr=ocr).wait_vanish(timeout=0) is True
+
+
+@pytest.mark.parametrize(
+    "wait, setting", [("wait_displayed", "timeout"), ("wait_vanish", "vanish_timeout")]
+)
+def test_waits_default_to_the_elements_timeouts(ocr, monkeypatch, wait, setting):
+    monkeypatch.setattr(settings.elements, setting, 7)
+    with mock.patch.object(screen_element, "wait_condition", return_value=False) as wait_condition:
+        getattr(TextElement("Send", ocr=ocr), wait)()
+
+    assert wait_condition.call_args.kwargs["timeout"] == 7

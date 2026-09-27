@@ -1,0 +1,34 @@
+# macuitest settings. Every key is optional, and an omitted key keeps its default.
+#
+# macuitest reads the first of these it finds:
+#   1. The file named by $MACUITEST_CONFIG.
+#   2. macuitest.toml in the working directory.
+#   3. pyproject.toml in the working directory, with each table below under [tool.macuitest],
+#      such as [tool.macuitest.mouse].
+#
+# Code can override any setting at run time, such as settings.mouse.move = 0.36, with
+# settings imported from macuitest.config.settings.
+
+[mouse]
+move = 0.18                # Seconds per cursor move.
+hold = 0.24                # Seconds a button stays pressed during a click.
+pause = 0.24               # Seconds to wait before a click.
+default_position = [5, 3]  # Where Mouse.reset() parks the cursor, in points.
+
+[keyboard]
+pause = 0.001              # Seconds between key events in keyboard.write. paste always uses 0.02.
+
+[screen]
+# display = 1              # Search only this display. 0 is the menu bar display. Omit to search every display.
+
+[elements]
+similarity = 0.925         # Minimum UIElement match score, from 0 to 1.
+timeout = 5                # Seconds UIElement and TextElement wait to appear, before every click too.
+vanish_timeout = 15        # Seconds wait_vanish waits for them to disappear.
+
+[ocr]
+languages = ["en-US"]      # Vision language codes TextElement reads, such as "uk-UA".
+
+[paths]
+# screenshots = "screenshots"  # ScreenshotPathBuilder root, relative to this file. Omit for the home
+#                              # directory. $MACUITEST_SCR wins over it.

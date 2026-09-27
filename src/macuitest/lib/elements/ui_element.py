@@ -7,11 +7,12 @@ import numpy
 
 from macuitest.config.constants import Point
 from macuitest.config.constants import Region
-from macuitest.lib.elements.screen_element import ScreenConfig
+from macuitest.config.settings import settings
 from macuitest.lib.elements.screen_element import ScreenElement
 from macuitest.lib.elements.screen_element import (
     UIElementNotFoundOnScreen as UIElementNotFoundOnScreen,  # Re-exported for existing imports.
 )
+from macuitest.lib.elements.screen_element import default_region
 from macuitest.lib.elements.ui.matching import find_template
 from macuitest.lib.elements.ui.monitor import monitor
 
@@ -19,9 +20,9 @@ from macuitest.lib.elements.ui.monitor import monitor
 class UIElement(ScreenElement):
     """Visible user interface element. Based on automated pattern lookup algorithm (OpenCV)."""
 
-    def __init__(self, screenshot_path: Union[str, Path], similarity: float = 0.925):
+    def __init__(self, screenshot_path: Union[str, Path], similarity: Optional[float] = None):
         self.path = screenshot_path.strip() if isinstance(screenshot_path, str) else screenshot_path
-        self.similarity: float = similarity
+        self.__similarity = similarity
         # Patterns are assumed captured on the menu bar display, at its pixels per point.
         self.__template_scale = 2 if monitor.is_retina else 1
         self.image, self.width, self.height = self.__load_image()
@@ -33,13 +34,13 @@ class UIElement(ScreenElement):
     def detect_on_screen(self, region: Optional[Region] = None) -> Optional[Point]:
         """Return the top-left point of the best match in `region`, or None below `similarity`.
 
-        `region` defaults to `ScreenConfig.search_region`, then to every connected display.
+        `region` defaults to `default_region()`, then to every connected display.
 
         Raises:
             ValueError: `region` is empty.
             cv2.error: `region` is narrower or shorter than the pattern.
         """
-        region = region or ScreenConfig.search_region or monitor.bounds
+        region = region or default_region() or monitor.bounds
         screen = cv2.cvtColor(monitor.make_snapshot(region), cv2.COLOR_BGRA2GRAY)
         capture_scale = screen.shape[1] / (region.x2 - region.x1)
         match = find_template(screen, self.__template_at(capture_scale), self.similarity)
@@ -54,6 +55,15 @@ class UIElement(ScreenElement):
         if match is None:
             return None
         return Region(match.x, match.y, match.x + self.width, match.y + self.height)
+
+    @property
+    def similarity(self) -> float:
+        """The minimum match score, `settings.elements.similarity` unless set on this element."""
+        return settings.elements.similarity if self.__similarity is None else self.__similarity
+
+    @similarity.setter
+    def similarity(self, value: Optional[float]):
+        self.__similarity = value
 
     def __template_at(self, capture_scale: float) -> numpy.ndarray:
         """Return the pattern resampled to `capture_scale` pixels per point, cached per scale."""

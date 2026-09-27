@@ -10,8 +10,9 @@ import Quartz
 import Vision
 
 from macuitest.config.constants import Region
+from macuitest.config.settings import settings
 from macuitest.lib.core import wait_condition
-from macuitest.lib.elements.screen_element import ScreenConfig
+from macuitest.lib.elements.screen_element import default_region
 from macuitest.lib.elements.ui.monitor import monitor
 
 _FAST = Vision.VNRequestTextRecognitionLevelFast
@@ -30,8 +31,10 @@ _PUNCTUATION = {
 class OCRManager:
     """Screen text reader backed by Apple Vision."""
 
-    def __init__(self, languages: Sequence[str] = ("en-US",)):
+    def __init__(self, languages: Optional[Sequence[str]] = None):
         """Create a reader for `languages`, as Vision language codes such as "en-US" or "uk-UA".
+
+        Without `languages`, the reader follows `settings.ocr.languages` at every lookup.
 
         Raises:
             TypeError: `languages` is a single string.
@@ -39,31 +42,32 @@ class OCRManager:
         """
         if isinstance(languages, str):
             raise TypeError(f"Pass languages as a sequence, such as ({languages!r},)")
-        unsupported = sorted(set(languages) - set(_supported(_ACCURATE)))
-        if unsupported:
-            raise ValueError(f"Vision can't read {unsupported}. Supported: {_supported(_ACCURATE)}")
-        self.languages = list(languages)
-        # Fast mode reads fewer languages, and returns nothing rather than an error for the rest.
-        self.__levels = [_ACCURATE]
-        if set(languages) <= set(_supported(_FAST)):
-            self.__levels.insert(0, _FAST)
+        self.__languages = None if languages is None else tuple(languages)
+        if self.__languages is not None:
+            _levels(self.__languages, "languages")
+
+    @property
+    def languages(self) -> tuple[str, ...]:
+        """The languages this reader recognizes."""
+        return tuple(settings.ocr.languages) if self.__languages is None else self.__languages
 
     def find_text(self, text: str, region: Optional[Region] = None) -> list[Region]:
         """Return the box of every match of `text` in reading order, in global points.
 
         A match ignores case, treats any run of whitespace as one space, and must start and end
         on word boundaries. Typographic and ASCII punctuation match each other, such as "…" and
-        "...". `region` defaults to `ScreenConfig.search_region`, then to every display, each
+        "...". `region` defaults to `default_region()`, then to every display, each
         captured separately. When every language supports fast mode, a fast pass runs first, and
         the accurate pass runs only if it finds nothing.
 
         Raises:
-            ValueError: `text` is blank, or `region` is empty.
+            ValueError: `text` is blank, `region` is empty, or Vision can't read a language.
             RuntimeError: Vision fails to read the capture.
         """
         pattern = _pattern(text)
+        levels = _levels(self.languages, self.__origin())
         captures = [(area, _capture(area)) for area in _search_regions(region)]
-        for level in self.__levels:
+        for level in levels:
             boxes = [
                 box
                 for area, image in captures
@@ -79,6 +83,7 @@ class OCRManager:
         Raises:
             RuntimeError: Vision fails to read the capture.
         """
+        _levels(self.languages, self.__origin())
         observations = self._read(_capture(region), _ACCURATE)
         top_down = sorted(observations, key=lambda o: -o.boundingBox().origin.y)
         return os.linesep.join(o.topCandidates_(1)[0].string() for o in top_down)
@@ -92,11 +97,14 @@ class OCRManager:
         """
         return bool(wait_condition(lambda: self.find_text(text, where), timeout=timeout))
 
+    def __origin(self) -> str:
+        return "settings.ocr.languages" if self.__languages is None else "languages"
+
     def _read(self, image, level) -> list:
         """Return Vision's text observations for the CGImage `image`."""
         request = Vision.VNRecognizeTextRequest.alloc().init()
         request.setRecognitionLevel_(level)
-        request.setRecognitionLanguages_(self.languages)
+        request.setRecognitionLanguages_(list(self.languages))
         # Language correction rewrites identifiers and doubles recognition time.
         request.setUsesLanguageCorrection_(False)
         handler = Vision.VNImageRequestHandler.alloc().initWithCGImage_options_(image, {})
@@ -148,7 +156,7 @@ def _reading_order(boxes: list[Region]) -> list[Region]:
 
 
 def _search_regions(region: Optional[Region]) -> list[Region]:
-    region = region or ScreenConfig.search_region
+    region = region or default_region()
     # Vision downsamples a capture spanning every display so far that small text is lost.
     return [region] if region else monitor.displays
 
@@ -192,6 +200,23 @@ def _utf16_range(text: str, start: int, end: int) -> tuple[int, int]:
     """Return `text[start:end]` as an NSRange (location, length), which counts UTF-16 units."""
     location = len(text[:start].encode("utf-16-le")) // 2
     return location, len(text[start:end].encode("utf-16-le")) // 2
+
+
+@functools.cache
+def _levels(languages: tuple[str, ...], origin: str) -> tuple:
+    """Return the recognition levels to try for `languages`, fast first when it can read them.
+
+    Raises:
+        ValueError: Vision can't read one of `languages`, which came from `origin`.
+    """
+    unsupported = sorted(set(languages) - set(_supported(_ACCURATE)))
+    if unsupported:
+        raise ValueError(
+            f"Vision can't read {unsupported} from {origin}. Supported: {_supported(_ACCURATE)}"
+        )
+    # Fast mode reads fewer languages, and returns nothing rather than an error for the rest.
+    fast = (_FAST,) if set(languages) <= set(_supported(_FAST)) else ()
+    return (*fast, _ACCURATE)
 
 
 @functools.cache
