@@ -12,22 +12,26 @@ from macuitest.lib.elements.controllers.mouse import mouse
 
 
 class UIElementNotFoundOnScreen(Exception):
-    """Thrown when an element is not found on the screen."""
+    """Raised when an element isn't found on the screen."""
 
 
 @dataclass
 class ScreenConfig:
-    """Default screen search settings.
+    """Default screen search settings, read by elements and `OCRManager.find_text`.
 
-    Elements read these whenever a `region` argument is None, so assigning one, such as
-    `ScreenConfig.search_region = monitor.displays[1]`, changes every later lookup.
+    They apply whenever `region` is None. Set them on the class, such as
+    `ScreenConfig.search_region = monitor.displays[1]`. Instances have no effect.
     """
 
     search_region: Optional[Region] = None  # None searches every display.
 
 
 class ScreenElement(ABC):
-    """Element located by looking at the screen, with mouse actions at its center."""
+    """Element located by looking at the screen.
+
+    Mouse actions wait for the element, then act at its center plus `x_off` and `y_off`. They
+    raise `UIElementNotFoundOnScreen` like `get_center`.
+    """
 
     @abstractmethod
     def locate(self, region: Optional[Region] = None) -> Optional[Region]:
@@ -77,14 +81,14 @@ class ScreenElement(ABC):
 
     @property
     def is_visible(self) -> bool:
-        """Check whether the element is visible on the screen."""
+        """Whether the element appears on screen within 5 seconds."""
         return bool(self.wait_displayed())
 
     def get_center(self, region: Optional[Region] = None) -> Point:
         """Return the center of the element's box in global display points.
 
         Raises:
-            UIElementNotFoundOnScreen: The element doesn't appear within the default timeout.
+            UIElementNotFoundOnScreen: The element doesn't appear within 5 seconds.
         """
         box = self.wait_displayed(region=region)
         if not box:

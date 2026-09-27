@@ -16,7 +16,7 @@ REGION = Region(-3008, -376, -2608, -256)
 
 @pytest.fixture
 def screen(monkeypatch):
-    """Serve `image` as the capture of any region."""
+    """Serve `screen["image"]` as the capture of any region."""
     images = {}
     monkeypatch.setattr(ocr_module.monitor, "capture", lambda region: images["image"])
     return images
@@ -62,7 +62,7 @@ def test_find_text_ignores_case_whitespace_and_a_leading_icon(screen, text_image
 
     (box,) = OCRManager().find_text("migrate   BACK to lrs", REGION)
 
-    assert box.x1 > REGION.x1 + 45  # Starts after the icon glyph.
+    assert box.x1 > REGION.x1 + 45  # Starts after the "Э" that stands in for an icon.
 
 
 def test_find_text_orders_matches_topmost_then_leftmost(screen, text_image):
@@ -201,3 +201,29 @@ def test_wait_text_reports_whether_the_text_appeared(monkeypatch, boxes, expecte
     monkeypatch.setattr(OCRManager, "find_text", lambda self, text, region=None: boxes)
 
     assert OCRManager().wait_text("Send", REGION, timeout=0) is expected
+
+
+@pytest.mark.parametrize("label", ["Don’t Save", "Settings…", "“Quoted”", "Pages 1–3"])
+def test_find_text_matches_typographic_punctuation_that_vision_reads_as_ascii(
+    screen, text_image, label
+):
+    screen["image"] = text_image([(label, 40, 30)], 400, 120)
+
+    assert len(OCRManager().find_text(label, REGION)) == 1
+
+
+@pytest.mark.parametrize(
+    "needle, line", [("Don't", "Don’t"), ("Settings...", "Settings…"), ("1-3", "1—3")]
+)
+def test_pattern_treats_ascii_and_typographic_punctuation_alike(needle, line):
+    assert ocr_module._pattern(needle).search(line)
+
+
+def test_find_text_rejects_an_empty_region():
+    with pytest.raises(ValueError, match="empty"):
+        OCRManager().find_text("Send", Region(0, 0, 0, 100))
+
+
+def test_a_bare_language_string_raises_with_the_tuple_form():
+    with pytest.raises(TypeError, match=r"\('en-US',\)"):
+        OCRManager(languages="en-US")

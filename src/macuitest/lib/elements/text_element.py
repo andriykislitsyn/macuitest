@@ -1,3 +1,5 @@
+"""Screen elements found by their visible text."""
+
 from typing import Optional
 
 from macuitest.config.constants import Region
@@ -9,8 +11,10 @@ from macuitest.lib.elements.ui.ocr_manager import ocr_manager
 class TextElement(ScreenElement):
     """Visible text, found with Apple Vision.
 
-    Matching ignores case and whitespace and respects word boundaries, so `TextElement("OK")`
-    doesn't match "Book". Pass an `OCRManager` built for other languages as `ocr`.
+    Matching ignores case, treats any run of whitespace as one space, and respects word
+    boundaries, so `TextElement("OK")` doesn't match "Book". When the text appears more than
+    once, the topmost, then leftmost, match wins. Pass an `OCRManager` built for other languages
+    as `ocr`.
     """
 
     def __init__(self, text: str, ocr: OCRManager = ocr_manager):

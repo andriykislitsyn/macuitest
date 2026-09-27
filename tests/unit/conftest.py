@@ -18,7 +18,7 @@ def no_screen_capture(monkeypatch):
 
 
 def render_text(labels, width, height, scale=2, size=16):
-    """Return a CGImage of black `labels` on white, each an (text, x, y) top-left in points."""
+    """Return a CGImage of black `labels` on white, each a (text, x, y) with x, y in points."""
     context = Quartz.CGBitmapContextCreate(
         None,
         width * scale,

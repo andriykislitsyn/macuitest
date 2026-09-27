@@ -36,6 +36,7 @@ class UIElement(ScreenElement):
         `region` defaults to `ScreenConfig.search_region`, then to every connected display.
 
         Raises:
+            ValueError: `region` is empty.
             cv2.error: `region` is narrower or shorter than the pattern.
         """
         region = region or ScreenConfig.search_region or monitor.bounds

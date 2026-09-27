@@ -18,17 +18,27 @@ _FAST = Vision.VNRequestTextRecognitionLevelFast
 _ACCURATE = Vision.VNRequestTextRecognitionLevelAccurate
 # Vision misses short words such as "OK" in 1x captures and reads nearly all of them at 2x.
 _MIN_SCALE = 2
+# Vision reads typographic punctuation as ASCII, while labels copied from macOS keep it.
+_PUNCTUATION = {
+    "…": r"(?:…|\.\.\.)",
+    **dict.fromkeys("'‘’", "['‘’]"),
+    **dict.fromkeys('"“”', '["“”]'),
+    **dict.fromkeys("-–—", "[-–—]"),
+}
 
 
 class OCRManager:
     """Screen text reader backed by Apple Vision."""
 
     def __init__(self, languages: Sequence[str] = ("en-US",)):
-        """Create a reader for `languages`, as BCP 47 codes such as "en-US" or "uk-UA".
+        """Create a reader for `languages`, as Vision language codes such as "en-US" or "uk-UA".
 
         Raises:
+            TypeError: `languages` is a single string.
             ValueError: Vision can't read one of `languages`.
         """
+        if isinstance(languages, str):
+            raise TypeError(f"Pass languages as a sequence, such as ({languages!r},)")
         unsupported = sorted(set(languages) - set(_supported(_ACCURATE)))
         if unsupported:
             raise ValueError(f"Vision can't read {unsupported}. Supported: {_supported(_ACCURATE)}")
@@ -39,14 +49,16 @@ class OCRManager:
             self.__levels.insert(0, _FAST)
 
     def find_text(self, text: str, region: Optional[Region] = None) -> list[Region]:
-        """Return the box of every match of `text`, topmost then leftmost, in global points.
+        """Return the box of every match of `text` in reading order, in global points.
 
-        A match ignores case and whitespace and must start and end on word boundaries. `region`
-        defaults to `ScreenConfig.search_region`, then to each display in turn. A fast pass runs
-        first, and an accurate one only when the fast pass finds nothing.
+        A match ignores case, treats any run of whitespace as one space, and must start and end
+        on word boundaries. Typographic and ASCII punctuation match each other, such as "…" and
+        "...". `region` defaults to `ScreenConfig.search_region`, then to every display, each
+        captured separately. When every language supports fast mode, a fast pass runs first, and
+        the accurate pass runs only if it finds nothing.
 
         Raises:
-            ValueError: `text` is blank.
+            ValueError: `text` is blank, or `region` is empty.
             RuntimeError: Vision fails to read the capture.
         """
         pattern = _pattern(text)
@@ -62,13 +74,22 @@ class OCRManager:
         return []
 
     def recognize(self, region: Region) -> str:
-        """Return the text in `region`, one line per text line Vision reads, top to bottom."""
+        """Return the text in `region`, one line per text line Vision reads, top to bottom.
+
+        Raises:
+            RuntimeError: Vision fails to read the capture.
+        """
         observations = self._read(_capture(region), _ACCURATE)
         top_down = sorted(observations, key=lambda o: -o.boundingBox().origin.y)
         return os.linesep.join(o.topCandidates_(1)[0].string() for o in top_down)
 
     def wait_text(self, text: str, where: Region, timeout: int = 10) -> bool:
-        """Return whether `text` appears in `where` within `timeout` seconds."""
+        """Return whether `text` appears in `where` within `timeout` seconds.
+
+        Raises:
+            ValueError: `text` is blank.
+            RuntimeError: Vision fails to read the capture.
+        """
         return bool(wait_condition(lambda: self.find_text(text, where), timeout=timeout))
 
     def _read(self, image, level) -> list:
@@ -76,7 +97,8 @@ class OCRManager:
         request = Vision.VNRecognizeTextRequest.alloc().init()
         request.setRecognitionLevel_(level)
         request.setRecognitionLanguages_(self.languages)
-        request.setUsesLanguageCorrection_(False)  # It rewrites identifiers and doubles the time.
+        # Language correction rewrites identifiers and doubles recognition time.
+        request.setUsesLanguageCorrection_(False)
         handler = Vision.VNImageRequestHandler.alloc().initWithCGImage_options_(image, {})
         ok, error = handler.performRequests_error_([request], None)
         if not ok:
@@ -92,6 +114,7 @@ class OCRManager:
                 word, _ = candidate.boundingBoxForRange_error_(
                     _utf16_range(line, match.start(), match.end()), None
                 )
+                # Vision can fail to place a range inside the line, so fall back to the whole line.
                 box = observation.boundingBox() if word is None else word.boundingBox()
                 boxes.append(_to_region(box, region))
         return boxes
@@ -101,14 +124,18 @@ def _pattern(text: str) -> re.Pattern:
     words = text.split()
     if not words:
         raise ValueError("Text to find is blank")
-    return re.compile(r"(?<!\w)" + r"\s+".join(map(re.escape, words)) + r"(?!\w)", re.IGNORECASE)
+    return re.compile(r"(?<!\w)" + r"\s+".join(map(_word, words)) + r"(?!\w)", re.IGNORECASE)
+
+
+def _word(word: str) -> str:
+    word = word.replace("...", "…")
+    return "".join(_PUNCTUATION.get(char) or re.escape(char) for char in word)
 
 
 def _reading_order(boxes: list[Region]) -> list[Region]:
     """Sort `boxes` top to bottom, and boxes on one line left to right.
 
-    A box joins the line above when its top is within half that line's height, since labels on
-    one line differ by fractions of a point.
+    A box joins the current line when its top is within half the height of that line's first box.
     """
     lines: list[list[Region]] = []
     for box in sorted(boxes, key=lambda box: box.y1):
@@ -122,7 +149,7 @@ def _reading_order(boxes: list[Region]) -> list[Region]:
 
 def _search_regions(region: Optional[Region]) -> list[Region]:
     region = region or ScreenConfig.search_region
-    # A single capture of every display is downsampled so far that small text is lost.
+    # Vision downsamples a capture spanning every display so far that small text is lost.
     return [region] if region else monitor.displays
 
 

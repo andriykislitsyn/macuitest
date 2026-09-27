@@ -85,3 +85,9 @@ def test_capture_requests_the_region_in_points():
 def test_unit_tests_cannot_capture_the_screen():
     with pytest.raises(RuntimeError, match="must not capture the screen"):
         Monitor.capture(Region(0, 0, 10, 10))
+
+
+@pytest.mark.parametrize("region", [Region(0, 0, 0, 100), Region(0, 50, 100, 20)])
+def test_capture_rejects_an_empty_region(region):
+    with pytest.raises(ValueError, match="empty"):
+        Monitor.capture(region)

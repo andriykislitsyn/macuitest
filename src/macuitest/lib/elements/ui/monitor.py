@@ -41,7 +41,7 @@ class Monitor:
 
     @property
     def displays(self) -> list[Region]:
-        """Return every active display's bounds in global Quartz points, menu bar display first."""
+        """Every active display's bounds in global Quartz points, menu bar display first."""
         if self.__displays is None:
             _, display_ids, count = CGGetActiveDisplayList(MAX_DISPLAYS, None, None)
             self.__displays = [_region(CGDisplayBounds(display)) for display in display_ids[:count]]
@@ -49,7 +49,7 @@ class Monitor:
 
     @property
     def bounds(self) -> Region:
-        """Return the union bounding box of every connected display, in global Quartz points.
+        """The union bounding box of every connected display, in global Quartz points.
 
         Unlike `size`, which covers only the main display, this includes displays at negative
         offsets, such as a secondary monitor placed to the left of or above the main one.
@@ -70,7 +70,7 @@ class Monitor:
 
     @property
     def is_retina(self) -> bool:
-        """Return whether the menu bar display has more than one pixel per point."""
+        """Whether the menu bar display has more than one pixel per point."""
         if self.__is_retina is None:
             # screens()[0] holds the menu bar. mainScreen() follows the key window instead.
             self.__is_retina = AppKit.NSScreen.screens()[0].backingScaleFactor() > 1.0
@@ -85,7 +85,13 @@ class Monitor:
 
     @staticmethod
     def capture(region: Optional[Region] = None):
-        """Return a CGImage of `region` in global points, or of every display when None."""
+        """Return a CGImage of `region`, given in global points, or of every display when None.
+
+        Raises:
+            ValueError: `region` has no width or height.
+        """
+        if region is not None and (region.x2 <= region.x1 or region.y2 <= region.y1):
+            raise ValueError(f"Cannot capture an empty region: {region}")
         rect = (
             CoreGraphics.CGRectInfinite
             if region is None
