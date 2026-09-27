@@ -27,16 +27,14 @@ dependencies = [
     "pyobjc-framework-ApplicationServices>=7.3",
     "pyobjc-framework-Cocoa>=7.3",
     "pyobjc-framework-Quartz>=7.3",
+    "pyobjc-framework-Vision>=7.3",
 ]
-
-[project.optional-dependencies]
-ocr = ["pytesseract>=0.3"]
 
 [project.urls]
 Homepage = "https://github.com/andriykislitsyn/macuitest"
 
 [dependency-groups]
-dev = ["pytesseract>=0.3", "pytest", "ruff", "ty"]
+dev = ["pytest", "ruff", "ty"]
 
 [tool.pytest.ini_options]
 addopts = "-ra"
@@ -63,6 +61,7 @@ replace-imports-with-any = [
     "Foundation",
     "Quartz",
     "Quartz.**",
+    "Vision",
     "objc",
 ]
 
