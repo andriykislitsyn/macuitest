@@ -1,55 +1,110 @@
 ![CI](https://github.com/andriykislitsyn/macuitest/actions/workflows/ci.yml/badge.svg)
 
-# MacUITest
+# macuitest
 
-> A simple framework that helps to create functional and UI tests against almost any macOS application.
+Functional and UI test automation for macOS apps. macuitest finds elements by AppleScript locator, accessibility object, screenshot, or visible text, then clicks, types, and waits on them like a person would.
 
-- Created to help testers to automate their routine tasks with ease and help me with structuring my experience;
-- I'll be glad to receive suggestions on evolution of the project!
+## Requirements
 
-## Tips
-- Allow Accessibility access in a Security&Privacy pane of System Preferences;
-- You might be asked to allow various access rights anyway, those are new macOS restrictions you cannot easily avoid from Python, just allow them;
-- When calling ObjC mouse wrapper a Python Launcher will show up in Dock. To avoid this behavior, you need to add `LSUIElement` `-string "1"` to a Python.app property list. Mine was located easily by running `brew --prefix python3`. It'll be under Frameworks -> Python.framework -> Resources;
-- Get UI Browser app, it helps to locate AppleScript locators of the elements on your screen, very helpful;
+- macOS, Python 3.13 or later.
+- Grant these permissions in System Settings > Privacy & Security to the app that runs your tests, such as Terminal, iTerm2, or your IDE:
+  - **Accessibility**, for mouse and keyboard input and AppleScript element control.
+  - **Screen Recording**, for `UIElement`, `TextElement`, and color checks. Without it, screen captures show only the wallpaper, so every lookup times out.
+- macOS asks once for permission to control System Events. Allow it.
 
-## Table of Contents
-- [Installation](#installation)
-- [Features](#features)
-- [Examples](#examples)
-
----
 ## Installation
 
-- Install a modern Python version (at least 3.6): `brew install python3`
-- Update pip's setup tools: `pip3 install --upgrade pip setuptools wheel`
-- Install the package: `pip3 install macuitest` and you should be ready to go
-
----
-## Features
-- Many of useful operations on macOS are introduced in a `macuitest.lib.operating_system` package. A `macos` module inside the package will allow you to manipulate files, processes, change some system settings, etc.;
-- An `application` module inside `macuitest.lib.apps` may describe almost any GUI macOS app. Creating an instance of which will allow you to perform launch/quit operations, read some of its attributes, have basic control over its main window, etc.;
-- `applescript_wrapper` module under `macuitest.lib.applescript_lib` allows to run some AppleScript commands;
-- And last but not least, you can describe most if not every element of an application using `applescript_element`, `native_element` and `ui_element` modules inside `macuitest.lib.elements`. They allow working with AppleScript, PyObjC translated (Native) and UI (built on screenshots) elements retrospectively.
-- `text_element` finds elements by their visible text with Apple Vision, so you can click a label without a screenshot of it.
-
----
-## Examples
-
-```pythonstub
-from macuitest.lib.apps.application import Application
-from macuitest.lib.elements.applescript_element import ASElement
-
-test_app = 'Calculator'
-calculator = Application(test_app)
-
-button_one = ASElement('button "1" of group 2 of window 1', process=test_app)
-button_zero = ASElement('button "0" of group 2 of window 1', process=test_app)
-input_field = ASElement('static text 1 of group 1 of window 1', process=test_app)
-
-calculator.launch()
-button_one.click_mouse()
-button_zero.click_mouse()
-button_one.click_mouse()
-assert input_field.text == '101'  # Hopefully you get 101 there :)
+```bash
+uv add macuitest
+# or
+pip install macuitest
 ```
+
+## Quick start
+
+```python
+from macuitest.lib.apps.application import Finder
+from macuitest.lib.elements.applescript_element import MenuBarItem
+from macuitest.lib.elements.text_element import TextElement
+from macuitest.lib.elements.ui_element import UIElement
+
+finder = Finder()
+finder.activate()
+
+# An AppleScript locator, resolved through System Events.
+MenuBarItem('menu bar item "File" of menu bar 1', process="Finder").click_mouse()
+
+# Visible text, found with Apple Vision. No screenshot to maintain.
+TextElement("New Finder Window").click_mouse()
+
+# A screenshot of the element, found with template matching.
+UIElement("screenshots/sidebar_toggle.png").wait_displayed()
+```
+
+## Element types
+
+| Module in `macuitest.lib.elements` | Finds elements by | Best for |
+|---|---|---|
+| `applescript_element` | AppleScript locator, such as `button "OK" of window 1` | Native controls with stable accessibility names |
+| `native_element` | Accessibility (AX) objects through pyobjc | Reading attributes and walking the accessibility tree |
+| `text_element` | Visible text, read with Apple Vision | Buttons, tabs, links, and banners with a text label |
+| `ui_element` | A screenshot of the element | Icons and custom-drawn controls without text |
+
+`text_element` and `ui_element` share one API: `click_mouse`, `double_click`, `right_click`, `hover_mouse`, `paste`, `wait_displayed`, `wait_vanish`, and `is_visible`. Each takes a `region` to search, and a window-sized region is several times faster than the whole desktop.
+
+To find AppleScript locators, use Accessibility Inspector (bundled with Xcode) or UI Browser.
+
+## Configuration
+
+Every default lives in one settings file. Create a documented copy in your project:
+
+```bash
+python -m macuitest.config init
+```
+
+That writes `macuitest.toml` with every key, its default, and a comment. Edit the keys you need and delete the rest:
+
+```toml
+[mouse]
+move = 0.36          # Slower cursor moves, easier to follow in a screen recording.
+
+[screen]
+display = 1          # Search only the second display. 0 is the menu bar display.
+
+[ocr]
+languages = ["en-US", "uk-UA"]
+```
+
+macuitest reads the first of these it finds, when it's first imported:
+
+1. The file named by `$MACUITEST_CONFIG`.
+2. `macuitest.toml` in the working directory.
+3. `pyproject.toml` in the working directory, with each table under `[tool.macuitest]`, such as `[tool.macuitest.mouse]`.
+
+An unknown key or a bad value raises `ConfigError` naming the file and the key. Code can change any setting at run time:
+
+```python
+from macuitest.config.settings import settings
+from macuitest.lib.elements.ui.monitor import monitor
+
+settings.mouse.move = 0.1
+settings.screen.search_region = monitor.displays[1]  # A Region, which code can set and files can't.
+```
+
+Other environment variables:
+
+- `$MACUITEST_SCR` sets the screenshot root for `ScreenshotPathBuilder` and wins over `paths.screenshots`.
+- `$MACUITEST_PASSWORD` gives `ShellExecutor.sudo` the admin password. Keep it out of config files.
+
+## Development
+
+```bash
+uv sync
+uv run pytest tests/unit
+uv run ruff check && uv run ruff format --check
+uv run ty check
+```
+
+Unit tests never read the real screen. Tests that need text on screen draw it into an image with the `text_image` fixture.
+
+See [CHANGELOG.md](CHANGELOG.md) for release notes.
