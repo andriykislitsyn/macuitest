@@ -6,7 +6,9 @@ import pytest
 
 from macuitest.config.constants import Point
 from macuitest.config.constants import Region
+from macuitest.lib.elements import screen_element
 from macuitest.lib.elements import ui_element
+from macuitest.lib.elements.screen_element import ScreenConfig
 from macuitest.lib.elements.ui_element import UIElement
 
 # A 2x retina capture of a region whose origin sits on a secondary display.
@@ -84,3 +86,35 @@ def test_detect_on_screen_rescales_a_retina_pattern_for_a_1x_capture(
     region = Region(0, 0, 300, 200)
 
     assert element.detect_on_screen(region) == Point(100, 50)
+
+
+def test_locate_returns_the_match_box_in_points(fake_monitor, screen, tmp_path):
+    element = UIElement(save_template(screen, tmp_path))
+
+    assert element.locate(REGION) == Region(
+        REGION.x1 + 100, REGION.y1 + 50, REGION.x1 + 120, REGION.y1 + 66
+    )
+
+
+def test_wait_displayed_returns_the_match_box(fake_monitor, screen, tmp_path):
+    element = UIElement(save_template(screen, tmp_path))
+
+    assert element.wait_displayed(region=REGION) == element.locate(REGION)
+
+
+def test_detect_on_screen_defaults_to_the_configured_search_region(
+    fake_monitor, screen, tmp_path, monkeypatch
+):
+    monkeypatch.setattr(ScreenConfig, "search_region", REGION)
+
+    UIElement(save_template(screen, tmp_path)).detect_on_screen()
+
+    fake_monitor.make_snapshot.assert_called_once_with(REGION)
+
+
+def test_click_mouse_clicks_the_box_center(fake_monitor, screen, tmp_path):
+    element = UIElement(save_template(screen, tmp_path))
+    with mock.patch.object(screen_element, "mouse") as mouse:
+        element.click_mouse(x_off=1, region=REGION)
+
+    mouse.click.assert_called_once_with(REGION.x1 + 110 + 1, REGION.y1 + 58, hold=None, pause=None)
