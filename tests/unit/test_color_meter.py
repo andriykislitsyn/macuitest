@@ -10,6 +10,7 @@ from macuitest.config.constants import Region
 from macuitest.lib.elements import applescript_element
 from macuitest.lib.elements.applescript_element import BaseUIElement
 from macuitest.lib.operating_system import color_meter
+from macuitest.lib.operating_system.color_meter import get_closest_color
 from macuitest.lib.operating_system.color_meter import get_color
 from macuitest.lib.operating_system.color_meter import get_most_common_color
 
@@ -68,3 +69,15 @@ def test_applescript_element_passes_its_frame_in_x1_y1_x2_y2_order():
         BaseUIElement("button 1", process="Finder").most_common_color()
 
     get_most_common.assert_called_once_with(10, 20, 110, 60, None)
+
+
+def test_get_closest_color_names_an_rgb_pixel():
+    assert get_closest_color((250, 128, 114)) == "salmon"
+
+
+def test_closest_matches_across_chunks(monkeypatch):
+    rgb = numpy.random.default_rng(seed=3).integers(0, 256, size=(50, 3), dtype=numpy.uint8)
+    whole = color_meter._closest(rgb)
+    monkeypatch.setattr(color_meter, "_CHUNK", 7)
+
+    assert (color_meter._closest(rgb) == whole).all()
