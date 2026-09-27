@@ -53,3 +53,14 @@ def test_make_snapshot_uses_captured_pixel_dimensions():
     assert snapshot.shape == (height, width, 4)
     assert (snapshot == pixels.reshape(height, row_stride, 4)[:, :width]).all()
     size.assert_not_called()
+
+
+def test_is_retina_reads_the_menu_bar_display():
+    menu_bar, other = mock.Mock(), mock.Mock()
+    menu_bar.backingScaleFactor.return_value = 1.0
+    other.backingScaleFactor.return_value = 2.0
+    with mock.patch.object(monitor_module.AppKit, "NSScreen") as ns_screen:
+        ns_screen.screens.return_value = [menu_bar, other]
+        ns_screen.mainScreen.return_value = other
+
+        assert Monitor().is_retina is False

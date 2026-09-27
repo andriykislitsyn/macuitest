@@ -53,8 +53,10 @@ class Monitor:
 
     @property
     def is_retina(self) -> bool:
+        """Return whether the menu bar display has more than one pixel per point."""
         if self.__is_retina is None:
-            self.__is_retina = AppKit.NSScreen.mainScreen().backingScaleFactor() > 1.0
+            # screens()[0] holds the menu bar. mainScreen() follows the key window instead.
+            self.__is_retina = AppKit.NSScreen.screens()[0].backingScaleFactor() > 1.0
         return self.__is_retina
 
     @property

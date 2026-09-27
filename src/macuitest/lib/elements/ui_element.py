@@ -23,7 +23,7 @@ class UIElement:
     def __init__(self, screenshot_path: Union[str, Path], similarity: float = 0.925):
         self.path = screenshot_path.strip() if isinstance(screenshot_path, str) else screenshot_path
         self.similarity: float = similarity
-        # Patterns are assumed captured on the main display, at its pixels per point.
+        # Patterns are assumed captured on the menu bar display, at its pixels per point.
         self.__template_scale = 2 if monitor.is_retina else 1
         self.image, self.width, self.height = self.__load_image()
         self.__templates = {float(self.__template_scale): self.image}
@@ -98,7 +98,7 @@ class UIElement:
         `region` defaults to every connected display.
 
         Raises:
-            cv2.error: `region` is smaller than the pattern.
+            cv2.error: `region` is narrower or shorter than the pattern.
         """
         region = region or monitor.bounds
         screen = cv2.cvtColor(monitor.make_snapshot(region), cv2.COLOR_BGRA2GRAY)
