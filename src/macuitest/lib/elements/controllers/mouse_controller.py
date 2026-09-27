@@ -6,6 +6,9 @@ import Quartz
 
 from macuitest.lib.elements.ui.monitor import monitor
 
+# One cursor update per frame on a 120 Hz display, two on a 60 Hz one.
+MOVE_EVENTS_PER_SECOND = 120
+
 
 class MouseController:
     def move_to(self, x: float, y: float, duration: float = 0.35):
@@ -45,17 +48,14 @@ class MouseController:
         # Keep the target on the virtual desktop, which spans every connected display.
         x = max(bounds.x1, min(x, bounds.x2 - 1))
         y = max(bounds.y1, min(y, bounds.y2 - 1))
-        steps_count = int(max(abs(x - start_x), abs(y - start_y))) or 1
-        if steps_count < 50:
-            duration /= 3
-        pause = duration / steps_count
-        for step in (
-            get_point_on_line(start_x, start_y, x, y, ease_out_quad(n / steps_count))
-            for n in range(steps_count)
-        ):
-            self._send_mouse_event(kcg_event, *step, mouse_button)
-            time.sleep(pause)
-        self._send_mouse_event(kcg_event, x, y, mouse_button)
+        steps = max(1, round(duration * MOVE_EVENTS_PER_SECOND))
+        start = time.perf_counter()
+        for n in range(1, steps + 1):
+            # Sleep until this step's slot, so time spent posting events doesn't stretch the move.
+            time.sleep(max(0.0, start + duration * n / steps - time.perf_counter()))
+            fraction = ease_out_quad(n / steps)
+            point = (x, y) if n == steps else get_point_on_line(start_x, start_y, x, y, fraction)
+            self._send_mouse_event(kcg_event, *point, mouse_button)
 
     @staticmethod
     def vertical_scroll(scrolls: int, speed: int = 1):

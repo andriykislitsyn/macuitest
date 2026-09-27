@@ -72,3 +72,15 @@ def test_is_visible_reflects_whether_the_pattern_matched(
     element = UIElement(save_template(screen, tmp_path))
     with mock.patch.object(UIElement, "wait_displayed", return_value=match):
         assert element.is_visible is expected
+
+
+def test_detect_on_screen_rescales_a_retina_pattern_for_a_1x_capture(
+    fake_monitor, screen, tmp_path
+):
+    element = UIElement(save_template(screen, tmp_path))
+    fake_monitor.make_snapshot.return_value = cv2.resize(
+        screen, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_AREA
+    )
+    region = Region(0, 0, 300, 200)
+
+    assert element.detect_on_screen(region) == Point(100, 50)

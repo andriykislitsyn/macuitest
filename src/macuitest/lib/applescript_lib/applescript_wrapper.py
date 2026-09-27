@@ -1,3 +1,4 @@
+import functools
 import time
 
 from Foundation import NSAppleScript
@@ -66,7 +67,7 @@ class AppleScriptWrapper:
         """Send keystroke event with the specified `key_code` (type it using AppleScript)."""
         self.__send_event("key code", key_code, *args)
 
-    def __send_event(self, event_type: str, message: [str, int], *args):
+    def __send_event(self, event_type: str, message: str | int, *args):
         for modifier in args:
             if modifier not in self.allowed_modifier_keys:
                 raise KeyError(f'{modifier} is not a modifier key.')
@@ -97,13 +98,26 @@ class AppleScriptWrapper:
 
     @staticmethod
     def execute(cmd: str):
-        """Execute AppleScript command abd returns exitcode, stdout and stderr.
-        :param str cmd: apple script
-        :return: exitcode, stdout and stderr"""
-        result, error = NSAppleScript.alloc().initWithSource_(cmd).executeAndReturnError_(None)
+        """Run AppleScript `cmd` and return its result as a Python value.
+
+        Runs of the same source share one script instance, so its properties and top-level
+        variables keep their values between calls.
+
+        Raises:
+            AppleScriptError: `cmd` fails to compile or run.
+        """
+        result, error = _script(cmd).executeAndReturnError_(None)
         if error:
             raise AppleScriptError(error)
         return ae_converter.unpack(result)
+
+
+@functools.lru_cache(maxsize=256)
+def _script(source: str) -> NSAppleScript:
+    """Return the cached NSAppleScript for `source`, compiled on its first run."""
+    # Reusing the instance, not skipping compilation, is what saves time: a fresh instance loaded
+    # from compiled data runs as slowly as one compiled from source.
+    return NSAppleScript.alloc().initWithSource_(source)
 
 
 as_wrapper = AppleScriptWrapper()
