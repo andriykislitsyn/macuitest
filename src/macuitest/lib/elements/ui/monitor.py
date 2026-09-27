@@ -18,16 +18,34 @@ from macuitest.config.constants import ScreenSize
 MAX_DISPLAYS = 16
 
 
+def _region(rect) -> Region:
+    return Region(
+        x1=int(rect.origin.x),
+        y1=int(rect.origin.y),
+        x2=int(rect.origin.x + rect.size.width),
+        y2=int(rect.origin.y + rect.size.height),
+    )
+
+
 class Monitor:
     def __init__(self):
         self.__is_retina: Optional[bool] = None
         self.__screen_size: Optional[ScreenSize] = None
         self.__bounds: Optional[Region] = None
+        self.__displays: Optional[list[Region]] = None
 
     def make_snapshot(self, region: Optional[Region] = None) -> numpy.ndarray:
         pixel_data, row_stride, width, height = self.get_pixel_data(region=region)
         _image = numpy.frombuffer(pixel_data, dtype=numpy.uint8)
         return _image.reshape((height, row_stride, 4))[:, :width, :]
+
+    @property
+    def displays(self) -> list[Region]:
+        """Return every active display's bounds in global Quartz points, menu bar display first."""
+        if self.__displays is None:
+            _, display_ids, count = CGGetActiveDisplayList(MAX_DISPLAYS, None, None)
+            self.__displays = [_region(CGDisplayBounds(display)) for display in display_ids[:count]]
+        return self.__displays
 
     @property
     def bounds(self) -> Region:
@@ -37,13 +55,12 @@ class Monitor:
         offsets, such as a secondary monitor placed to the left of or above the main one.
         """
         if self.__bounds is None:
-            _, display_ids, count = CGGetActiveDisplayList(MAX_DISPLAYS, None, None)
-            rects = [CGDisplayBounds(display_id) for display_id in display_ids[:count]]
+            displays = self.displays
             self.__bounds = Region(
-                x1=int(min(r.origin.x for r in rects)),
-                y1=int(min(r.origin.y for r in rects)),
-                x2=int(max(r.origin.x + r.size.width for r in rects)),
-                y2=int(max(r.origin.y + r.size.height for r in rects)),
+                x1=min(d.x1 for d in displays),
+                y1=min(d.y1 for d in displays),
+                x2=max(d.x2 for d in displays),
+                y2=max(d.y2 for d in displays),
             )
         return self.__bounds
 
@@ -67,20 +84,25 @@ class Monitor:
         return self.__screen_size
 
     @staticmethod
-    def get_pixel_data(region: Optional[Region] = None):
-        region = (
+    def capture(region: Optional[Region] = None):
+        """Return a CGImage of `region` in global points, or of every display when None."""
+        rect = (
             CoreGraphics.CGRectInfinite
             if region is None
             else CoreGraphics.CGRectMake(
                 region.x1, region.y1, region.x2 - region.x1, region.y2 - region.y1
             )
         )
-        image = CoreGraphics.CGWindowListCreateImage(
-            region,
+        return CoreGraphics.CGWindowListCreateImage(
+            rect,
             CoreGraphics.kCGWindowListOptionOnScreenOnly,
             CoreGraphics.kCGNullWindowID,
             CoreGraphics.kCGWindowImageDefault,
         )
+
+    @staticmethod
+    def get_pixel_data(region: Optional[Region] = None):
+        image = Monitor.capture(region)
         pixel_data = CoreGraphics.CGDataProviderCopyData(CoreGraphics.CGImageGetDataProvider(image))
         row_stride = CoreGraphics.CGImageGetBytesPerRow(image) // 4
         width = CoreGraphics.CGImageGetWidth(image)

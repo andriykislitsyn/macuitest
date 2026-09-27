@@ -64,3 +64,19 @@ def test_is_retina_reads_the_menu_bar_display():
         ns_screen.mainScreen.return_value = other
 
         assert Monitor().is_retina is False
+
+
+def test_displays_lists_every_display_menu_bar_first():
+    displays = {1: rect(0, 0, 1728, 1117), 3: rect(-3008, -376, 3008, 1692)}
+    with (
+        mock.patch.object(monitor_module, "CGGetActiveDisplayList", return_value=(0, [1, 3], 2)),
+        mock.patch.object(monitor_module, "CGDisplayBounds", side_effect=displays.get),
+    ):
+        assert Monitor().displays == [Region(0, 0, 1728, 1117), Region(-3008, -376, 0, 1316)]
+
+
+def test_capture_requests_the_region_in_points():
+    with mock.patch.object(monitor_module.CoreGraphics, "CGWindowListCreateImage") as create:
+        Monitor.capture(Region(-10, -20, 30, 40))
+
+    assert create.call_args.args[0] == monitor_module.CoreGraphics.CGRectMake(-10, -20, 40, 60)
