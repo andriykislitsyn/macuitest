@@ -20,10 +20,9 @@ def test_finds_the_template_where_it_was_cut(screen):
     assert find_template(screen, screen[500:540, 300:380], 0.925) == (300, 500)
 
 
-def test_finds_a_template_straddling_a_band_boundary(screen):
+def test_finds_a_template_at_the_last_start_row_of_a_band(screen):
     height = 60
-    boundary = matching._bands(screen.shape[0], height)[1][0]
-    top = boundary - height // 2
+    top = matching._bands(screen.shape[0], height)[1][0] - 1
 
     assert find_template(screen, screen[top : top + height, 100:200], 0.925) == (100, top)
 
@@ -50,3 +49,14 @@ def test_bands_cover_every_start_row_exactly_once(screen_height, template_height
 def test_template_taller_than_the_screen_raises(screen):
     with pytest.raises(cv2.error):
         find_template(screen, numpy.zeros((901, 10), dtype=numpy.uint8), 0.925)
+
+
+@pytest.mark.parametrize("bands", [1, 3, 4, 8])
+def test_identical_copies_resolve_to_the_topmost_then_leftmost(screen, bands, monkeypatch):
+    monkeypatch.setattr(matching, "_BANDS", bands)
+    template = screen[0:30, 0:40].copy()
+    for y, x in [(700, 500), (300, 400), (300, 100), (600, 20)]:
+        screen[y : y + 30, x : x + 40] = template
+    screen[0:30, 0:40] = numpy.flipud(template)
+
+    assert find_template(screen, template, 0.925) == (100, 300)
