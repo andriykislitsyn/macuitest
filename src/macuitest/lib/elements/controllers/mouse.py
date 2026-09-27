@@ -1,27 +1,13 @@
 import time
-from dataclasses import dataclass
 from typing import Optional
 
+from macuitest.config.settings import settings
 from macuitest.lib.elements.controllers.keyboard_controller import keyboard
 from macuitest.lib.elements.controllers.mouse_controller import MouseController
 
 
-@dataclass
-class MouseConfig:
-    """Default mouse timings in seconds and the reset position.
-
-    `Mouse` methods read these whenever an argument is None, so assigning one, such as
-    `MouseConfig.move = 0.36`, changes every later call.
-    """
-
-    move: float = 0.18  # Cursor roaming time.
-    hold: float = 0.24  # Time to hold a button selected.
-    pause: float = 0.24  # Pause before a click.
-    default_position: tuple = (5, 3)
-
-
 class Mouse:
-    """Cursor manipulator."""
+    """Cursor manipulator. Timings left as None come from `settings.mouse` at call time."""
 
     def __init__(self, controller: MouseController):
         self.controller = controller
@@ -56,7 +42,7 @@ class Mouse:
         pause: Optional[float] = None,
     ) -> None:
         """Hover over position and left-click once."""
-        time.sleep(MouseConfig.pause if pause is None else pause)
+        time.sleep(settings.mouse.pause if pause is None else pause)
         self.hover(x, y, duration)
         self._press_mouse_button(x, y, mouse_button="left", hold=hold, pause=0.125)
 
@@ -69,7 +55,7 @@ class Mouse:
         pause: Optional[float] = None,
     ) -> None:
         """Hover over the position and control-click once."""
-        time.sleep(MouseConfig.pause if pause is None else pause)
+        time.sleep(settings.mouse.pause if pause is None else pause)
         self.hover(x, y, duration)
         self._press_mouse_button(x, y, mouse_button="right", hold=hold, pause=0.125)
 
@@ -78,18 +64,20 @@ class Mouse:
         self.controller.vertical_scroll(scrolls)
 
     def reset(self):
-        self.hover(*MouseConfig.default_position)
+        self.hover(*settings.mouse.default_position)
 
     def hover(self, x: float, y: float, duration: Optional[float] = None) -> None:
         """Hover over the position."""
-        self.controller.move_to(x, y, duration=MouseConfig.move if duration is None else duration)
+        self.controller.move_to(
+            x, y, duration=settings.mouse.move if duration is None else duration
+        )
 
     def _press_mouse_button(
         self, x: float, y: float, mouse_button: str, hold: Optional[float], pause: float
     ):
         time.sleep(pause)
         self.controller.mouse_down(x, y, mouse_button)
-        time.sleep(MouseConfig.hold if hold is None else hold)
+        time.sleep(settings.mouse.hold if hold is None else hold)
         self.controller.mouse_up(x, y, mouse_button)
         time.sleep(0.25)  # We want to wait a bit for system to register the event.
 

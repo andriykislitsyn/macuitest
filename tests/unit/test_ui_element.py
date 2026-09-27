@@ -6,9 +6,9 @@ import pytest
 
 from macuitest.config.constants import Point
 from macuitest.config.constants import Region
+from macuitest.config.settings import settings
 from macuitest.lib.elements import screen_element
 from macuitest.lib.elements import ui_element
-from macuitest.lib.elements.screen_element import ScreenConfig
 from macuitest.lib.elements.ui_element import UIElement
 
 # A 2x retina capture of a region whose origin sits on a secondary display.
@@ -105,11 +105,12 @@ def test_wait_displayed_returns_the_match_box(fake_monitor, screen, tmp_path):
 def test_detect_on_screen_defaults_to_the_configured_search_region(
     fake_monitor, screen, tmp_path, monkeypatch
 ):
-    monkeypatch.setattr(ScreenConfig, "search_region", REGION)
+    configured = Region(0, 0, 300, 200)  # Differs from the fake monitor's bounds.
+    monkeypatch.setattr(settings.screen, "search_region", configured)
 
     UIElement(save_template(screen, tmp_path)).detect_on_screen()
 
-    fake_monitor.make_snapshot.assert_called_once_with(REGION)
+    fake_monitor.make_snapshot.assert_called_once_with(configured)
 
 
 def test_click_mouse_clicks_the_box_center(fake_monitor, screen, tmp_path):
@@ -118,3 +119,34 @@ def test_click_mouse_clicks_the_box_center(fake_monitor, screen, tmp_path):
         element.click_mouse(x_off=1, region=REGION)
 
     mouse.click.assert_called_once_with(REGION.x1 + 110 + 1, REGION.y1 + 58, hold=None, pause=None)
+
+
+def test_detect_on_screen_searches_the_configured_display(
+    fake_monitor, screen, tmp_path, monkeypatch
+):
+    second = Region(0, 0, 300, 200)  # Differs from the fake monitor's bounds.
+    fake_monitor.displays = [REGION, second]
+    monkeypatch.setattr(screen_element, "monitor", fake_monitor)
+    monkeypatch.setattr(settings.screen, "display", 1)
+
+    UIElement(save_template(screen, tmp_path)).detect_on_screen()
+
+    fake_monitor.make_snapshot.assert_called_once_with(second)
+
+
+@pytest.mark.parametrize("similarity, expected", [(None, 0.99), (0.5, 0.5)])
+def test_similarity_defaults_to_the_elements_setting_at_call_time(
+    fake_monitor, screen, tmp_path, monkeypatch, similarity, expected
+):
+    element = UIElement(save_template(screen, tmp_path), similarity=similarity)
+    monkeypatch.setattr(settings.elements, "similarity", 0.99)
+    with mock.patch.object(ui_element, "find_template", return_value=None) as find:
+        element.detect_on_screen(REGION)
+
+    assert find.call_args.args[2] == expected
+
+
+def test_repr_shows_the_similarity_in_effect(fake_monitor, screen, tmp_path, monkeypatch):
+    monkeypatch.setattr(settings.elements, "similarity", 0.8)
+
+    assert "similarity=0.8>" in repr(UIElement(save_template(screen, tmp_path)))

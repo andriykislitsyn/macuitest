@@ -2,7 +2,11 @@ import AppKit
 import pytest
 import Quartz
 
+from macuitest.config import settings as settings_module
 from macuitest.lib.elements.ui import monitor as monitor_module
+
+# Run on the shipped defaults, whatever macuitest.toml or $MACUITEST_CONFIG the machine has.
+settings_module.settings.load(settings_module.DEFAULT_FILE)
 
 
 @pytest.fixture(autouse=True)

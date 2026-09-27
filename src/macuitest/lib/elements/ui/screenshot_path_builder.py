@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from typing import Union
 
+from macuitest.config.settings import settings
 from macuitest.lib.operating_system.env import env
 
 
@@ -11,11 +12,14 @@ class ScreenshotPathBuilder:
     Args:
         category: Screenshot subdirectory, lowercased with spaces and hyphens replaced by
             underscores.
-        root: Screenshot root. Defaults to `$MACUITEST_SCR`, then the home directory.
+        root: Screenshot root. Defaults to `$MACUITEST_SCR`, then `settings.paths.screenshots`,
+            then the home directory.
     """
 
     def __init__(self, category: str, root: Union[Path, str, None] = None):
-        self.root = Path(root or os.environ.get("MACUITEST_SCR") or Path.home())
+        self.root = Path(
+            root or os.environ.get("MACUITEST_SCR") or settings.paths.screenshots or Path.home()
+        )
         self.category = category.lower().replace(" ", "_").replace("-", "_")
 
     def __getattr__(self, item: str):

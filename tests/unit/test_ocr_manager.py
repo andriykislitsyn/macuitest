@@ -6,7 +6,8 @@ import pytest
 import Quartz
 
 from macuitest.config.constants import Region
-from macuitest.lib.elements.screen_element import ScreenConfig
+from macuitest.config.settings import settings
+from macuitest.lib.elements import screen_element
 from macuitest.lib.elements.ui import ocr_manager as ocr_module
 from macuitest.lib.elements.ui.ocr_manager import OCRManager
 
@@ -89,7 +90,7 @@ def test_find_text_reads_each_display_and_orders_matches_globally(text_image, mo
 
 def test_find_text_defaults_to_the_configured_search_region(monkeypatch):
     captured = []
-    monkeypatch.setattr(ScreenConfig, "search_region", REGION)
+    monkeypatch.setattr(settings.screen, "search_region", REGION)
     monkeypatch.setattr(ocr_module, "_capture", lambda region: captured.append(region))
     monkeypatch.setattr(OCRManager, "_read", lambda self, image, level: [])
 
@@ -227,3 +228,36 @@ def test_find_text_rejects_an_empty_region():
 def test_a_bare_language_string_raises_with_the_tuple_form():
     with pytest.raises(TypeError, match=r"\('en-US',\)"):
         OCRManager(languages="en-US")
+
+
+def test_find_text_searches_the_configured_display(monkeypatch):
+    displays = [Region(0, 0, 400, 120), REGION]
+    captured = []
+    monkeypatch.setattr(type(screen_element.monitor), "displays", displays)
+    monkeypatch.setattr(settings.screen, "display", 1)
+    monkeypatch.setattr(ocr_module, "_capture", lambda region: captured.append(region))
+    monkeypatch.setattr(OCRManager, "_read", lambda self, image, level: [])
+
+    OCRManager().find_text("Send")
+
+    assert captured == [REGION]
+
+
+def test_default_languages_follow_the_ocr_setting_at_call_time(monkeypatch):
+    levels = []
+    manager = OCRManager()
+    monkeypatch.setattr(settings.ocr, "languages", ("uk-UA",))
+    monkeypatch.setattr(ocr_module, "_capture", lambda region: None)
+    monkeypatch.setattr(OCRManager, "_read", lambda self, image, level: levels.append(level) or [])
+
+    manager.find_text("Send", REGION)
+
+    assert manager.languages == ("uk-UA",)
+    assert levels == [ocr_module._ACCURATE]
+
+
+def test_an_unsupported_configured_language_raises_on_use(monkeypatch):
+    monkeypatch.setattr(settings.ocr, "languages", ("xx-XX",))
+
+    with pytest.raises(ValueError, match=r"xx-XX.*settings\.ocr\.languages"):
+        OCRManager().find_text("Send", REGION)

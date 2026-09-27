@@ -2,28 +2,30 @@
 
 from abc import ABC
 from abc import abstractmethod
-from dataclasses import dataclass
 from typing import Optional
 
 from macuitest.config.constants import Point
 from macuitest.config.constants import Region
+from macuitest.config.settings import settings
 from macuitest.lib.core import wait_condition
 from macuitest.lib.elements.controllers.mouse import mouse
+from macuitest.lib.elements.ui.monitor import monitor
 
 
 class UIElementNotFoundOnScreen(Exception):
     """Raised when an element isn't found on the screen."""
 
 
-@dataclass
-class ScreenConfig:
-    """Default screen search settings, read by elements and `OCRManager.find_text`.
+def default_region() -> Optional[Region]:
+    """Return `settings.screen.search_region`, else the bounds of `settings.screen.display`.
 
-    They apply whenever `region` is None. Set them on the class, such as
-    `ScreenConfig.search_region = monitor.displays[1]`. Instances have no effect.
+    None means every display.
     """
-
-    search_region: Optional[Region] = None  # None searches every display.
+    if settings.screen.search_region is not None:
+        return settings.screen.search_region
+    if settings.screen.display is not None:
+        return monitor.displays[settings.screen.display]
+    return None
 
 
 class ScreenElement(ABC):
@@ -81,24 +83,35 @@ class ScreenElement(ABC):
 
     @property
     def is_visible(self) -> bool:
-        """Whether the element appears on screen within 5 seconds."""
+        """Whether the element appears on screen within `settings.elements.timeout` seconds."""
         return bool(self.wait_displayed())
 
     def get_center(self, region: Optional[Region] = None) -> Point:
         """Return the center of the element's box in global display points.
 
         Raises:
-            UIElementNotFoundOnScreen: The element doesn't appear within 5 seconds.
+            UIElementNotFoundOnScreen: The element doesn't appear within
+                `settings.elements.timeout` seconds.
         """
         box = self.wait_displayed(region=region)
         if not box:
             raise UIElementNotFoundOnScreen(repr(self))
         return Point(int((box.x1 + box.x2) / 2), int((box.y1 + box.y2) / 2))
 
-    def wait_displayed(self, timeout: int = 5, region: Optional[Region] = None) -> Optional[Region]:
-        """Return the element's box once it appears, or None after `timeout` seconds."""
+    def wait_displayed(
+        self, timeout: Optional[float] = None, region: Optional[Region] = None
+    ) -> Optional[Region]:
+        """Return the element's box once it appears, or None after `timeout` seconds.
+
+        `timeout` defaults to `settings.elements.timeout`.
+        """
+        timeout = settings.elements.timeout if timeout is None else timeout
         return wait_condition(lambda: self.locate(region), timeout=timeout) or None
 
-    def wait_vanish(self, timeout: int = 15, region: Optional[Region] = None) -> bool:
-        """Return whether the element disappears within `timeout` seconds."""
+    def wait_vanish(self, timeout: Optional[float] = None, region: Optional[Region] = None) -> bool:
+        """Return whether the element disappears within `timeout` seconds.
+
+        `timeout` defaults to `settings.elements.vanish_timeout`.
+        """
+        timeout = settings.elements.vanish_timeout if timeout is None else timeout
         return wait_condition(lambda: self.locate(region) is None, timeout=timeout)
