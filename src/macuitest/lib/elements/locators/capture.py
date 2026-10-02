@@ -200,14 +200,16 @@ def walk(window: Any) -> list[Found]:
 
 
 def window_number(pid: int, frame: Region) -> Optional[int]:
-    """Return the window server number of process `pid`'s app window at `frame`, or None."""
+    """Return the window server number of process `pid`'s window at `frame`, or None.
+
+    App windows at layer 0 win over floating panels above it, then on-screen windows win.
+    """
     wanted = tuple(round(v) for v in (frame.x1, frame.y1, frame.x2 - frame.x1, frame.y2 - frame.y1))
     infos = Quartz.CGWindowListCopyWindowInfo(Quartz.kCGWindowListOptionAll, Quartz.kCGNullWindowID)
     matches = [
         info
         for info in infos or []
         if info.get("kCGWindowOwnerPID") == pid
-        and info.get("kCGWindowLayer") == 0
         and tuple(
             round((info.get("kCGWindowBounds") or {}).get(key, -1))
             for key in ("X", "Y", "Width", "Height")
@@ -215,7 +217,9 @@ def window_number(pid: int, frame: Region) -> Optional[int]:
         == wanted
     ]
     # Inactive native tabs are off-screen windows with the same bounds as the visible one.
-    matches.sort(key=lambda info: not info.get("kCGWindowIsOnscreen"))
+    matches.sort(
+        key=lambda info: (info.get("kCGWindowLayer") != 0, not info.get("kCGWindowIsOnscreen"))
+    )
     return int(matches[0]["kCGWindowNumber"]) if matches else None
 
 

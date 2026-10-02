@@ -253,3 +253,13 @@ def test_window_number_prefers_the_on_screen_twin(monkeypatch):
     monkeypatch.setattr(capture_module.Quartz, "CGWindowListCopyWindowInfo", lambda *args: windows)
 
     assert window_number(42, Region(10, 20, 210, 120)) == 2
+
+
+def test_window_number_finds_a_floating_panel_above_layer_0(monkeypatch):
+    # TextEdit's Fonts panel sits at window server layer 3.
+    bounds = {"X": 1213, "Y": 726, "Width": 478, "Height": 281}
+    panel = {"kCGWindowOwnerPID": 42, "kCGWindowLayer": 3, "kCGWindowNumber": 9}
+    windows = [{**panel, "kCGWindowBounds": bounds, "kCGWindowIsOnscreen": True}]
+    monkeypatch.setattr(capture_module.Quartz, "CGWindowListCopyWindowInfo", lambda *args: windows)
+
+    assert window_number(42, Region(1213, 726, 1691, 1007)) == 9
