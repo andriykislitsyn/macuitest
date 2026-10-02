@@ -2,25 +2,38 @@
 
 # macuitest
 
-Functional and UI test automation for macOS apps. macuitest finds elements by AppleScript locator, accessibility object, screenshot, or visible text, then clicks, types, and waits on them like a person would.
+macuitest is a Python library for end-to-end tests of macOS apps. It finds elements by accessibility attributes, AppleScript locator, screenshot, or visible text, then clicks, types, and waits on them the way a person would. It also includes helpers for the system around the app, such as preferences, property lists, processes, and files, so a test can set up state and check results outside the app's window.
 
-## Requirements
+To see complete suites for real apps, go to [macuitest examples](https://github.com/andriykislitsyn/macuitest-examples).
 
-- macOS, Python 3.13 or later.
-- Grant these permissions in System Settings > Privacy & Security to the app that runs your tests, such as Terminal, iTerm2, or your IDE:
-  - **Accessibility**, for mouse and keyboard input, AppleScript element control, and every lookup on a `Screen` with an `app`. Without it, those lookups raise `PermissionError`.
-  - **Screen & System Audio Recording** (Screen Recording before macOS 15), for `UIElement`, `VisibleText`, and color checks. Without it, the first screen capture raises `PermissionError` naming the System Settings pane.
-- macOS asks once for permission to control System Events. Allow it.
+## Before you begin
 
-## Installation
+To use macuitest, you need the following:
+
+- macOS and Python 3.13 or later.
+- Two permissions for the app you run your tests from, such as Terminal, iTerm2, or your IDE. Grant them in **System Settings > Privacy & Security**:
+  - **Accessibility**, for mouse and keyboard input, AppleScript elements, and every lookup on a `Screen` with an `app`.
+  - **Screen & System Audio Recording**, called **Screen Recording** before macOS 15, for screenshots, visible text, and color checks.
+
+After you grant Screen Recording, quit and reopen the app you run your tests from, since macOS applies that grant only to a newly started app. Accessibility takes effect right away.
+
+When a permission is missing, `Screen` lookups and screen captures raise `PermissionError` naming the System Settings pane. Other calls fail without that hint: an AppleScript element raises `AppleScriptError`, and mouse and keyboard input does nothing.
+
+The first time your tests control System Events, macOS asks for permission. Allow it.
+
+## Install macuitest
+
+Until version 0.8.0 is on PyPI, install macuitest from GitHub:
 
 ```bash
-uv add macuitest
+uv add git+https://github.com/andriykislitsyn/macuitest
 # or
-pip install macuitest
+pip install git+https://github.com/andriykislitsyn/macuitest
 ```
 
 ## Quick start
+
+The following script drives Finder with three kinds of elements. The screenshot step needs a PNG of your own:
 
 ```python
 from macuitest.lib.apps.application import Finder
@@ -43,25 +56,30 @@ UIElement("screenshots/sidebar_toggle.png").wait_displayed()
 
 ## Element types
 
-| Module in `macuitest.lib.elements` | Finds elements by | Best for |
+Each module in `macuitest.lib.elements` finds elements a different way:
+
+| Module | Finds elements by | Best for |
 |---|---|---|
-| `applescript_element` | AppleScript locator, such as `button "OK" of window 1` | Native controls with stable accessibility names |
+| `applescript_element` | AppleScript locator, such as `button "OK" of window 1` | Apps you already script through System Events |
 | `native_element` | Accessibility (AX) objects through pyobjc | Reading attributes and walking the accessibility tree |
-| `visible_text` | Visible text, read with Apple Vision | Buttons, tabs, links, and banners with a text label |
+| `visible_text` | Visible text, read with Apple Vision | Buttons, tabs, links, and banners with a text label of two or more characters |
 | `ui_element` | A screenshot of the element | Icons and custom-drawn controls without text |
-| `locators` | `Screen` classes declaring an app's elements with the kinds above | Any app you test more than once |
+| `locators` | `Screen` classes that declare an app's elements with the kinds above | Any app you test more than once |
 
-`VisibleText` and `UIElement` share one API: `click_mouse`, `double_click`, `right_click`, `hover_mouse`, `paste`, `wait_displayed`, `wait_vanish`, and the `is_visible` property. Every method takes a `region` to search, and a window-sized region is several times faster than the whole desktop.
+`VisibleText` and `UIElement` share one API: `click_mouse`, `double_click`, `right_click`, `hover_mouse`, `paste`, `wait_displayed`, `wait_vanish`, and the `is_visible` property. Each of these methods takes a `region` to search, and a window-sized region is faster to search than the whole desktop.
 
-To find AppleScript locators, use Accessibility Inspector (bundled with Xcode) or UI Browser.
+To browse an app's accessibility attributes, use Accessibility Inspector, which comes with Xcode. To turn them into locators, see [Capture elements](#capture-elements).
 
-## Screens
+## Declare an app's elements with screens
 
-Declare an app's elements in one class instead of scattering locators through tests.
+A `Screen` class declares an app's elements in one place, so your tests don't need to contain locators:
 
 ```python
+from macuitest.lib.elements.applescript_element import Button as ScriptButton
 from macuitest.lib.elements.locators import Screen, applescript, ax, image, text
 from macuitest.lib.elements.native_element import Button
+
+KEYPAD = "group 1 of group 1 of splitter group 1 of group 1 of window 1"
 
 
 class Calculator(Screen, app="Calculator"):
@@ -70,39 +88,75 @@ class Calculator(Screen, app="Calculator"):
     display = ax(identifier="StandardInputView").child(role="AXStaticText")
     all_clear = text("AC", within=keypad)
     mode = image()
-    seven_as = applescript('(first button whose description is "7") of group 1 of window 1')
+    seven_as = applescript(
+        f'(first button whose value of attribute "AXIdentifier" is "Seven") of {KEYPAD}',
+        kind=ScriptButton,
+    )
 
 
 Calculator.seven.press()
 ```
 
+Screens work as follows:
+
 - `ax()` matches accessibility attributes and finds the element again on every read. Pass `kind=` for actions such as `press`.
-- `text()` and `image()` search the app's first standard window, or the frame of `within=`. When the window is missing or minimized, they find nothing and waits keep polling.
-- `image()` loads `<name>.png` next to the module: `Calculator` in `apps/calculator.py` reads `apps/calculator/calculator/mode.png`.
-- For an alert or a secondary window, name the window once: `class EmptyTrash(Screen, app="Finder", window=window(subrole="AXDialog"))`. Its text, image, and `ax()` lookups then search only that window. Alerts have no title, so match them by subrole. Sheets, such as a Save panel, sit inside their window and need no `window=`.
-- `app` is the process that owns the window. System prompts belong to system processes, such as `SecurityAgent` for password prompts, not to the app that triggered them.
+- `text()` and `image()` search the app's first standard window, or the frame of `within=`. When the window is missing, minimized, or hidden, they find nothing, and waits keep polling.
+- `image()` loads `<name>.png` next to the module. For example, `Calculator` in `apps/calculator.py` reads `apps/calculator/calculator/mode.png`.
 - Screens are never instantiated. Read elements from the class.
 
+### Alerts, panels, and sheets
+
+For an alert or a secondary window, name the window once with `window=`. The screen's text, image, and `ax()` lookups then search only that window:
+
+```python
+from macuitest.lib.elements.locators import Screen, ax, window
+from macuitest.lib.elements.native_element import Button
+
+
+class EmptyTrash(Screen, app="Finder", window=window(subrole="AXDialog")):
+    cancel = ax(title="Cancel", role="AXButton", kind=Button)
+
+
+class Fonts(Screen, app="TextEdit", window=window(title="Fonts")):
+    search = ax(description="Search", role="AXButton", kind=Button)
+```
+
+Keep these window rules in mind:
+
+- Alerts have no title, so match them by subrole.
+- Floating panels, such as TextEdit's Fonts panel, disappear from the accessibility tree while their app isn't active. Activate the app before your tests look up their elements. `capture` activates the app for you.
+- Sheets, such as a Save panel, sit inside their window and need no `window=`.
+- `app` is the process that owns the window. System prompts belong to system processes, such as `SecurityAgent` for password prompts, not to the app that triggered them.
+
 ### Capture elements
+
+Instead of writing a screen by hand, capture it from the running app:
 
 ```bash
 python -m macuitest.locators capture Calculator --out apps/calculator.py --role AXButton
 python -m macuitest.locators check apps/calculator.py
 ```
 
-`capture` walks the app's first standard window and writes `apps/calculator.py` with an `ax()` entry per element it can identify, else `image()`, plus a PNG per element in `apps/calculator/calculator/`, cropped with a 4 pt margin (`--margin`). It works while other windows cover the app. Pass `--window-subrole AXDialog` or `--window-title` to capture an alert or a secondary window instead. Switch an entry to `image()` where the accessibility attributes don't identify the element, and delete the ones you don't need. Identifiers that encode state, such as Calculator's `Mode: basic; unitConversion: false`, need editing. `capture` refuses to overwrite files without `--force`.
+`capture` walks the app's first standard window and writes the following:
 
-`check` lists declared images missing on disk and PNGs no element declares, and exits 1 when it finds either.
+- `apps/calculator.py`, with an `ax()` entry for each element it can identify, else an `image()` entry.
+- A PNG of each element in `apps/calculator/calculator/`, cropped with a 4 pt margin. Change the margin with `--margin`.
 
-## Configuration
+`capture` brings the app to the front first and crops each element from a capture of that one window. To capture an alert, panel, or secondary window, pass `--window-subrole AXDialog` or `--window-title`. `capture` doesn't overwrite existing files unless you pass `--force`.
 
-One settings file holds the defaults for mouse and keyboard timings, the search display, element matching and timeouts, OCR languages, and the screenshot root. Create a documented copy in your project:
+Then edit the generated module: delete the entries you don't need, and switch an entry to `image()` where its accessibility attributes don't identify it. Identifiers that encode state, such as Calculator's `Mode: basic; unitConversion: false`, need a stable replacement, such as a match on the description.
+
+`check` lists declared images that are missing on disk and PNGs that no element declares. It exits with status 1 when it finds either.
+
+## Configure macuitest
+
+One settings file holds the defaults for mouse and keyboard timings, the search display, element matching and timeouts, OCR languages, and the screenshot root. To create a documented copy in your project, run the following command:
 
 ```bash
 python -m macuitest.config init
 ```
 
-That writes `macuitest.toml` with every key and a comment, and each key that has a default is set to it. Edit the keys you need and delete the rest:
+The command writes `macuitest.toml` with every key and a comment, and sets each key that has a default to that default. Edit the keys you need and delete the rest:
 
 ```toml
 [mouse]
@@ -115,13 +169,13 @@ display = 1          # Search only the second display. 0 is the menu bar display
 languages = ["en-US", "uk-UA"]
 ```
 
-macuitest reads the first of these it finds, the first time you import a macuitest element or controller:
+The first time you import a macuitest element or controller, macuitest reads the first of these files that it finds:
 
 1. The file named by `$MACUITEST_CONFIG`.
 2. `macuitest.toml` in the working directory.
 3. `pyproject.toml` in the working directory, with each table under `[tool.macuitest]`, such as `[tool.macuitest.mouse]`.
 
-A missing `$MACUITEST_CONFIG` file, an unknown key, or a bad value raises `ConfigError` naming the file and the key. A `display` index is checked against the displays connected at that moment. Code can change any setting at run time:
+A missing `$MACUITEST_CONFIG` file, an unknown key, or a bad value raises `ConfigError` naming the file and the key. macuitest checks a `display` index against the displays connected at that moment. Your code can change any setting at run time:
 
 ```python
 from macuitest.config.settings import settings
@@ -131,12 +185,14 @@ settings.mouse.move = 0.1
 settings.screen.search_region = monitor.displays[1]  # A Region, which code can set and files can't.
 ```
 
-Other environment variables:
+macuitest also reads these environment variables:
 
-- `$MACUITEST_SCR` sets the screenshot root for `ScreenshotPathBuilder` and wins over `paths.screenshots`.
+- `$MACUITEST_SCR` sets the screenshot root for `ScreenshotPathBuilder`, and wins over `paths.screenshots`.
 - `$MACUITEST_PASSWORD` gives `ShellExecutor.sudo` the admin password when the `com.macuitest.automation` keychain item is missing. Keep it out of config files.
 
-## Development
+## Develop macuitest
+
+To set up the project and run the checks that CI runs, use these commands:
 
 ```bash
 uv sync
@@ -145,6 +201,6 @@ uv run ruff check && uv run ruff format --check
 uv run ty check
 ```
 
-Unit tests never read the real screen. Tests that need text on screen draw it into an image with the `text_image` fixture.
+Unit tests never read the real screen. A test that needs text on screen draws it into an image with the `text_image` fixture.
 
-See [CHANGELOG.md](CHANGELOG.md) for release notes.
+For release notes, see [CHANGELOG.md](CHANGELOG.md).

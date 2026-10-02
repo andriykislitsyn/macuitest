@@ -13,8 +13,10 @@ import Quartz
 from Foundation import NSURL
 
 from macuitest.config.constants import Region
+from macuitest.lib.core import wait_condition
 from macuitest.lib.elements.locators.accessibility import GONE
 from macuitest.lib.elements.locators.accessibility import AXQuery
+from macuitest.lib.elements.locators.accessibility import app_root
 from macuitest.lib.elements.locators.accessibility import frame_of
 from macuitest.lib.elements.locators.accessibility import standard_window
 from macuitest.lib.elements.locators.accessibility import windows
@@ -42,6 +44,8 @@ _LOCATOR_KEYS = (("identifier",), ("description", "role"), ("title", "role"))
 _RESERVED = frozenset({"app", "window", "applescript", "ax", "image", "text"})
 # `window()` keywords by the AX attribute an `AXQuery` stores.
 _WINDOW_KEYWORDS = {"AXTitle": "title", "AXSubrole": "subrole"}
+# Seconds to wait for the window after activating the app.
+WINDOW_TIMEOUT = 2
 _CHROME = frozenset({"AXCloseButton", "AXFullScreenButton", "AXMinimizeButton", "AXZoomButton"})
 
 
@@ -200,14 +204,16 @@ def walk(window: Any) -> list[Found]:
 
 
 def window_number(pid: int, frame: Region) -> Optional[int]:
-    """Return the window server number of process `pid`'s app window at `frame`, or None."""
+    """Return the window server number of process `pid`'s window at `frame`, or None.
+
+    App windows at layer 0 win over floating panels above it, then on-screen windows win.
+    """
     wanted = tuple(round(v) for v in (frame.x1, frame.y1, frame.x2 - frame.x1, frame.y2 - frame.y1))
     infos = Quartz.CGWindowListCopyWindowInfo(Quartz.kCGWindowListOptionAll, Quartz.kCGNullWindowID)
     matches = [
         info
         for info in infos or []
         if info.get("kCGWindowOwnerPID") == pid
-        and info.get("kCGWindowLayer") == 0
         and tuple(
             round((info.get("kCGWindowBounds") or {}).get(key, -1))
             for key in ("X", "Y", "Width", "Height")
@@ -215,7 +221,9 @@ def window_number(pid: int, frame: Region) -> Optional[int]:
         == wanted
     ]
     # Inactive native tabs are off-screen windows with the same bounds as the visible one.
-    matches.sort(key=lambda info: not info.get("kCGWindowIsOnscreen"))
+    matches.sort(
+        key=lambda info: (info.get("kCGWindowLayer") != 0, not info.get("kCGWindowIsOnscreen"))
+    )
     return int(matches[0]["kCGWindowNumber"]) if matches else None
 
 
@@ -246,7 +254,9 @@ def capture(
 ) -> list[Path]:
     """Write a PNG per element of one of `app`'s windows and a `Screen` module at `out`.
 
-    The window is the first matching `window`, else the first standard window. Elements outside
+    Activates the app first, since floating panels, and some apps' windows, appear in the
+    accessibility tree only while the app is active. The window is the first matching
+    `window`, else the first standard window. Elements outside
     it are skipped, and `roles` keeps only those AX roles. Each PNG is the element's frame plus
     `margin` points, clipped to the window. Nothing is written when any target exists, unless
     `force` is set.
@@ -262,7 +272,15 @@ def capture(
     """
     if margin < 0:
         raise ValueError(f"The margin must be 0 or more, not {margin}")
-    target = standard_window(app, window)
+    root = app_root(app)
+    try:
+        if root is not None:
+            # Floating panels, and some apps' windows, appear in AX only while the app is active.
+            root.activate()
+    except GONE:
+        pass
+    found = wait_condition(lambda: standard_window(app, window), timeout=WINDOW_TIMEOUT)
+    target = found or None
     window_frame = None if target is None else frame_of(target)
     if target is None or window_frame is None:
         raise LookupError(f"{app} has no matching window. Open it, then capture again.")
