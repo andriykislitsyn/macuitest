@@ -90,7 +90,7 @@ python -m macuitest.locators capture Calculator --out apps/calculator.py --role 
 python -m macuitest.locators check apps/calculator.py
 ```
 
-`capture` walks the app's first standard window and writes `apps/calculator.py` with an `ax()` entry per element, plus a PNG per element in `apps/calculator/calculator/`, cropped with a 4 pt margin (`--margin`). It works while other windows cover the app. Pass `--window-subrole AXDialog` or `--window-title` to capture an alert or a secondary window instead. Switch an entry to `image()` where the accessibility attributes don't identify the element, and delete the ones you don't need. Identifiers that encode state, such as Calculator's `Mode: basic; unitConversion: false`, need editing. `capture` refuses to overwrite files without `--force`.
+`capture` walks the app's first standard window and writes `apps/calculator.py` with an `ax()` entry per element it can identify, else `image()`, plus a PNG per element in `apps/calculator/calculator/`, cropped with a 4 pt margin (`--margin`). It works while other windows cover the app. Pass `--window-subrole AXDialog` or `--window-title` to capture an alert or a secondary window instead. Switch an entry to `image()` where the accessibility attributes don't identify the element, and delete the ones you don't need. Identifiers that encode state, such as Calculator's `Mode: basic; unitConversion: false`, need editing. `capture` refuses to overwrite files without `--force`.
 
 `check` lists declared images missing on disk and PNGs no element declares, and exits 1 when it finds either.
 

@@ -114,15 +114,18 @@ def standard_window(app: str, query: Optional[AXQuery] = None) -> Optional[Any]:
     try:
         if root is None or root.get_ax_attribute("AXHidden"):
             return None
-        for window in _windows(root):
+    except GONE:
+        return None
+    for window in _windows(root):
+        try:
             if query is None:
                 wanted = window.get_ax_attribute("AXSubrole") == "AXStandardWindow"
             else:
                 wanted = query.matches(window)
             if wanted and not window.get_ax_attribute("AXMinimized"):
                 return window
-    except GONE:
-        pass
+        except GONE:
+            continue
     return None
 
 

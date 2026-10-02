@@ -217,3 +217,18 @@ def test_an_element_without_area_has_no_frame(size):
     element = FakeAX(AXPosition=(5, 5), AXSize=size)
 
     assert ax.frame_of(element) is None
+
+
+class UnreadableSubrole(FakeAX):
+    """A window whose AXSubrole read fails, like some SwiftUI panels."""
+
+    def get_ax_attribute(self, name):
+        if name == "AXSubrole":
+            raise AXErrorFailure("failure")
+        return super().get_ax_attribute(name)
+
+
+def test_an_unreadable_window_doesnt_hide_the_next_one(running):
+    running(UnreadableSubrole(AXRole="AXWindow"), window())
+
+    assert ax.standard_window_frame("Calculator") == Region(10, 20, 210, 120)

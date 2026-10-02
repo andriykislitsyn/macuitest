@@ -57,6 +57,8 @@ def test_roles_without_a_native_class_get_no_kind():
         (Found("AXButton", FRAME, description="7"), "button_7"),
         (Found("AXButton", FRAME, title="App"), "app_"),
         (Found("AXButton", FRAME, title="Window"), "window_"),
+        (Found("AXImage", FRAME), "image_"),
+        (Found("AXButton", FRAME, identifier="AX"), "ax_"),
         (Found("AXButton", FRAME, title="class"), "class_"),
         (Found("AXButton", FRAME, description="Готово"), "button"),
         (Found("AXGroup", FRAME), "group"),
@@ -149,3 +151,19 @@ def test_render_module_declares_the_window_of_a_window_screen():
     assert "from macuitest.lib.elements.locators import window\n" in source
     assert 'class Finder(Screen, app="Finder", window=window(subrole="AXDialog")):\n' in source
     compile(source, "finder.py", "exec")
+
+
+def test_a_rendered_module_with_role_named_elements_imports(tmp_path):
+    from macuitest.lib.elements.locators.check import load_module
+
+    walked = [
+        Found("AXImage", FRAME),
+        Found("AXImage", FRAME),
+        Found("AXButton", FRAME, title="Image"),
+    ]
+    path = tmp_path / "app.py"
+    path.write_text(render_module("App", "App", plan(walked, walked)))
+
+    module = load_module(path)
+
+    assert {"image_", "image_2", "image_3"} <= set(vars(module.App))

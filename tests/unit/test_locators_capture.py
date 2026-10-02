@@ -49,6 +49,7 @@ def app(monkeypatch, text_image):
         return calculator_window()
 
     monkeypatch.setattr(capture_module, "standard_window", standard_window)
+    monkeypatch.setattr(capture_module, "windows", lambda name: [])
     monkeypatch.setattr(capture_module, "window_number", lambda pid, frame: 7)
     monkeypatch.setattr(
         capture_module.monitor, "capture_window", lambda number: text_image([], 200, 100)
@@ -56,10 +57,70 @@ def app(monkeypatch, text_image):
     return queries
 
 
-def test_walk_skips_window_chrome():
-    roles = [(found.role, found.identifier) for found in walk(calculator_window())]
+def test_walk_flags_window_chrome():
+    seen = [(found.identifier, found.chrome) for found in walk(calculator_window())]
 
-    assert roles == [("AXButton", "OK"), ("AXStaticText", None), ("AXButton", "Hidden")]
+    assert seen == [("OK", False), (None, False), (None, True), ("Hidden", False)]
+
+
+def test_capture_skips_window_chrome(app, tmp_path):
+    out = tmp_path / "calculator.py"
+
+    capture("Calculator", out)
+
+    assert "close" not in out.read_text()
+
+
+def test_a_frameless_twin_earlier_in_the_window_takes_the_identifier(
+    monkeypatch, tmp_path, text_image
+):
+    window = FakeAX(
+        FakeAX(AXRole="AXButton", AXIdentifier="OK"),
+        element("AXButton", 30, 40, 60, 24, AXIdentifier="OK", AXDescription="Confirm"),
+        AXRole="AXWindow",
+        AXTitle="Calculator",
+        AXPosition=(10, 20),
+        AXSize=(200, 100),
+    )
+    monkeypatch.setattr(capture_module, "standard_window", lambda name, query=None: window)
+    monkeypatch.setattr(capture_module, "windows", lambda name: [window])
+    monkeypatch.setattr(capture_module, "window_number", lambda pid, frame: 7)
+    monkeypatch.setattr(
+        capture_module.monitor, "capture_window", lambda n: text_image([], 200, 100)
+    )
+    out = tmp_path / "calculator.py"
+
+    capture("Calculator", out)
+
+    assert 'ok = ax(description="Confirm", role="AXButton", kind=Button)' in out.read_text()
+
+
+def test_an_element_in_a_front_window_takes_a_shared_title(monkeypatch, tmp_path, text_image):
+    palette = FakeAX(
+        element("AXButton", 0, 0, 40, 20, AXTitle="Cancel"),
+        AXRole="AXWindow",
+        AXSubrole="AXFloatingWindow",
+        AXPosition=(0, 0),
+        AXSize=(50, 30),
+    )
+    main = FakeAX(
+        element("AXButton", 30, 40, 60, 24, AXTitle="Cancel"),
+        AXRole="AXWindow",
+        AXTitle="Calculator",
+        AXPosition=(10, 20),
+        AXSize=(200, 100),
+    )
+    monkeypatch.setattr(capture_module, "standard_window", lambda name, query=None: main)
+    monkeypatch.setattr(capture_module, "windows", lambda name: [palette, main])
+    monkeypatch.setattr(capture_module, "window_number", lambda pid, frame: 7)
+    monkeypatch.setattr(
+        capture_module.monitor, "capture_window", lambda n: text_image([], 200, 100)
+    )
+    out = tmp_path / "calculator.py"
+
+    capture("Calculator", out)
+
+    assert "cancel = image()" in out.read_text()
 
 
 class SwiftUIToolbarButton(FakeAX):
@@ -78,7 +139,7 @@ def test_walk_keeps_an_element_with_an_unreadable_attribute():
 
     found = walk(FakeAX(FakeAX(button, AXRole="AXToolbar")))
 
-    assert [(f.role, f.description) for f in found] == [("AXButton", "Mode")]
+    assert ("AXButton", "Mode") in [(f.role, f.description) for f in found]
 
 
 def test_capture_writes_a_module_and_a_png_per_element_inside_the_window(app, tmp_path):
@@ -180,3 +241,15 @@ def test_window_number_matches_the_owner_and_bounds(monkeypatch):
 
     assert window_number(42, Region(10, 20, 210, 120)) == 3
     assert window_number(42, Region(0, 0, 50, 50)) is None
+
+
+def test_window_number_prefers_the_on_screen_twin(monkeypatch):
+    bounds = {"X": 10, "Y": 20, "Width": 200, "Height": 100}
+    tab = {"kCGWindowOwnerPID": 42, "kCGWindowLayer": 0, "kCGWindowBounds": bounds}
+    windows = [
+        {**tab, "kCGWindowNumber": 1},
+        {**tab, "kCGWindowNumber": 2, "kCGWindowIsOnscreen": True},
+    ]
+    monkeypatch.setattr(capture_module.Quartz, "CGWindowListCopyWindowInfo", lambda *args: windows)
+
+    assert window_number(42, Region(10, 20, 210, 120)) == 2
