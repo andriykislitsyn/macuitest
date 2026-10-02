@@ -16,6 +16,10 @@ class FakeAX:
     def __init__(self, *children, **attributes):
         self.attributes = {"AXChildren": list(children), **attributes}
         self.pid = 42
+        self.activations = 0
+
+    def activate(self):
+        self.activations += 1
 
     def get_ax_attribute(self, name):
         return self.attributes.get(name)
@@ -50,6 +54,7 @@ def app(monkeypatch, text_image):
 
     monkeypatch.setattr(capture_module, "standard_window", standard_window)
     monkeypatch.setattr(capture_module, "windows", lambda name: [])
+    monkeypatch.setattr(capture_module, "app_root", lambda name: FakeAX())
     monkeypatch.setattr(capture_module, "window_number", lambda pid, frame: 7)
     monkeypatch.setattr(
         capture_module.monitor, "capture_window", lambda number: text_image([], 200, 100)
@@ -200,6 +205,8 @@ def test_capture_with_force_replaces_existing_files(app, tmp_path):
 
 def test_capture_needs_a_window(monkeypatch, tmp_path):
     monkeypatch.setattr(capture_module, "standard_window", lambda name, query=None: None)
+    monkeypatch.setattr(capture_module, "app_root", lambda name: None)
+    monkeypatch.setattr(capture_module, "WINDOW_TIMEOUT", 0)
 
     with pytest.raises(LookupError, match="Calculator has no matching window"):
         capture("Calculator", tmp_path / "calculator.py")
@@ -263,3 +270,32 @@ def test_window_number_finds_a_floating_panel_above_layer_0(monkeypatch):
     monkeypatch.setattr(capture_module.Quartz, "CGWindowListCopyWindowInfo", lambda *args: windows)
 
     assert window_number(42, Region(1213, 726, 1691, 1007)) == 9
+
+
+def test_capture_activates_the_app_and_waits_for_its_window(monkeypatch, tmp_path, text_image):
+    # Floating panels, and some apps' windows, appear in AX only while the app is active.
+    root = FakeAX()
+    answers = iter([None, None, calculator_window()])
+    monkeypatch.setattr(capture_module, "app_root", lambda name: root)
+    monkeypatch.setattr(capture_module, "standard_window", lambda name, query=None: next(answers))
+    monkeypatch.setattr(capture_module, "windows", lambda name: [])
+    monkeypatch.setattr(capture_module, "window_number", lambda pid, frame: 7)
+    monkeypatch.setattr(
+        capture_module.monitor, "capture_window", lambda n: text_image([], 200, 100)
+    )
+
+    capture("Calculator", tmp_path / "calculator.py")
+
+    assert root.activations == 1
+
+
+def test_window_number_prefers_an_app_window_over_a_panel_with_the_same_bounds(monkeypatch):
+    bounds = {"X": 10, "Y": 20, "Width": 200, "Height": 100}
+    common = {"kCGWindowOwnerPID": 42, "kCGWindowBounds": bounds, "kCGWindowIsOnscreen": True}
+    windows = [
+        {**common, "kCGWindowLayer": 3, "kCGWindowNumber": 1},
+        {**common, "kCGWindowLayer": 0, "kCGWindowNumber": 2},
+    ]
+    monkeypatch.setattr(capture_module.Quartz, "CGWindowListCopyWindowInfo", lambda *args: windows)
+
+    assert window_number(42, Region(10, 20, 210, 120)) == 2

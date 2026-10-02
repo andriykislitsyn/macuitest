@@ -38,7 +38,6 @@
 
 ### Fixed
 
-- AppleScript elements wait for a `first X whose ...` locator that matches nothing yet, instead of failing at once with error -1719.
 - Screen matching, mouse moves, and the default search region work on multi-monitor and retina setups, including displays at negative coordinates.
 - XML property lists no longer read as empty and get overwritten on the next write.
 - `ShellExecutor.sudo` passes the password on stdin, so it no longer shows in `ps` output or logs.

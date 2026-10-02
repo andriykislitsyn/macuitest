@@ -29,7 +29,7 @@ from macuitest.lib.operating_system.color_meter import get_most_common_color
 from macuitest.lib.operating_system.env import env
 
 # System Events raises -1728 for a missing element and a missing attribute alike, and -1719
-# (invalid index) when a `first X whose ...` locator matches nothing.
+# (invalid index) when an index or `whose` reference in the locator resolves to nothing.
 _MISSING = (-1728, -1719)
 # Apple Event codes of the position and size entries in a `properties of` record.
 _POSITION, _SIZE = AEType(b"posn"), AEType(b"ptsz")
@@ -253,8 +253,10 @@ class BaseUIElement:
         except AppleScriptError as e:
             if e.number not in _MISSING or self.is_exists():
                 raise
+            # System Events' message names the link of the locator that resolved to nothing.
+            missing = e
         if not self.wait_displayed():
-            raise LookupError(self)
+            raise LookupError(self) from missing
         return run()
 
     def __attribute(self, name: str) -> Any:

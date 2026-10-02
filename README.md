@@ -15,7 +15,9 @@ To use macuitest, you need the following:
   - **Accessibility**, for mouse and keyboard input, AppleScript elements, and every lookup on a `Screen` with an `app`.
   - **Screen & System Audio Recording**, called **Screen Recording** before macOS 15, for screenshots, visible text, and color checks.
 
-After you grant a permission, quit and reopen the app you run your tests from, since macOS applies the grant only to a newly started app. Until then, the first lookup that needs a missing permission raises `PermissionError` naming the System Settings pane.
+After you grant Screen Recording, quit and reopen the app you run your tests from, since macOS applies that grant only to a newly started app. Accessibility takes effect right away.
+
+When a permission is missing, `Screen` lookups and screen captures raise `PermissionError` naming the System Settings pane. Other calls fail without that hint: an AppleScript element raises `AppleScriptError`, and mouse and keyboard input does nothing.
 
 The first time your tests control System Events, macOS asks for permission. Allow it.
 
@@ -25,6 +27,8 @@ Until version 0.8.0 is on PyPI, install macuitest from GitHub:
 
 ```bash
 uv add git+https://github.com/andriykislitsyn/macuitest
+# or
+pip install git+https://github.com/andriykislitsyn/macuitest
 ```
 
 ## Quick start
@@ -75,6 +79,8 @@ from macuitest.lib.elements.applescript_element import Button as ScriptButton
 from macuitest.lib.elements.locators import Screen, applescript, ax, image, text
 from macuitest.lib.elements.native_element import Button
 
+KEYPAD = "group 1 of group 1 of splitter group 1 of group 1 of window 1"
+
 
 class Calculator(Screen, app="Calculator"):
     keypad = ax(identifier="CalculatorKeypadView")
@@ -83,7 +89,7 @@ class Calculator(Screen, app="Calculator"):
     all_clear = text("AC", within=keypad)
     mode = image()
     seven_as = applescript(
-        '(first button whose value of attribute "AXIdentifier" is "Seven") of group 1 of window 1',
+        f'(first button whose value of attribute "AXIdentifier" is "Seven") of {KEYPAD}',
         kind=ScriptButton,
     )
 
@@ -118,7 +124,7 @@ class Fonts(Screen, app="TextEdit", window=window(title="Fonts")):
 Keep these window rules in mind:
 
 - Alerts have no title, so match them by subrole.
-- Floating panels, such as TextEdit's Fonts panel, hide or close when their app isn't active. Activate the app before you look up or capture their elements.
+- Floating panels, such as TextEdit's Fonts panel, disappear from the accessibility tree while their app isn't active. Activate the app before your tests look up their elements. `capture` activates the app for you.
 - Sheets, such as a Save panel, sit inside their window and need no `window=`.
 - `app` is the process that owns the window. System prompts belong to system processes, such as `SecurityAgent` for password prompts, not to the app that triggered them.
 
@@ -136,7 +142,7 @@ python -m macuitest.locators check apps/calculator.py
 - `apps/calculator.py`, with an `ax()` entry for each element it can identify, else an `image()` entry.
 - A PNG of each element in `apps/calculator/calculator/`, cropped with a 4 pt margin. Change the margin with `--margin`.
 
-It works while other windows cover the app. To capture an alert, panel, or secondary window, pass `--window-subrole AXDialog` or `--window-title`. `capture` doesn't overwrite existing files unless you pass `--force`.
+`capture` brings the app to the front first and crops each element from a capture of that one window. To capture an alert, panel, or secondary window, pass `--window-subrole AXDialog` or `--window-title`. `capture` doesn't overwrite existing files unless you pass `--force`.
 
 Then edit the generated module: delete the entries you don't need, and switch an entry to `image()` where its accessibility attributes don't identify it. Identifiers that encode state, such as Calculator's `Mode: basic; unitConversion: false`, need a stable replacement, such as a match on the description.
 

@@ -100,7 +100,7 @@ def test_reads_raise_lookup_error_when_the_element_never_appears(system_events, 
         _ = element.frame
 
 
-def test_other_errors_on_a_present_element_propagate(system_events, element, monkeypatch):
+def test_an_exists_check_that_fails_propagates_its_error(system_events, element, monkeypatch):
     def fail(command, app_process):
         raise cant_get(number=-1719)
 
@@ -130,3 +130,24 @@ def test_invalid_index_on_a_present_element_propagates(system_events, element, m
 
     with pytest.raises(AppleScriptError):
         element.click()
+
+
+def test_errors_that_dont_mean_missing_propagate_at_once(system_events, element, monkeypatch):
+    def fail(command, app_process):
+        raise cant_get(number=-10006)
+
+    monkeypatch.setattr(applescript_element.as_wrapper, "tell_app_process", fail)
+
+    with pytest.raises(AppleScriptError):
+        element.click()
+
+
+def test_lookup_error_keeps_system_events_message(system_events, element):
+    system_events.checks_until_present = 10**6
+    with (
+        mock.patch.object(BaseUIElement, "wait_displayed", return_value=False),
+        pytest.raises(LookupError) as missing,
+    ):
+        element.click()
+
+    assert isinstance(missing.value.__cause__, AppleScriptError)

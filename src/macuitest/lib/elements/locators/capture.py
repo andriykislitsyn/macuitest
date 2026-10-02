@@ -13,8 +13,10 @@ import Quartz
 from Foundation import NSURL
 
 from macuitest.config.constants import Region
+from macuitest.lib.core import wait_condition
 from macuitest.lib.elements.locators.accessibility import GONE
 from macuitest.lib.elements.locators.accessibility import AXQuery
+from macuitest.lib.elements.locators.accessibility import app_root
 from macuitest.lib.elements.locators.accessibility import frame_of
 from macuitest.lib.elements.locators.accessibility import standard_window
 from macuitest.lib.elements.locators.accessibility import windows
@@ -42,6 +44,8 @@ _LOCATOR_KEYS = (("identifier",), ("description", "role"), ("title", "role"))
 _RESERVED = frozenset({"app", "window", "applescript", "ax", "image", "text"})
 # `window()` keywords by the AX attribute an `AXQuery` stores.
 _WINDOW_KEYWORDS = {"AXTitle": "title", "AXSubrole": "subrole"}
+# Seconds to wait for the window after activating the app.
+WINDOW_TIMEOUT = 2
 _CHROME = frozenset({"AXCloseButton", "AXFullScreenButton", "AXMinimizeButton", "AXZoomButton"})
 
 
@@ -250,7 +254,9 @@ def capture(
 ) -> list[Path]:
     """Write a PNG per element of one of `app`'s windows and a `Screen` module at `out`.
 
-    The window is the first matching `window`, else the first standard window. Elements outside
+    Activates the app first, since floating panels, and some apps' windows, appear in the
+    accessibility tree only while the app is active. The window is the first matching
+    `window`, else the first standard window. Elements outside
     it are skipped, and `roles` keeps only those AX roles. Each PNG is the element's frame plus
     `margin` points, clipped to the window. Nothing is written when any target exists, unless
     `force` is set.
@@ -266,7 +272,15 @@ def capture(
     """
     if margin < 0:
         raise ValueError(f"The margin must be 0 or more, not {margin}")
-    target = standard_window(app, window)
+    root = app_root(app)
+    try:
+        if root is not None:
+            # Floating panels, and some apps' windows, appear in AX only while the app is active.
+            root.activate()
+    except GONE:
+        pass
+    found = wait_condition(lambda: standard_window(app, window), timeout=WINDOW_TIMEOUT)
+    target = found or None
     window_frame = None if target is None else frame_of(target)
     if target is None or window_frame is None:
         raise LookupError(f"{app} has no matching window. Open it, then capture again.")
