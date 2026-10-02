@@ -79,6 +79,8 @@ Calculator.seven.press()
 - `ax()` matches accessibility attributes and finds the element again on every read. Pass `kind=` for actions such as `press`.
 - `text()` and `image()` search the app's first standard window, or the frame of `within=`. When the window is missing or minimized, they find nothing and waits keep polling.
 - `image()` loads `<name>.png` next to the module: `Calculator` in `apps/calculator.py` reads `apps/calculator/calculator/mode.png`.
+- For an alert or a secondary window, name the window once: `class EmptyTrash(Screen, app="Finder", window=window(subrole="AXDialog"))`. Its text, image, and `ax()` lookups then search only that window. Alerts have no title, so match them by subrole. Sheets, such as a Save panel, sit inside their window and need no `window=`.
+- `app` is the process that owns the window. System prompts belong to system processes, such as `SecurityAgent` for password prompts, not to the app that triggered them.
 - Screens are never instantiated. Read elements from the class.
 
 ## Configuration

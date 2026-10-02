@@ -14,6 +14,8 @@ from macuitest.lib.elements.locators import Screen
 from macuitest.lib.elements.locators import applescript
 from macuitest.lib.elements.locators import factories
 from macuitest.lib.elements.locators import text
+from macuitest.lib.elements.locators import window
+from macuitest.lib.elements.locators.accessibility import AXQuery
 from macuitest.lib.elements.locators.screen import image_folder
 from macuitest.lib.elements.locators.screen import snake_case
 from macuitest.lib.elements.ui_element import UIElement
@@ -102,7 +104,9 @@ def test_text_without_an_app_uses_the_default_search_area():
 
 
 def test_text_on_an_app_screen_searches_the_app_window(monkeypatch):
-    monkeypatch.setattr(factories, "standard_window_frame", lambda app: Region(0, 0, 9, 9))
+    monkeypatch.setattr(
+        factories, "standard_window_frame", lambda app, query=None: Region(0, 0, 9, 9)
+    )
 
     class Main(Screen, app="Calculator"):
         ok = text("OK")
@@ -204,7 +208,9 @@ def test_image_without_an_app_uses_the_default_search_area(tmp_path):
 
 
 def test_image_on_an_app_screen_searches_the_app_window(tmp_path, monkeypatch):
-    monkeypatch.setattr(factories, "standard_window_frame", lambda app: Region(0, 0, 9, 9))
+    monkeypatch.setattr(
+        factories, "standard_window_frame", lambda app, query=None: Region(0, 0, 9, 9)
+    )
     write_png(tmp_path / "screens" / "main" / "send.png")
     module = load(
         tmp_path / "screens.py",
@@ -218,3 +224,35 @@ def test_image_on_an_app_screen_searches_the_app_window(tmp_path, monkeypatch):
 
     assert module.Main.send.scope is not None
     assert module.Main.send.scope() == Region(0, 0, 9, 9)
+
+
+def test_a_screen_records_its_window():
+    class Confirm(Screen, app="Calculator", window=window(subrole="AXDialog")):
+        pass
+
+    assert Confirm.window == AXQuery.of(subrole="AXDialog")
+
+
+def test_a_window_screen_needs_an_app():
+    with pytest.raises(TypeError, match="window= needs app="):
+
+        class Confirm(Screen, window=window(subrole="AXDialog")):
+            pass
+
+
+def test_window_needs_an_attribute():
+    with pytest.raises(TypeError, match="at least one"):
+        window()
+
+
+def test_text_on_a_window_screen_searches_that_window(monkeypatch):
+    frames = {AXQuery.of(title="Settings"): Region(5, 5, 50, 50)}
+    monkeypatch.setattr(
+        factories, "standard_window_frame", lambda app, query=None: frames.get(query)
+    )
+
+    class Settings(Screen, app="Calculator", window=window(title="Settings")):
+        ok = text("OK")
+
+    assert Settings.ok.scope is not None
+    assert Settings.ok.scope() == Region(5, 5, 50, 50)

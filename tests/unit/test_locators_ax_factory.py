@@ -6,6 +6,7 @@ from macuitest.lib.elements.locators import ax
 from macuitest.lib.elements.locators import factories
 from macuitest.lib.elements.locators import image
 from macuitest.lib.elements.locators import text
+from macuitest.lib.elements.locators import window
 from macuitest.lib.elements.native.calls import AXErrorInvalidUIElement
 from macuitest.lib.elements.native_element import Button
 from macuitest.lib.elements.native_element import NativeElement
@@ -185,3 +186,32 @@ def test_an_element_that_vanishes_mid_search_reads_as_missing(app_windows):
     assert Calculator.all_clear.locate() is None
     with pytest.raises(LookupError):
         _ = Calculator.keypad
+
+
+def test_ax_on_a_window_screen_searches_only_that_window(app_windows, monkeypatch):
+    main_ok = FakeAX(AXTitle="OK")
+    dialog_ok = FakeAX(AXTitle="OK")
+    dialog = FakeAX(dialog_ok, AXSubrole="AXDialog")
+    app_windows.extend([FakeAX(main_ok, AXSubrole="AXStandardWindow"), dialog])
+    monkeypatch.setattr(
+        factories,
+        "standard_window",
+        lambda app, query=None: dialog if query is not None else app_windows[0],
+    )
+
+    class Confirm(Screen, app="Calculator", window=window(subrole="AXDialog")):
+        ok = ax(title="OK")
+
+    assert Confirm.ok.item is dialog_ok
+
+
+def test_ax_on_a_window_screen_without_that_window_raises(app_windows, monkeypatch):
+    monkeypatch.setattr(factories, "standard_window", lambda app, query=None: None)
+
+    class Confirm(Screen, app="Calculator", window=window(subrole="AXDialog")):
+        ok = ax(title="OK")
+
+    with pytest.raises(
+        LookupError, match=r"Confirm\.ok: .* in Calculator's AXSubrole='AXDialog' window"
+    ):
+        _ = Confirm.ok
