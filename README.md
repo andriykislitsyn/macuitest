@@ -99,7 +99,7 @@ Calculator.seven.press()
 
 Screens work as follows:
 
-- `ax()` matches accessibility attributes and finds the element again on every read. Pass `kind=` for actions such as `press`.
+- `ax()` matches accessibility attributes and searches again every time you use the element, so `is_visible` and `wait_vanish` see a closed sheet or panel. A missing element reads as not visible, and acting on it raises `LookupError`. Pass `kind=` for actions such as `press`.
 - `text()` and `image()` search the app's first standard window, or the frame of `within=`. When the window is missing, minimized, or hidden, they find nothing, and waits keep polling.
 - `image()` loads `<name>.png` next to the module. For example, `Calculator` in `apps/calculator.py` reads `apps/calculator/calculator/mode.png`.
 - Screens are never instantiated. Read elements from the class.

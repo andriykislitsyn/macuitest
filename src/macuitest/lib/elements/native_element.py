@@ -1,5 +1,6 @@
 import time
 from typing import Any
+from typing import Callable
 from typing import Optional
 
 from macuitest.config.constants import Frame
@@ -12,8 +13,19 @@ from macuitest.lib.elements.native.calls import AXErrorInvalidUIElement
 
 
 class NativeElement:
-    def __init__(self, item):
-        self.item = item
+    def __init__(self, item: Any = None, find: Optional[Callable[[], Any]] = None):
+        """Wrap a fixed accessibility element, or a `find` callable that searches on every read.
+
+        Args:
+            item: The accessibility element.
+            find: Returns the element, or raises `LookupError` when it isn't there. Wins over
+                `item`.
+        """
+        self._item, self._find = item, find
+
+    @property
+    def item(self) -> Any:
+        return self._item if self._find is None else self._find()
 
     def _select(self):
         self.item.set_ax_attribute("AXSelected", True)
@@ -106,12 +118,15 @@ class NativeElement:
     def __get_axrole(self) -> Optional[str]:
         try:
             return self.item.get_ax_attribute("AXRole")
-        except (AttributeError, IndexError):
+        except (AttributeError, LookupError):
             pass
 
     @property
     def exists(self) -> bool:
-        return self.item is not None
+        try:
+            return self.item is not None
+        except LookupError:
+            return False
 
 
 class Clickable(NativeElement):
