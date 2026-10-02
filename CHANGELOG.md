@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- `python -m macuitest.locators tree` prints an app's accessibility tree with the `ax()` locator of each element. It only reads, unless you pass `--activate`.
+
 ## 0.8.0 (2026-10-03)
 
 ### Breaking changes
