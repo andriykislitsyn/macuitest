@@ -9,7 +9,7 @@ Functional and UI test automation for macOS apps. macuitest finds elements by Ap
 - macOS, Python 3.13 or later.
 - Grant these permissions in System Settings > Privacy & Security to the app that runs your tests, such as Terminal, iTerm2, or your IDE:
   - **Accessibility**, for mouse and keyboard input and AppleScript element control.
-  - **Screen Recording**, for `UIElement`, `TextElement`, and color checks. Without it, screen captures show only the wallpaper, so every lookup times out.
+  - **Screen Recording**, for `UIElement`, `VisibleText`, and color checks. Without it, screen captures show only the wallpaper, so every lookup times out.
 - macOS asks once for permission to control System Events. Allow it.
 
 ## Installation
@@ -25,8 +25,8 @@ pip install macuitest
 ```python
 from macuitest.lib.apps.application import Finder
 from macuitest.lib.elements.applescript_element import MenuBarItem
-from macuitest.lib.elements.text_element import TextElement
 from macuitest.lib.elements.ui_element import UIElement
+from macuitest.lib.elements.visible_text import VisibleText
 
 finder = Finder()
 finder.activate()
@@ -35,7 +35,7 @@ finder.activate()
 MenuBarItem('menu bar item "File" of menu bar 1', process="Finder").click_mouse()
 
 # Visible text, found with Apple Vision. No screenshot to maintain.
-TextElement("New Finder Window").click_mouse()
+VisibleText("New Finder Window").click_mouse()
 
 # A screenshot of the element, found with template matching.
 UIElement("screenshots/sidebar_toggle.png").wait_displayed()
@@ -47,10 +47,10 @@ UIElement("screenshots/sidebar_toggle.png").wait_displayed()
 |---|---|---|
 | `applescript_element` | AppleScript locator, such as `button "OK" of window 1` | Native controls with stable accessibility names |
 | `native_element` | Accessibility (AX) objects through pyobjc | Reading attributes and walking the accessibility tree |
-| `text_element` | Visible text, read with Apple Vision | Buttons, tabs, links, and banners with a text label |
+| `visible_text` | Visible text, read with Apple Vision | Buttons, tabs, links, and banners with a text label |
 | `ui_element` | A screenshot of the element | Icons and custom-drawn controls without text |
 
-`TextElement` and `UIElement` share one API: `click_mouse`, `double_click`, `right_click`, `hover_mouse`, `paste`, `wait_displayed`, `wait_vanish`, and the `is_visible` property. Every method takes a `region` to search, and a window-sized region is several times faster than the whole desktop.
+`VisibleText` and `UIElement` share one API: `click_mouse`, `double_click`, `right_click`, `hover_mouse`, `paste`, `wait_displayed`, `wait_vanish`, and the `is_visible` property. Every method takes a `region` to search, and a window-sized region is several times faster than the whole desktop.
 
 To find AppleScript locators, use Accessibility Inspector (bundled with Xcode) or UI Browser.
 

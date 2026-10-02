@@ -23,11 +23,11 @@ pause = 0.001              # Seconds between key events in keyboard.write. paste
 
 [elements]
 similarity = 0.925         # Minimum UIElement match score, from 0 to 1.
-timeout = 5                # Seconds UIElement and TextElement wait to appear, before every click too.
+timeout = 5                # Seconds UIElement and VisibleText wait to appear, before every click too.
 vanish_timeout = 15        # Seconds wait_vanish waits for them to disappear.
 
 [ocr]
-languages = ["en-US"]      # Vision language codes TextElement reads, such as "uk-UA".
+languages = ["en-US"]      # Vision language codes VisibleText reads, such as "uk-UA".
 
 [paths]
 # screenshots = "screenshots"  # ScreenshotPathBuilder root, relative to this file. Omit for the home
