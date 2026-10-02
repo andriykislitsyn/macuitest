@@ -11,13 +11,15 @@ import Quartz
 
 from macuitest.config.constants import Region
 from macuitest.lib.elements.native.calls import AXErrorCannotComplete
+from macuitest.lib.elements.native.calls import AXErrorFailure
 from macuitest.lib.elements.native.calls import AXErrorIllegalArgument
 from macuitest.lib.elements.native.calls import AXErrorInvalidUIElement
 from macuitest.lib.elements.native.native_ui_element import NativeUIElement
 from macuitest.lib.operating_system.permissions import require_accessibility
 
-# Raised for an app that is quitting or not answering yet, and for an element that just vanished.
-GONE = (AXErrorCannotComplete, AXErrorIllegalArgument, AXErrorInvalidUIElement)
+# Raised for an app that is quitting or not answering yet, for an element that just vanished,
+# and by SwiftUI for some attributes of otherwise readable elements (AXErrorFailure).
+GONE = (AXErrorCannotComplete, AXErrorFailure, AXErrorIllegalArgument, AXErrorInvalidUIElement)
 # Process IDs by app name. Finding a running app through NSWorkspace spins the run loop for 1 s.
 _pids: dict[str, int] = {}
 

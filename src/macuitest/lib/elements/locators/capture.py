@@ -4,11 +4,22 @@ import json
 import keyword
 import re
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
 from typing import Optional
+from typing import Sequence
+
+import Quartz
+from Foundation import NSURL
 
 from macuitest.config.constants import Region
+from macuitest.lib.elements.locators.accessibility import GONE
 from macuitest.lib.elements.locators.accessibility import AXQuery
+from macuitest.lib.elements.locators.accessibility import frame_of
+from macuitest.lib.elements.locators.accessibility import standard_window
+from macuitest.lib.elements.locators.screen import image_folder
 from macuitest.lib.elements.locators.screen import snake_case
+from macuitest.lib.elements.ui.monitor import monitor
 
 # `native_element` classes by role, so generated ax() entries get actions such as press.
 KINDS = {
@@ -30,6 +41,7 @@ _LOCATOR_KEYS = (("identifier",), ("description", "role"), ("title", "role"))
 _RESERVED = frozenset({"app", "window"})
 # `window()` keywords by the AX attribute an `AXQuery` stores.
 _WINDOW_KEYWORDS = {"AXTitle": "title", "AXSubrole": "subrole"}
+_CHROME = frozenset({"AXCloseButton", "AXFullScreenButton", "AXMinimizeButton", "AXZoomButton"})
 
 
 @dataclass(frozen=True, eq=False)
@@ -153,6 +165,139 @@ def render_module(
         *([f"    {entry.name} = {entry.locator}" for entry in entries] or ["    pass"]),
     ]
     return "\n".join(lines) + "\n"
+
+
+def walk(window: Any) -> list[Found]:
+    """Return every element under `window` with a frame, depth first, skipping window buttons."""
+    found: list[Found] = []
+
+    def visit(element: Any) -> None:
+        for child in _read(element, "AXChildren") or []:
+            if _read(child, "AXSubrole") in _CHROME:
+                continue
+            try:
+                frame = frame_of(child)
+            except GONE:
+                frame = None
+            if frame is not None:
+                found.append(
+                    Found(
+                        role=_read(child, "AXRole") or "AXUnknown",
+                        frame=frame,
+                        identifier=_label(child, "AXIdentifier"),
+                        description=_label(child, "AXDescription"),
+                        title=_label(child, "AXTitle"),
+                    )
+                )
+            visit(child)
+
+    visit(window)
+    return found
+
+
+def window_number(pid: int, frame: Region) -> Optional[int]:
+    """Return the window server number of process `pid`'s app window at `frame`, or None."""
+    wanted = tuple(round(v) for v in (frame.x1, frame.y1, frame.x2 - frame.x1, frame.y2 - frame.y1))
+    infos = Quartz.CGWindowListCopyWindowInfo(Quartz.kCGWindowListOptionAll, Quartz.kCGNullWindowID)
+    for info in infos or []:
+        bounds = info.get("kCGWindowBounds") or {}
+        actual = tuple(round(bounds.get(key, -1)) for key in ("X", "Y", "Width", "Height"))
+        if (
+            info.get("kCGWindowOwnerPID") == pid
+            and info.get("kCGWindowLayer") == 0
+            and actual == wanted
+        ):
+            return int(info["kCGWindowNumber"])
+    return None
+
+
+def write_png(image: Any, box: tuple[int, int, int, int], path: Path) -> None:
+    """Write the `box` (x, y, width, height) pixels of CGImage `image` to `path` as a PNG.
+
+    Raises:
+        OSError: The PNG can't be written.
+    """
+    cropped = Quartz.CGImageCreateWithImageInRect(image, Quartz.CGRectMake(*box))
+    destination = Quartz.CGImageDestinationCreateWithURL(
+        NSURL.fileURLWithPath_(str(path)), "public.png", 1, None
+    )
+    if destination is None:
+        raise OSError(f"Can't write {path}")
+    Quartz.CGImageDestinationAddImage(destination, cropped, None)
+    if not Quartz.CGImageDestinationFinalize(destination):
+        raise OSError(f"Can't write {path}")
+
+
+def capture(
+    app: str,
+    out: Path,
+    roles: Sequence[str] = (),
+    margin: float = 4,
+    force: bool = False,
+    window: Optional[AXQuery] = None,
+) -> list[Path]:
+    """Write a PNG per element of one of `app`'s windows and a `Screen` module at `out`.
+
+    The window is the first matching `window`, else the first standard window. Elements outside
+    it are skipped, and `roles` keeps only those AX roles. Each PNG is the element's frame plus
+    `margin` points, clipped to the window. Nothing is written when any target exists, unless
+    `force` is set.
+
+    Returns:
+        The module path, then every PNG path.
+
+    Raises:
+        ValueError: `margin` is negative.
+        LookupError: The app has no matching window, or no element is left after filtering.
+        FileExistsError: A target exists and `force` isn't set.
+        PermissionError: Accessibility or Screen Recording isn't granted.
+    """
+    if margin < 0:
+        raise ValueError(f"The margin must be 0 or more, not {margin}")
+    target = standard_window(app, window)
+    window_frame = None if target is None else frame_of(target)
+    if target is None or window_frame is None:
+        raise LookupError(f"{app} has no matching window. Open it, then capture again.")
+    walked = walk(target)
+    inside = [f for f in walked if crop_box(f.frame, window_frame, 0, 1) is not None]
+    kept = [f for f in inside if not roles or f.role in roles]
+    if not kept:
+        wanted = f" with role {', '.join(roles)}" if roles else ""
+        raise LookupError(f"No elements{wanted} in {app}'s window")
+    entries = plan(kept, walked)
+    screen = class_name(target.get_ax_attribute("AXTitle"), app)
+    folder = image_folder(out, screen)
+    pngs = [folder / f"{entry.name}.png" for entry in entries]
+    existing = [path for path in (out, *pngs) if path.exists()]
+    if existing and not force:
+        raise FileExistsError(
+            f"{len(existing)} files exist, such as {existing[0]}. Pass --force to replace them."
+        )
+    number = window_number(target.pid, window_frame)
+    if number is None:
+        raise LookupError(f"Can't find {app}'s window on the window server")
+    image = monitor.capture_window(number)
+    scale = Quartz.CGImageGetWidth(image) / (window_frame.x2 - window_frame.x1)
+    folder.mkdir(parents=True, exist_ok=True)
+    for entry, png in zip(entries, pngs, strict=True):
+        box = crop_box(entry.found.frame, window_frame, margin, scale)
+        if box is not None:
+            write_png(image, box, png)
+    out.write_text(render_module(screen, app, entries, window))
+    return [out, *pngs]
+
+
+def _read(element: Any, name: str) -> Any:
+    """Return attribute `name` of `element`, or None when reading it fails."""
+    try:
+        return element.get_ax_attribute(name)
+    except GONE:
+        return None
+
+
+def _label(element: Any, name: str) -> Optional[str]:
+    value = _read(element, name)
+    return value if isinstance(value, str) and value.strip() else None
 
 
 def _literal(value: str) -> str:

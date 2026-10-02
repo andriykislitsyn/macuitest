@@ -110,6 +110,21 @@ class Monitor:
         )
 
     @staticmethod
+    def capture_window(window_number: int):
+        """Return a CGImage of one window, even while other windows cover it or it's off screen.
+
+        Raises:
+            PermissionError: Screen Recording isn't granted.
+        """
+        require_screen_recording()
+        return CoreGraphics.CGWindowListCreateImage(
+            CoreGraphics.CGRectNull,
+            CoreGraphics.kCGWindowListOptionIncludingWindow,
+            window_number,
+            CoreGraphics.kCGWindowImageBoundsIgnoreFraming,
+        )
+
+    @staticmethod
     def get_pixel_data(region: Optional[Region] = None):
         image = Monitor.capture(region)
         pixel_data = CoreGraphics.CGDataProviderCopyData(CoreGraphics.CGImageGetDataProvider(image))

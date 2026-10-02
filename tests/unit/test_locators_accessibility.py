@@ -4,6 +4,7 @@ from macuitest.config.constants import Region
 from macuitest.lib.elements.locators import accessibility as ax
 from macuitest.lib.elements.locators.accessibility import AXQuery
 from macuitest.lib.elements.native.calls import AXErrorCannotComplete
+from macuitest.lib.elements.native.calls import AXErrorFailure
 from macuitest.lib.elements.native.calls import AXErrorInvalidUIElement
 from macuitest.lib.operating_system import permissions
 
@@ -182,7 +183,7 @@ class Vanishing(FakeAX):
         raise self.error("gone")
 
 
-@pytest.mark.parametrize("error", [AXErrorCannotComplete, AXErrorInvalidUIElement])
+@pytest.mark.parametrize("error", [AXErrorCannotComplete, AXErrorFailure, AXErrorInvalidUIElement])
 def test_an_app_that_stops_answering_has_no_windows(monkeypatch, error):
     monkeypatch.setattr(ax, "app_root", lambda name: Vanishing(error))
 
