@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from types import MappingProxyType
 from typing import Any
+from typing import Callable
 from typing import List
 from typing import Optional
 from typing import Tuple
@@ -15,6 +16,7 @@ from macuitest.config.constants import Frame
 from macuitest.config.constants import Point
 from macuitest.config.constants import Region
 from macuitest.lib import core
+from macuitest.lib.applescript_lib.aeconverter import AEType
 from macuitest.lib.applescript_lib.applescript_wrapper import AppleScriptError
 from macuitest.lib.applescript_lib.applescript_wrapper import as_wrapper
 from macuitest.lib.core import is_close
@@ -25,6 +27,11 @@ from macuitest.lib.elements.ui.monitor import monitor
 from macuitest.lib.operating_system.color_meter import get_color
 from macuitest.lib.operating_system.color_meter import get_most_common_color
 from macuitest.lib.operating_system.env import env
+
+# System Events raises this for a missing element and a missing attribute alike.
+_CANT_GET = -1728
+# Apple Event codes of the position and size entries in a `properties of` record.
+_POSITION, _SIZE = AEType(b"posn"), AEType(b"ptsz")
 
 
 class BaseUIElement:
@@ -113,8 +120,10 @@ class BaseUIElement:
 
     @property
     def frame(self) -> Frame:
-        self.__assert_visible()
-        _frame = (*self.get_attribute_value("AXPosition"), *self.get_attribute_value("AXSize"))
+        # One `properties of` resolves the locator once. Reading position and size separately
+        # resolves it twice, which costs as much as the read itself.
+        properties = self.__when_present(lambda: self._execute("get properties of"))
+        _frame = (*properties[_POSITION], *properties[_SIZE])
         x1, y1, width, height = (math.floor(x) for x in _frame)
         x2, y2 = x1 + width, y1 + height
         center = Point(int((x1 + width / 2)), int((y1 + height / 2)))
@@ -122,80 +131,65 @@ class BaseUIElement:
 
     def click(self, pause: float = 0.4) -> bool:
         """Perform click action the element."""
-        self.__assert_visible()
         time.sleep(pause)
-        self._execute("click")
+        self.__when_present(lambda: self._execute("click"))
         time.sleep(0.25)
         return True
 
     def _select(self):
         """Click an element."""
-        self.__assert_visible()
-        return self._execute("select")
+        return self.__when_present(lambda: self._execute("select"))
 
     def _set_focus(self, value):
         """Make element focused."""
-        self.__assert_visible()
-        return self._execute("set focused of", params=f'to "{value}"')
+        return self.__when_present(lambda: self._execute("set focused of", params=f'to "{value}"'))
 
     def _show_context_menu(self):
-        self.__assert_visible()
-        return self._execute('perform action "AXShowMenu" of')
+        return self.__when_present(lambda: self._execute('perform action "AXShowMenu" of'))
 
     def _set_value(self, value):
         """Set element value."""
-        self.__assert_visible()
-        return self._execute("set value of", params=f'to "{value}"')
+        return self.__when_present(lambda: self._execute("set value of", params=f'to "{value}"'))
 
     def _get_value(self):
         """Get element value."""
-        self.__assert_visible()
-        return self._execute("get value of")
+        return self.__when_present(lambda: self._execute("get value of"))
 
     def _count_elements(self) -> int:
         """Count UI elements"""
-        self.__assert_visible()
-        return self._execute("count UI elements of")
+        return self.__when_present(lambda: self._execute("count UI elements of"))
 
     @property
     def _children(self):
-        self.__assert_visible()
-        return self.get_attribute_value("AXChildren")
+        return self.__attribute("AXChildren")
 
     @property
     def _rows(self) -> int:
-        self.__assert_visible()
-        return self._execute("count rows of")
+        return self.__when_present(lambda: self._execute("count rows of"))
 
     @property
     def title(self) -> str:
-        self.__assert_visible()
-        return self.get_attribute_value("AXTitle").strip()
+        return self.__attribute("AXTitle").strip()
 
     @property
     def description(self) -> str:
-        self.__assert_visible()
-        return self.get_attribute_value("AXDescription").strip()
+        return self.__attribute("AXDescription").strip()
 
     @property
     def value(self) -> str:
-        self.__assert_visible()
-        return self.get_attribute_value("AXValue")
+        return self.__attribute("AXValue")
 
     @property
     def help(self) -> str:
-        self.__assert_visible()
-        return self.get_attribute_value("AXHelp")
+        return self.__attribute("AXHelp")
 
     @property
     def _placeholder(self) -> str:
-        self.__assert_visible()
-        return self.get_attribute_value("AXPlaceholderValue")
+        return self.__attribute("AXPlaceholderValue")
 
     def _is_enabled(self) -> bool:
         """Check whether element enabled"""
-        self.__assert_visible()
-        return self.get_attribute_value("AXEnabled")
+        return self.__attribute("AXEnabled")
 
     @property
     def did_vanish(self) -> bool:
@@ -247,9 +241,27 @@ class BaseUIElement:
             else:
                 raise
 
-    def __assert_visible(self):
-        if not self.is_visible:
+    def __when_present(self, run: Callable[[], Any]) -> Any:
+        """Return `run()`, waiting for the element only when the first attempt can't find it.
+
+        Raises:
+            LookupError: The element doesn't appear within the `wait_displayed` timeout.
+        """
+        try:
+            return run()
+        except AppleScriptError as e:
+            if e.number != _CANT_GET or self.is_exists():
+                raise
+        if not self.wait_displayed():
             raise LookupError(self)
+        return run()
+
+    def __attribute(self, name: str) -> Any:
+        """Return attribute `name` of the element once it's present, or None if it has none."""
+        try:
+            return self.__when_present(lambda: self._execute(f'get value of attribute "{name}" of'))
+        except AppleScriptError:
+            return None
 
     def _execute(self, command: str, params: str = ""):
         """Execute a command.
