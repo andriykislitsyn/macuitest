@@ -1,8 +1,8 @@
 import pytest
 
 from macuitest.config.constants import Region
-from macuitest.lib.elements.locators import ax
-from macuitest.lib.elements.locators.ax import AXQuery
+from macuitest.lib.elements.locators import accessibility as ax
+from macuitest.lib.elements.locators.accessibility import AXQuery
 from macuitest.lib.operating_system import permissions
 
 
