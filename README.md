@@ -23,12 +23,12 @@ The first time your tests control System Events, macOS asks for permission. Allo
 
 ## Install macuitest
 
-Until version 0.8.0 is on PyPI, install macuitest from GitHub:
+To install macuitest from PyPI, run one of these commands:
 
 ```bash
-uv add git+https://github.com/andriykislitsyn/macuitest
+uv add macuitest
 # or
-pip install git+https://github.com/andriykislitsyn/macuitest
+pip install macuitest
 ```
 
 ## Quick start
@@ -203,4 +203,4 @@ uv run ty check
 
 Unit tests never read the real screen. A test that needs text on screen draws it into an image with the `text_image` fixture.
 
-For release notes, see [CHANGELOG.md](CHANGELOG.md).
+For release notes, see [CHANGELOG.md](https://github.com/andriykislitsyn/macuitest/blob/main/CHANGELOG.md).

@@ -5,7 +5,7 @@ build-backend = "uv_build"
 [project]
 name = "macuitest"
 version = "0.8.0"
-description = "A simple UI testing framework for macOS"
+description = "A Python library for end-to-end tests of macOS apps"
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
@@ -32,6 +32,8 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/andriykislitsyn/macuitest"
+Changelog = "https://github.com/andriykislitsyn/macuitest/blob/main/CHANGELOG.md"
+Examples = "https://github.com/andriykislitsyn/macuitest-examples"
 
 [dependency-groups]
 dev = ["pytest", "ruff", "ty"]
