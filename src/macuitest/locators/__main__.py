@@ -1,4 +1,4 @@
-"""Capture and check screen locators: `python -m macuitest.locators capture|check`."""
+"""Inspect apps and manage screen locators: `python -m macuitest.locators tree|capture|check`."""
 
 import argparse
 import sys
@@ -9,6 +9,7 @@ from macuitest.lib.elements.locators.accessibility import AXQuery
 from macuitest.lib.elements.locators.capture import capture
 from macuitest.lib.elements.locators.check import check
 from macuitest.lib.elements.locators.check import load_module
+from macuitest.lib.elements.locators.tree import tree
 
 
 def main(argv: Optional[list[str]] = None) -> int:
@@ -29,12 +30,22 @@ def main(argv: Optional[list[str]] = None) -> int:
         "check", help="list declared images missing on disk and PNGs no element declares"
     )
     checking.add_argument("module", type=Path)
+    showing = commands.add_parser(
+        "tree", help="print an app's accessibility tree with each element's ax() locator"
+    )
+    showing.add_argument("app", help="the name of the process owning the windows")
+    showing.add_argument("--role", action="append", default=[], help="show only this AX role")
+    showing.add_argument("--window-title", help="show only the window with this title")
+    showing.add_argument("--window-subrole", help="show only the window with this AX subrole")
+    showing.add_argument("--activate", action="store_true", help="bring the app to the front first")
     args = parser.parse_args(argv)
     if args.command == "check":
         return _check(args.module)
     window = None
     if args.window_title or args.window_subrole:
         window = AXQuery.of(title=args.window_title, subrole=args.window_subrole)
+    if args.command == "tree":
+        return _tree(args.app, window, args.role, args.activate)
     try:
         written = capture(
             args.app,
@@ -48,6 +59,15 @@ def main(argv: Optional[list[str]] = None) -> int:
         print(error, file=sys.stderr)
         return 1
     print(f"Wrote {written[0]} and {len(written) - 1} images")
+    return 0
+
+
+def _tree(app: str, window: Optional[AXQuery], roles: list[str], activate: bool) -> int:
+    try:
+        print(tree(app, window=window, roles=roles, activate=activate), end="")
+    except (LookupError, PermissionError) as error:
+        print(error, file=sys.stderr)
+        return 1
     return 0
 
 

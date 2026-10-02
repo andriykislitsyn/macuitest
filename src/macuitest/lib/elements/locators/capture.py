@@ -51,7 +51,10 @@ _CHROME = frozenset({"AXCloseButton", "AXFullScreenButton", "AXMinimizeButton", 
 
 @dataclass(frozen=True, eq=False)
 class Found:
-    """An element seen while walking a window. `chrome` marks window buttons and their parts."""
+    """An element seen while walking a window. `chrome` marks window buttons and their parts.
+
+    `depth` is 1 for the window's children, 2 for theirs, and so on.
+    """
 
     role: str
     frame: Optional[Region]
@@ -59,6 +62,8 @@ class Found:
     description: Optional[str] = None
     title: Optional[str] = None
     chrome: bool = False
+    depth: int = 1
+    value: Any = None
 
 
 @dataclass(frozen=True)
@@ -180,7 +185,7 @@ def walk(window: Any) -> list[Found]:
     """
     found: list[Found] = []
 
-    def visit(element: Any, in_chrome: bool) -> None:
+    def visit(element: Any, in_chrome: bool, depth: int) -> None:
         for child in _read(element, "AXChildren") or []:
             chrome = in_chrome or _read(child, "AXSubrole") in _CHROME
             try:
@@ -195,11 +200,13 @@ def walk(window: Any) -> list[Found]:
                     description=_label(child, "AXDescription"),
                     title=_label(child, "AXTitle"),
                     chrome=chrome,
+                    depth=depth,
+                    value=_read(child, "AXValue"),
                 )
             )
-            visit(child, chrome)
+            visit(child, chrome, depth + 1)
 
-    visit(window, False)
+    visit(window, False, 1)
     return found
 
 

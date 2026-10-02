@@ -68,7 +68,7 @@ Each module in `macuitest.lib.elements` finds elements a different way:
 
 `VisibleText` and `UIElement` share one API: `click_mouse`, `double_click`, `right_click`, `hover_mouse`, `paste`, `wait_displayed`, `wait_vanish`, and the `is_visible` property. Each of these methods takes a `region` to search, and a window-sized region is faster to search than the whole desktop.
 
-To browse an app's accessibility attributes, use Accessibility Inspector, which comes with Xcode. To turn them into locators, see [Capture elements](#capture-elements).
+To browse an app's accessibility attributes, use Accessibility Inspector, which comes with Xcode, or see [Inspect an app](#inspect-an-app). To turn them into locators, see [Capture elements](#capture-elements).
 
 ## Declare an app's elements with screens
 
@@ -127,6 +127,16 @@ Keep these window rules in mind:
 - Floating panels, such as TextEdit's Fonts panel, disappear from the accessibility tree while their app isn't active. Activate the app before your tests look up their elements. `capture` activates the app for you.
 - Sheets, such as a Save panel, sit inside their window and need no `window=`.
 - `app` is the process that owns the window. System prompts belong to system processes, such as `SecurityAgent` for password prompts, not to the app that triggered them.
+
+### Inspect an app
+
+To see what `ax()` can find in a running app, print its accessibility tree:
+
+```bash
+python -m macuitest.locators tree TextEdit --window-title Fonts
+```
+
+Each line shows an element's role, identifier, description, title, and value, indented under its parent, then the `ax()` locator that finds it, when one does. Narrow the output with `--role`, `--window-title`, or `--window-subrole`. `tree` only reads, and leaves the app in the background. Some apps, such as Calculator, and floating panels show their windows only while the app is active, so pass `--activate` to bring the app to the front first.
 
 ### Capture elements
 

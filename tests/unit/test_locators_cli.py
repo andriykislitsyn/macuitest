@@ -79,3 +79,25 @@ def test_a_negative_margin_is_a_usage_error(tmp_path):
         cli.main(["capture", "Calculator", "--out", str(tmp_path / "c.py"), "--margin", "-1"])
 
     assert exit_info.value.code == 2
+
+
+def test_tree_passes_its_options_and_prints_the_tree(capsys):
+    with mock.patch.object(cli, "tree", autospec=True, return_value="AXWindow\n") as run:
+        code = cli.main(
+            ["tree", "TextEdit", "--window-title", "Fonts", "--role", "AXButton", "--activate"]
+        )
+
+    assert code == 0
+    run.assert_called_once_with(
+        "TextEdit", window=AXQuery.of(title="Fonts"), roles=["AXButton"], activate=True
+    )
+    assert capsys.readouterr().out == "AXWindow\n"
+
+
+@pytest.mark.parametrize("error", [LookupError("no windows"), PermissionError("not granted")])
+def test_tree_errors_exit_one_with_the_message(capsys, error):
+    with mock.patch.object(cli, "tree", autospec=True, side_effect=error):
+        code = cli.main(["tree", "Calculator"])
+
+    assert code == 1
+    assert str(error) in capsys.readouterr().err
