@@ -8,7 +8,7 @@ Functional and UI test automation for macOS apps. macuitest finds elements by Ap
 
 - macOS, Python 3.13 or later.
 - Grant these permissions in System Settings > Privacy & Security to the app that runs your tests, such as Terminal, iTerm2, or your IDE:
-  - **Accessibility**, for mouse and keyboard input, AppleScript element control, and `ax()` lookups. Without it, the first `ax()` lookup raises `PermissionError`.
+  - **Accessibility**, for mouse and keyboard input, AppleScript element control, and every lookup on a `Screen` with an `app`. Without it, those lookups raise `PermissionError`.
   - **Screen & System Audio Recording** (Screen Recording before macOS 15), for `UIElement`, `VisibleText`, and color checks. Without it, the first screen capture raises `PermissionError` naming the System Settings pane.
 - macOS asks once for permission to control System Events. Allow it.
 

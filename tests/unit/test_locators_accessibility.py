@@ -3,6 +3,8 @@ import pytest
 from macuitest.config.constants import Region
 from macuitest.lib.elements.locators import accessibility as ax
 from macuitest.lib.elements.locators.accessibility import AXQuery
+from macuitest.lib.elements.native.calls import AXErrorCannotComplete
+from macuitest.lib.elements.native.calls import AXErrorInvalidUIElement
 from macuitest.lib.operating_system import permissions
 
 
@@ -83,14 +85,102 @@ def test_a_minimized_window_has_no_frame(running):
     assert ax.standard_window_frame("Calculator") is None
 
 
-def test_an_app_that_isnt_running_has_no_windows(monkeypatch):
-    def not_running(name):
-        raise ValueError(f'"{name}" not found among running applications.')
+class WindowServer:
+    """Serve window list entries and count how often the list is read."""
 
-    monkeypatch.setattr(ax.NativeUIElement, "from_localized_name", not_running)
+    def __init__(self, monkeypatch, *owners):
+        self.reads = 0
+        self.owners = list(owners)
+        self.alive = {pid for _, pid in owners}
+        monkeypatch.setattr(ax, "_pids", {})
+        monkeypatch.setattr(ax.Quartz, "CGWindowListCopyWindowInfo", self.window_list)
+        monkeypatch.setattr(ax, "_alive", lambda pid: pid in self.alive)
+        monkeypatch.setattr(ax.NativeUIElement, "from_pid", lambda pid: FakeAX(pid=pid))
+
+    def window_list(self, *args):
+        self.reads += 1
+        return [
+            {"kCGWindowOwnerName": name, "kCGWindowOwnerPID": pid, "kCGWindowLayer": 0}
+            for name, pid in self.owners
+        ]
+
+
+def test_app_root_finds_the_app_by_its_window_owner(monkeypatch):
+    WindowServer(monkeypatch, ("Finder", 10), ("Calculator", 42))
+
+    root = ax.app_root("Calculator")
+
+    assert root is not None
+    assert root.get_ax_attribute("pid") == 42
+
+
+def test_app_root_reuses_the_pid_while_the_process_lives(monkeypatch):
+    server = WindowServer(monkeypatch, ("Calculator", 42))
+
+    ax.app_root("Calculator")
+    ax.app_root("Calculator")
+
+    assert server.reads == 1
+
+
+def test_app_root_looks_up_a_relaunched_app_again(monkeypatch):
+    server = WindowServer(monkeypatch, ("Calculator", 42))
+    ax.app_root("Calculator")
+    server.alive.clear()
+    server.owners = [("Calculator", 43)]
+    server.alive.add(43)
+
+    root = ax.app_root("Calculator")
+
+    assert root is not None
+    assert root.get_ax_attribute("pid") == 43
+
+
+def test_an_app_without_windows_reads_as_not_running(monkeypatch):
+    WindowServer(monkeypatch, ("Finder", 10))
+
+    assert ax.app_root("Calculator") is None
+    assert ax.windows("Calculator") == []
+    assert ax.standard_window_frame("Calculator") is None
+
+
+def test_a_hidden_app_has_no_window_frame(monkeypatch):
+    app = FakeAX(AXRole="AXApplication", AXHidden=True, AXWindows=[window()])
+    monkeypatch.setattr(ax, "app_root", lambda name: app)
+
+    assert ax.standard_window_frame("Calculator") is None
+
+
+class Vanishing(FakeAX):
+    """An element that raises `error` for every attribute, like one whose app is going away."""
+
+    def __init__(self, error):
+        super().__init__()
+        self.error = error
+
+    def get_ax_attribute(self, name):
+        raise self.error("gone")
+
+
+@pytest.mark.parametrize("error", [AXErrorCannotComplete, AXErrorInvalidUIElement])
+def test_an_app_that_stops_answering_has_no_windows(monkeypatch, error):
+    monkeypatch.setattr(ax, "app_root", lambda name: Vanishing(error))
 
     assert ax.windows("Calculator") == []
     assert ax.standard_window_frame("Calculator") is None
+
+
+def test_a_window_that_closes_during_the_lookup_has_no_frame(running):
+    running(Vanishing(AXErrorInvalidUIElement))
+
+    assert ax.standard_window_frame("Calculator") is None
+
+
+def test_find_first_skips_an_element_that_vanished():
+    seven = FakeAX(AXDescription="7")
+    root = FakeAX(Vanishing(AXErrorInvalidUIElement), seven)
+
+    assert ax.find_first([root], AXQuery.of(description="7")) is seven
 
 
 def test_lookups_need_accessibility(monkeypatch):

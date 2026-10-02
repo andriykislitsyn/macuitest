@@ -186,3 +186,35 @@ def test_applescript_needs_an_app_or_a_process():
 
     with pytest.raises(TypeError, match="Main.ok"):
         _ = Main.ok
+
+
+def test_image_without_an_app_uses_the_default_search_area(tmp_path):
+    write_png(tmp_path / "screens" / "main" / "send.png")
+    module = load(
+        tmp_path / "screens.py",
+        """
+        from macuitest.lib.elements.locators import Screen, image
+
+        class Main(Screen):
+            send = image()
+        """,
+    )
+
+    assert module.Main.send.scope is None
+
+
+def test_image_on_an_app_screen_searches_the_app_window(tmp_path, monkeypatch):
+    monkeypatch.setattr(factories, "standard_window_frame", lambda app: Region(0, 0, 9, 9))
+    write_png(tmp_path / "screens" / "main" / "send.png")
+    module = load(
+        tmp_path / "screens.py",
+        """
+        from macuitest.lib.elements.locators import Screen, image
+
+        class Main(Screen, app="Calculator"):
+            send = image()
+        """,
+    )
+
+    assert module.Main.send.scope is not None
+    assert module.Main.send.scope() == Region(0, 0, 9, 9)

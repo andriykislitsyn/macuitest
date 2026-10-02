@@ -8,6 +8,7 @@ from typing import overload
 
 from macuitest.config.constants import Region
 from macuitest.lib.elements.applescript_element import BaseUIElement
+from macuitest.lib.elements.locators.accessibility import GONE
 from macuitest.lib.elements.locators.accessibility import AXQuery
 from macuitest.lib.elements.locators.accessibility import find_first
 from macuitest.lib.elements.locators.accessibility import frame_of
@@ -61,7 +62,10 @@ class AXLocator(Locator[E]):
     def region(self) -> Optional[Region]:
         """Return the element's frame, or None when it isn't there."""
         element = self.find()
-        return None if element is None else frame_of(element)
+        try:
+            return None if element is None else frame_of(element)
+        except GONE:
+            return None
 
     def resolve(self) -> E:
         element = self.find()

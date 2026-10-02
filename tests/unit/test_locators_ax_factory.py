@@ -6,6 +6,7 @@ from macuitest.lib.elements.locators import ax
 from macuitest.lib.elements.locators import factories
 from macuitest.lib.elements.locators import image
 from macuitest.lib.elements.locators import text
+from macuitest.lib.elements.native.calls import AXErrorInvalidUIElement
 from macuitest.lib.elements.native_element import Button
 from macuitest.lib.elements.native_element import NativeElement
 
@@ -130,3 +131,57 @@ def test_image_within_takes_an_element_of_the_same_screen():
 
         class Calculator(Screen, app="Calculator"):
             logo = image(within=Other.__dict__["keypad"])
+
+
+def test_image_within_scopes_a_lookup_to_that_elements_frame(app_windows, tmp_path):
+    import importlib.util
+    import sys
+    import textwrap
+
+    import cv2
+    import numpy
+
+    keypad = FakeAX(AXIdentifier="Keypad", AXPosition=(10, 20), AXSize=(100, 200))
+    app_windows.append(FakeAX(keypad))
+    png = tmp_path / "screens" / "calculator" / "logo.png"
+    png.parent.mkdir(parents=True)
+    cv2.imwrite(str(png), numpy.full((20, 40), 128, numpy.uint8))
+    source = tmp_path / "screens.py"
+    source.write_text(
+        textwrap.dedent(
+            """
+            from macuitest.lib.elements.locators import Screen, ax, image
+
+            class Calculator(Screen, app="Calculator"):
+                keypad = ax(identifier="Keypad")
+                logo = image(within=keypad)
+            """
+        )
+    )
+    spec = importlib.util.spec_from_file_location("screens_within", source)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+
+    assert module.Calculator.logo.scope is not None
+    assert module.Calculator.logo.scope() == Region(10, 20, 110, 220)
+
+
+class Vanishing(FakeAX):
+    """An element that raises for every attribute, like one whose window just closed."""
+
+    def get_ax_attribute(self, name):
+        raise AXErrorInvalidUIElement("gone")
+
+
+def test_an_element_that_vanishes_mid_search_reads_as_missing(app_windows):
+    app_windows.append(Vanishing())
+
+    class Calculator(Screen, app="Calculator"):
+        keypad = ax(identifier="Keypad")
+        all_clear = text("AC", within=keypad)
+
+    assert Calculator.all_clear.locate() is None
+    with pytest.raises(LookupError):
+        _ = Calculator.keypad
