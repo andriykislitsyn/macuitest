@@ -7,6 +7,7 @@ import pytest
 from macuitest.config.constants import Region
 from macuitest.lib.elements.ui import monitor as monitor_module
 from macuitest.lib.elements.ui.monitor import Monitor
+from macuitest.lib.operating_system import permissions
 
 
 def rect(x, y, width, height):
@@ -91,3 +92,23 @@ def test_unit_tests_cannot_capture_the_screen():
 def test_capture_rejects_an_empty_region(region):
     with pytest.raises(ValueError, match="empty"):
         Monitor.capture(region)
+
+
+def test_capture_window_captures_one_window_without_its_frame():
+    with mock.patch.object(monitor_module.CoreGraphics, "CGWindowListCreateImage") as create:
+        Monitor.capture_window(7)
+
+    create.assert_called_once_with(
+        monitor_module.CoreGraphics.CGRectNull,
+        monitor_module.CoreGraphics.kCGWindowListOptionIncludingWindow,
+        7,
+        monitor_module.CoreGraphics.kCGWindowImageBoundsIgnoreFraming,
+    )
+
+
+def test_capture_window_needs_screen_recording(monkeypatch):
+    monkeypatch.setattr(permissions, "_granted", set())
+    monkeypatch.setattr(permissions.Quartz, "CGPreflightScreenCaptureAccess", lambda: False)
+
+    with pytest.raises(PermissionError):
+        Monitor.capture_window(7)
