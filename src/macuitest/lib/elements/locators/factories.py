@@ -12,6 +12,7 @@ from macuitest.lib.elements.locators.accessibility import GONE
 from macuitest.lib.elements.locators.accessibility import AXQuery
 from macuitest.lib.elements.locators.accessibility import find_first
 from macuitest.lib.elements.locators.accessibility import frame_of
+from macuitest.lib.elements.locators.accessibility import standard_window
 from macuitest.lib.elements.locators.accessibility import standard_window_frame
 from macuitest.lib.elements.locators.accessibility import windows
 from macuitest.lib.elements.locators.screen import CachedLocator
@@ -51,7 +52,11 @@ class AXLocator(Locator[E]):
         if app is None:
             raise TypeError(f"{self.qualified_name}: ax() needs a Screen declared with app=")
         match = None
-        roots = windows(app)
+        if self.screen.window is None:
+            roots = windows(app)
+        else:
+            screen_window = standard_window(app, self.screen.window)
+            roots = [] if screen_window is None else [screen_window]
         for query in self.queries:
             match = find_first(roots, query)
             if match is None:
@@ -71,8 +76,9 @@ class AXLocator(Locator[E]):
         element = self.find()
         if element is None:
             path = " > ".join(map(str, self.queries))
+            window = "windows" if self.screen.window is None else f"{self.screen.window} window"
             raise LookupError(
-                f"{self.qualified_name}: no element with {path} in {self.screen.app}'s windows"
+                f"{self.qualified_name}: no element with {path} in {self.screen.app}'s {window}"
             )
         return self.kind(element)
 
@@ -94,14 +100,14 @@ def check_within(locator: Locator, within: Optional[AXLocator]) -> None:
 def scope_for(locator: Locator, within: Optional[AXLocator]) -> Optional[Scope]:
     """Return the search area of a text or image element.
 
-    That is `within`'s frame when given, else the screen app's window, else None for the default.
+    That is `within`'s frame when given, else the screen's window, else None for the default.
     """
     if within is not None:
         return within.region
-    app = locator.screen.app
+    app, query = locator.screen.app, locator.screen.window
     if app is None:
         return None
-    return lambda: standard_window_frame(app)
+    return lambda: standard_window_frame(app, query)
 
 
 class TextLocator(Locator[VisibleText]):
@@ -159,6 +165,15 @@ class AppleScriptLocator(CachedLocator[A]):
                 f"{self.qualified_name}: pass process=, or declare {self.screen.__name__} with app="
             )
         return self.kind(self.locator, process=process)
+
+
+def window(title: Optional[str] = None, subrole: Optional[str] = None) -> AXQuery:
+    """Return the window a `Screen` covers, by its `AXTitle` and `AXSubrole`, such as "AXDialog".
+
+    Raises:
+        TypeError: Neither is given.
+    """
+    return AXQuery.of(title=title, subrole=subrole)
 
 
 def text(label: str, within: Optional[AXLocator] = None) -> TextLocator:

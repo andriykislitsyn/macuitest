@@ -10,6 +10,8 @@ from typing import Generic
 from typing import Optional
 from typing import TypeVar
 
+from macuitest.lib.elements.locators.accessibility import AXQuery
+
 T = TypeVar("T")
 
 
@@ -17,15 +19,27 @@ class Screen:
     """Elements of one app screen, declared as class attributes. Never instantiated.
 
     Pass `app`, the app's name as the Dock shows it, to scope text and image lookups to its
-    first standard window, give AppleScript elements their process, and enable `ax()`.
+    first standard window, give AppleScript elements their process, and enable `ax()`. Pass
+    `window`, from `window()`, for a dialog or secondary window: lookups then search the first
+    window it matches instead.
+
+    Raises:
+        TypeError: `window` is given without an app.
     """
 
     app: ClassVar[Optional[str]] = None
+    window: ClassVar[Optional[AXQuery]] = None
 
-    def __init_subclass__(cls, app: Optional[str] = None, **kwargs):
+    def __init_subclass__(
+        cls, app: Optional[str] = None, window: Optional[AXQuery] = None, **kwargs
+    ):
         super().__init_subclass__(**kwargs)
         if app is not None:
             cls.app = app
+        if window is not None:
+            if cls.app is None:
+                raise TypeError(f"{cls.__name__}: window= needs app=")
+            cls.window = window
 
     def __new__(cls, *args, **kwargs):
         raise TypeError(f"{cls.__name__} is a Screen. Read its elements from the class.")

@@ -79,6 +79,26 @@ def test_standard_window_frame_reads_the_first_standard_window(running):
     assert ax.standard_window_frame("Calculator") == Region(10, 20, 210, 120)
 
 
+def test_a_window_query_picks_the_first_matching_window(running):
+    running(window(), window(subrole="AXDialog", frame=(50, 60, 300, 120)))
+
+    frame = ax.standard_window_frame("Calculator", AXQuery.of(subrole="AXDialog"))
+
+    assert frame == Region(50, 60, 350, 180)
+
+
+def test_a_window_query_without_a_match_has_no_frame(running):
+    running(window())
+
+    assert ax.standard_window_frame("Calculator", AXQuery.of(title="Settings")) is None
+
+
+def test_a_window_query_skips_minimized_windows(running):
+    running(window(subrole="AXDialog", minimized=True))
+
+    assert ax.standard_window_frame("Calculator", AXQuery.of(subrole="AXDialog")) is None
+
+
 def test_a_minimized_window_has_no_frame(running):
     running(window(minimized=True))
 

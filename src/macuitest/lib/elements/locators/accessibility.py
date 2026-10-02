@@ -35,8 +35,11 @@ class AXQuery:
         description: Optional[str] = None,
         title: Optional[str] = None,
         role: Optional[str] = None,
+        subrole: Optional[str] = None,
     ) -> "AXQuery":
-        """Return a query for the given `AXIdentifier`, `AXDescription`, `AXTitle`, and `AXRole`.
+        """Return a query matching the given accessibility attribute values.
+
+        The keywords map to `AXIdentifier`, `AXDescription`, `AXTitle`, `AXRole`, and `AXSubrole`.
 
         Raises:
             TypeError: Every value is None.
@@ -46,10 +49,11 @@ class AXQuery:
             "AXDescription": description,
             "AXTitle": title,
             "AXRole": role,
+            "AXSubrole": subrole,
         }
         attributes = tuple((name, value) for name, value in given.items() if value is not None)
         if not attributes:
-            raise TypeError("Pass at least one of identifier, description, title, or role")
+            raise TypeError("Pass at least one attribute to match, such as identifier or title")
         return cls(attributes)
 
     def matches(self, element: Any) -> bool:
@@ -98,27 +102,31 @@ def windows(app: str) -> list[Any]:
     return [] if root is None else _windows(root)
 
 
-def standard_window(app: str) -> Optional[Any]:
-    """Return `app`'s first standard window that isn't minimized, or None.
+def standard_window(app: str, query: Optional[AXQuery] = None) -> Optional[Any]:
+    """Return `app`'s first window matching `query` that isn't minimized, or None.
 
-    A hidden app has none, since its windows aren't on screen.
+    Without `query`, that is the first standard window. A hidden app has none, since its windows
+    aren't on screen.
     """
     root = app_root(app)
     try:
         if root is None or root.get_ax_attribute("AXHidden"):
             return None
         for window in _windows(root):
-            subrole = window.get_ax_attribute("AXSubrole")
-            if subrole == "AXStandardWindow" and not window.get_ax_attribute("AXMinimized"):
+            if query is None:
+                wanted = window.get_ax_attribute("AXSubrole") == "AXStandardWindow"
+            else:
+                wanted = query.matches(window)
+            if wanted and not window.get_ax_attribute("AXMinimized"):
                 return window
     except GONE:
         pass
     return None
 
 
-def standard_window_frame(app: str) -> Optional[Region]:
-    """Return the frame of `app`'s first standard window that isn't minimized, or None."""
-    window = standard_window(app)
+def standard_window_frame(app: str, query: Optional[AXQuery] = None) -> Optional[Region]:
+    """Return the frame of `standard_window(app, query)`, or None."""
+    window = standard_window(app, query)
     try:
         return None if window is None else frame_of(window)
     except GONE:

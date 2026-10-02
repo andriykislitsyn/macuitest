@@ -79,6 +79,7 @@ Calculator.seven.press()
 - `ax()` matches accessibility attributes and finds the element again on every read. Pass `kind=` for actions such as `press`.
 - `text()` and `image()` search the app's first standard window, or the frame of `within=`. When the window is missing or minimized, they find nothing and waits keep polling.
 - `image()` loads `<name>.png` next to the module: `Calculator` in `apps/calculator.py` reads `apps/calculator/calculator/mode.png`.
+- For a dialog or a secondary window, name it once: `class Confirm(Screen, app="Calculator", window=window(subrole="AXDialog"))` or `window=window(title="Settings")`. Its text, image, and `ax()` lookups then search only that window.
 - Screens are never instantiated. Read elements from the class.
 
 ## Configuration
