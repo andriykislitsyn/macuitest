@@ -5,12 +5,19 @@ import Quartz
 from macuitest.config import DEFAULT_FILE
 from macuitest.config.settings import settings
 from macuitest.lib.elements.ui import monitor as monitor_module
+from macuitest.lib.operating_system import permissions
 
 
 @pytest.fixture(autouse=True)
 def default_settings():
     """Run every test on the shipped defaults, so a valid local config can't change results."""
     settings.load(DEFAULT_FILE)
+
+
+@pytest.fixture(autouse=True)
+def permissions_granted(monkeypatch):
+    """Treat every permission as granted, since CI runners can't grant them."""
+    monkeypatch.setattr(permissions, "_granted", set(permissions.PERMISSIONS))
 
 
 @pytest.fixture(autouse=True)
