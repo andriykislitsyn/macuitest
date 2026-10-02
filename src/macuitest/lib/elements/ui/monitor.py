@@ -14,6 +14,7 @@ from Quartz import CoreGraphics
 
 from macuitest.config.constants import Region
 from macuitest.config.constants import ScreenSize
+from macuitest.lib.operating_system.permissions import require_screen_recording
 
 MAX_DISPLAYS = 16
 
@@ -89,9 +90,11 @@ class Monitor:
 
         Raises:
             ValueError: `region` has no width or height.
+            PermissionError: Screen Recording isn't granted.
         """
         if region is not None and (region.x2 <= region.x1 or region.y2 <= region.y1):
             raise ValueError(f"Cannot capture an empty region: {region}")
+        require_screen_recording()
         rect = (
             CoreGraphics.CGRectInfinite
             if region is None
