@@ -78,7 +78,29 @@ def test_a_missing_element_raises_naming_the_screen_and_filter(app_windows):
 
     missing = r"Calculator\.seven: no element with AXIdentifier='Seven'"
     with pytest.raises(LookupError, match=missing):
-        _ = Calculator.seven
+        _ = Calculator.seven.item
+
+
+def test_a_missing_element_reads_as_not_visible(app_windows):
+    class Calculator(Screen, app="Calculator"):
+        seven = ax(identifier="Seven")
+
+    assert Calculator.seven.is_visible is False
+
+
+def test_an_element_read_before_it_closes_reads_as_gone_after(app_windows):
+    # AppKit keeps a dismissed panel's elements alive, so only a fresh search shows they're gone.
+    app_windows.append(FakeAX(FakeAX(AXIdentifier="CancelButton", AXRole="AXButton")))
+
+    class SaveSheet(Screen, app="TextEdit"):
+        cancel = ax(identifier="CancelButton", kind=Button)
+
+    cancel = SaveSheet.cancel
+    assert cancel.is_visible
+    app_windows.clear()
+
+    assert cancel.is_visible is False
+    assert cancel.wait_vanish(timeout=0)
 
 
 def test_ax_needs_an_app_screen(app_windows):
@@ -185,7 +207,7 @@ def test_an_element_that_vanishes_mid_search_reads_as_missing(app_windows):
 
     assert Calculator.all_clear.locate() is None
     with pytest.raises(LookupError):
-        _ = Calculator.keypad
+        _ = Calculator.keypad.item
 
 
 def test_ax_on_a_window_screen_searches_only_that_window(app_windows, monkeypatch):
@@ -214,4 +236,4 @@ def test_ax_on_a_window_screen_without_that_window_raises(app_windows, monkeypat
     with pytest.raises(
         LookupError, match=r"Confirm\.ok: .* in Calculator's AXSubrole='AXDialog' window"
     ):
-        _ = Confirm.ok
+        _ = Confirm.ok.item

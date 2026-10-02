@@ -48,9 +48,7 @@ class AXLocator(Locator[E]):
         Raises:
             TypeError: The screen has no app.
         """
-        app = self.screen.app
-        if app is None:
-            raise TypeError(f"{self.qualified_name}: ax() needs a Screen declared with app=")
+        app = self._app()
         match = None
         if self.screen.window is None:
             roots = windows(app)
@@ -73,6 +71,15 @@ class AXLocator(Locator[E]):
             return None
 
     def resolve(self) -> E:
+        self._app()
+        return self.kind(find=self._require)
+
+    def _app(self) -> str:
+        if self.screen.app is None:
+            raise TypeError(f"{self.qualified_name}: ax() needs a Screen declared with app=")
+        return self.screen.app
+
+    def _require(self) -> Any:
         element = self.find()
         if element is None:
             path = " > ".join(map(str, self.queries))
@@ -80,7 +87,7 @@ class AXLocator(Locator[E]):
             raise LookupError(
                 f"{self.qualified_name}: no element with {path} in {self.screen.app}'s {window}"
             )
-        return self.kind(element)
+        return element
 
 
 def check_within(locator: Locator, within: Optional[AXLocator]) -> None:
@@ -239,7 +246,8 @@ def ax(*, identifier=None, description=None, title=None, role=None, kind=NativeE
     """Declare an element found by accessibility attributes in the screen app's windows.
 
     Matches `AXIdentifier`, `AXDescription`, `AXTitle`, and `AXRole`, and reads as a `kind`
-    instance. Every read finds the element again. A missing element raises `LookupError`.
+    instance that finds the element again on every use. A missing element reads as not visible,
+    and any other use of it raises `LookupError`.
 
     Raises:
         TypeError: No attribute is given.
