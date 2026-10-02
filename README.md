@@ -8,7 +8,7 @@ Functional and UI test automation for macOS apps. macuitest finds elements by Ap
 
 - macOS, Python 3.13 or later.
 - Grant these permissions in System Settings > Privacy & Security to the app that runs your tests, such as Terminal, iTerm2, or your IDE:
-  - **Accessibility**, for mouse and keyboard input and AppleScript element control.
+  - **Accessibility**, for mouse and keyboard input, AppleScript element control, and `ax()` lookups. Without it, the first `ax()` lookup raises `PermissionError`.
   - **Screen & System Audio Recording** (Screen Recording before macOS 15), for `UIElement`, `VisibleText`, and color checks. Without it, the first screen capture raises `PermissionError` naming the System Settings pane.
 - macOS asks once for permission to control System Events. Allow it.
 
@@ -49,10 +49,37 @@ UIElement("screenshots/sidebar_toggle.png").wait_displayed()
 | `native_element` | Accessibility (AX) objects through pyobjc | Reading attributes and walking the accessibility tree |
 | `visible_text` | Visible text, read with Apple Vision | Buttons, tabs, links, and banners with a text label |
 | `ui_element` | A screenshot of the element | Icons and custom-drawn controls without text |
+| `locators` | `Screen` classes declaring an app's elements with the kinds above | Any app you test more than once |
 
 `VisibleText` and `UIElement` share one API: `click_mouse`, `double_click`, `right_click`, `hover_mouse`, `paste`, `wait_displayed`, `wait_vanish`, and the `is_visible` property. Every method takes a `region` to search, and a window-sized region is several times faster than the whole desktop.
 
 To find AppleScript locators, use Accessibility Inspector (bundled with Xcode) or UI Browser.
+
+## Screens
+
+Declare an app's elements in one class instead of scattering locators through tests.
+
+```python
+from macuitest.lib.elements.locators import Screen, applescript, ax, image, text
+from macuitest.lib.elements.native_element import Button
+
+
+class Calculator(Screen, app="Calculator"):
+    keypad = ax(identifier="CalculatorKeypadView")
+    seven = ax(identifier="Seven", kind=Button)
+    display = ax(identifier="StandardInputView").child(role="AXStaticText")
+    all_clear = text("AC", within=keypad)
+    mode = image()
+    seven_as = applescript('(first button whose description is "7") of group 1 of window 1')
+
+
+Calculator.seven.press()
+```
+
+- `ax()` matches accessibility attributes and finds the element again on every read. Pass `kind=` for actions such as `press`.
+- `text()` and `image()` search the app's first standard window, or the frame of `within=`. When the window is missing or minimized, they find nothing and waits keep polling.
+- `image()` loads `<name>.png` next to the module: `Calculator` in `apps/calculator.py` reads `apps/calculator/calculator/mode.png`.
+- Screens are never instantiated. Read elements from the class.
 
 ## Configuration
 
