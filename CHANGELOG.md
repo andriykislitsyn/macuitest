@@ -31,13 +31,14 @@
 - `Screen` classes declare an app's elements with `text()`, `image()`, `applescript()`, and `ax()`. App screens scope text and image lookups to the app's window, and `within=` narrows them to another element. Lookups on app screens raise `PermissionError` when Accessibility isn't granted.
 - `Screen(window=window(title=..., subrole=...))` covers a dialog or secondary window, so its lookups search only that window.
 - `ScreenElement.scope` sets where a lookup searches when it passes no region.
-- `python -m macuitest.locators capture` writes a PNG per element of an app's window and a `Screen` module declaring them. `check` finds missing and undeclared images.
+- `python -m macuitest.locators capture` writes a PNG per element of an app's window, alert, or floating panel, and a `Screen` module declaring them. `check` finds missing and undeclared images. `macuitest.lib.elements.locators` exports the locator classes and `standard_window_frame` for suites that inspect their screens.
 - `Monitor.capture_window` captures one window, even while it's covered.
 - A TOML settings file for mouse and keyboard timings, the search display, element defaults, OCR languages, and the screenshot root. `python -m macuitest.config init` writes a documented copy.
 - `Monitor.displays` lists every display's bounds, and `Monitor.capture` returns a CGImage of a region.
 
 ### Fixed
 
+- AppleScript elements wait for a `first X whose ...` locator that matches nothing yet, instead of failing at once with error -1719.
 - Screen matching, mouse moves, and the default search region work on multi-monitor and retina setups, including displays at negative coordinates.
 - XML property lists no longer read as empty and get overwritten on the next write.
 - `ShellExecutor.sudo` passes the password on stdin, so it no longer shows in `ps` output or logs.
