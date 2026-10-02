@@ -256,3 +256,16 @@ def test_text_on_a_window_screen_searches_that_window(monkeypatch):
 
     assert Settings.ok.scope is not None
     assert Settings.ok.scope() == Region(5, 5, 50, 50)
+
+
+def test_suites_can_list_a_screens_elements_by_kind_from_the_public_package():
+    from macuitest.lib.elements import locators
+
+    class Main(Screen, app="Calculator"):
+        ok = text("OK")
+        send = applescript('button "Send" of window 1')
+
+    kinds = {name: type(value) for name, value in vars(Main).items() if name in ("ok", "send")}
+
+    assert kinds == {"ok": locators.TextLocator, "send": locators.AppleScriptLocator}
+    assert {"AXLocator", "ImageLocator", "standard_window_frame"} <= set(locators.__all__)
