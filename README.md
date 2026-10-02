@@ -2,7 +2,7 @@
 
 # macuitest
 
-macuitest automates functional and UI tests of macOS apps. It finds elements by accessibility attributes, AppleScript locator, screenshot, or visible text, then clicks, types, and waits on them the way a person would.
+macuitest is a Python library for end-to-end tests of macOS apps. It finds elements by accessibility attributes, AppleScript locator, screenshot, or visible text, then clicks, types, and waits on them the way a person would. It also includes helpers for the system around the app, such as preferences, property lists, processes, and files, so a test can set up state and check results outside the app's window.
 
 To see complete suites for real apps, go to [macuitest examples](https://github.com/andriykislitsyn/macuitest-examples).
 
@@ -66,13 +66,13 @@ Each module in `macuitest.lib.elements` finds elements a different way:
 | `ui_element` | A screenshot of the element | Icons and custom-drawn controls without text |
 | `locators` | `Screen` classes that declare an app's elements with the kinds above | Any app you test more than once |
 
-`VisibleText` and `UIElement` share one API: `click_mouse`, `double_click`, `right_click`, `hover_mouse`, `paste`, `wait_displayed`, `wait_vanish`, and the `is_visible` property. Every method takes a `region` to search. A window-sized region is several times faster than the whole desktop.
+`VisibleText` and `UIElement` share one API: `click_mouse`, `double_click`, `right_click`, `hover_mouse`, `paste`, `wait_displayed`, `wait_vanish`, and the `is_visible` property. Each of these methods takes a `region` to search, and a window-sized region is faster to search than the whole desktop.
 
-To find accessibility attributes and AppleScript locators, use Accessibility Inspector, which comes with Xcode.
+To browse an app's accessibility attributes, use Accessibility Inspector, which comes with Xcode. To turn them into locators, see [Capture elements](#capture-elements).
 
 ## Declare an app's elements with screens
 
-A `Screen` class declares an app's elements in one place, so your tests never contain locators:
+A `Screen` class declares an app's elements in one place, so your tests don't need to contain locators:
 
 ```python
 from macuitest.lib.elements.applescript_element import Button as ScriptButton
