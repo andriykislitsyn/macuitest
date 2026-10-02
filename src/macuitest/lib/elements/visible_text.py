@@ -34,6 +34,6 @@ class VisibleText(ScreenElement):
     def __repr__(self):
         return f'<VisibleText "{self.text}">'
 
-    def locate(self, region: Optional[Region] = None) -> Optional[Region]:
+    def _locate(self, region: Optional[Region]) -> Optional[Region]:
         boxes = self.ocr.find_text(self.text, region)
         return boxes[0] if boxes else None

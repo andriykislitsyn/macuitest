@@ -2,6 +2,7 @@
 
 from abc import ABC
 from abc import abstractmethod
+from typing import Callable
 from typing import Optional
 
 from macuitest.config.constants import Point
@@ -28,6 +29,9 @@ def default_region() -> Optional[Region]:
     return None
 
 
+Scope = Callable[[], Optional[Region]]
+
+
 class ScreenElement(ABC):
     """Element located by looking at the screen.
 
@@ -35,9 +39,24 @@ class ScreenElement(ABC):
     raise `UIElementNotFoundOnScreen` like `get_center`.
     """
 
-    @abstractmethod
+    scope: Optional[Scope] = None
+    """Where to search when a lookup passes no region. Returning None means nowhere."""
+
     def locate(self, region: Optional[Region] = None) -> Optional[Region]:
-        """Return the element's box in global display points, or None if it isn't on screen."""
+        """Return the element's box in global display points, or None if it isn't on screen.
+
+        `region` defaults to `scope()`, then to `default_region()`, then to every display. When
+        `scope()` returns None, nothing is searched.
+        """
+        if region is None and self.scope is not None:
+            region = self.scope()
+            if region is None:
+                return None
+        return self._locate(region)
+
+    @abstractmethod
+    def _locate(self, region: Optional[Region]) -> Optional[Region]:
+        """Return the element's box in `region`, or None. None means the default search area."""
 
     def paste(
         self, x_off: int = 0, y_off: int = 0, phrase: str = "", region: Optional[Region] = None

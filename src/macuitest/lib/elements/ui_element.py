@@ -50,7 +50,7 @@ class UIElement(ScreenElement):
             )
         return None
 
-    def locate(self, region: Optional[Region] = None) -> Optional[Region]:
+    def _locate(self, region: Optional[Region]) -> Optional[Region]:
         match = self.detect_on_screen(region)
         if match is None:
             return None

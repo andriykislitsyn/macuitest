@@ -28,6 +28,8 @@
 
 - `VisibleText` finds elements by their visible text, with the same actions and waits as `UIElement`. Single-character text raises `ValueError`, since Vision doesn't read isolated characters reliably.
 - Screen captures raise `PermissionError` naming the System Settings pane when Screen Recording isn't granted, instead of reading only the wallpaper.
+- `Screen` classes declare an app's elements with `text()`, `image()`, `applescript()`, and `ax()`. App screens scope text and image lookups to the app's window, and `within=` narrows them to another element. Lookups on app screens raise `PermissionError` when Accessibility isn't granted.
+- `ScreenElement.scope` sets where a lookup searches when it passes no region.
 - A TOML settings file for mouse and keyboard timings, the search display, element defaults, OCR languages, and the screenshot root. `python -m macuitest.config init` writes a documented copy.
 - `Monitor.displays` lists every display's bounds, and `Monitor.capture` returns a CGImage of a region.
 
