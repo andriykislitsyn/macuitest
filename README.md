@@ -72,6 +72,12 @@ An agent with a shell works in three steps:
 | `press` | Performs the element's accessibility press action without moving the pointer. Exits 1 when the element offers none, such as a sidebar label: use `click` there. | No |
 | `set` | Writes the element's value, such as a text field's text. | No |
 | `click` | Brings the app to the front, then clicks with the mouse. `--double` and `--right` change the click. | Yes |
+| `launch` | Opens the app, or brings it forward, and waits for its window. | Yes |
+| `quit` | Asks the app to quit, like Command-Q. Exits 1 when it's still running, such as while it asks to save. | No |
+| `menu` | Presses a menu item through accessibility, such as `macuitest menu TextEdit "File > Save…"`. | No |
+| `keys` | Posts one shortcut, such as `cmd+shift+s`. | Yes |
+| `type` | Types text into the focused element, checking focus before each character. | Yes |
+| `screenshot` | Writes a PNG of the app's window and prints its path. | No |
 
 Prefer `press` and `set`: they work while the app stays in the background. `click` is for apps with poor accessibility support, or that misbehave under fast accessibility actions. `click` refuses to click when the app doesn't come to the front, but it doesn't check whether another app's floating window covers the element.
 
@@ -86,12 +92,18 @@ Reading is safe at any time. `press`, `set`, and `click` change the app, and `cl
       "Bash(uv run macuitest tree *)",
       "Bash(uv run macuitest find *)",
       "Bash(uv run macuitest read *)",
-      "Bash(uv run macuitest wait *)"
+      "Bash(uv run macuitest wait *)",
+      "Bash(uv run macuitest screenshot *)"
     ],
     "ask": [
       "Bash(uv run macuitest press *)",
       "Bash(uv run macuitest set *)",
-      "Bash(uv run macuitest click *)"
+      "Bash(uv run macuitest click *)",
+      "Bash(uv run macuitest menu *)",
+      "Bash(uv run macuitest quit *)",
+      "Bash(uv run macuitest launch *)",
+      "Bash(uv run macuitest keys *)",
+      "Bash(uv run macuitest type *)"
     ]
   }
 }
