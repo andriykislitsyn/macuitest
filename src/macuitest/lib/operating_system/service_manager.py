@@ -1,3 +1,4 @@
+import shlex
 import time
 from collections import namedtuple
 from pathlib import Path
@@ -16,15 +17,15 @@ class ServiceManager:
         self.executor = executor
 
     def launch_application_by_bundle_id(self, bundle_id: str, process_name: str) -> bool:
-        self.executor.execute(f'open -b "{bundle_id}"')
+        self.executor.execute(f"open -b {shlex.quote(bundle_id)}")
         return self.wait_process_appeared(process_name)
 
     def launch_application_by_name(self, app_name: str) -> bool:
-        self.executor.execute(f'open -a "{app_name}"')
+        self.executor.execute(f"open -a {shlex.quote(app_name)}")
         return self.wait_process_appeared(app_name)
 
     def launch_application_by_path(self, path: str) -> bool:
-        self.executor.execute(f'open "{path}"')
+        self.executor.execute(f"open {shlex.quote(path)}")
         return self.wait_process_appeared(Path(path).stem)
 
     def force_kill_process(self, process: str, sudo: bool = False):

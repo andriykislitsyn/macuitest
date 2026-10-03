@@ -115,7 +115,7 @@ class WindowServer:
         self.alive = {pid for _, pid in owners}
         monkeypatch.setattr(ax, "_pids", {})
         monkeypatch.setattr(ax.Quartz, "CGWindowListCopyWindowInfo", self.window_list)
-        monkeypatch.setattr(ax, "_alive", lambda pid: pid in self.alive)
+        monkeypatch.setattr(ax, "alive", lambda pid: pid in self.alive)
         monkeypatch.setattr(ax.NativeUIElement, "from_pid", lambda pid: FakeAX(pid=pid))
 
     def window_list(self, *args):
