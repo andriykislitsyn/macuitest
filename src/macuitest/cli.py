@@ -91,7 +91,9 @@ def main(argv: Optional[list[str]] = None) -> int:
     shortcut = commands.add_parser("keys", help="post a shortcut, such as cmd+s")
     shortcut.add_argument("app")
     shortcut.add_argument("combo")
-    typing = commands.add_parser("type", help="type text into the app's focused element")
+    typing = commands.add_parser(
+        "type", help="type text into the app's focused element; \\n types as written"
+    )
     typing.add_argument("app")
     typing.add_argument("text")
     shooting = commands.add_parser("screenshot", help="write a PNG of an app's window")

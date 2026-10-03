@@ -48,3 +48,13 @@ def test_write_pauses_per_the_keyboard_setting(quartz, monkeypatch):
         KeyBoardController().write("a")
 
     assert [c.args[0] for c in sleep.call_args_list] == [0.2, 0.2]
+
+
+def test_hotkey_releases_pressed_modifiers_when_a_later_key_fails(quartz):
+    with pytest.raises(ValueError):
+        KeyBoardController().hotkey("command", "insert")
+
+    events = [
+        (call.args[1], call.args[2]) for call in quartz.CGEventCreateKeyboardEvent.call_args_list
+    ]
+    assert events == [(KEYBOARD_KEYS["command"], True), (KEYBOARD_KEYS["command"], False)]

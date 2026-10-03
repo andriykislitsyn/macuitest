@@ -329,3 +329,9 @@ def test_screenshot_needs_screen_recording(textedit_window, monkeypatch, tmp_pat
 
     with pytest.raises(PermissionError):
         app_actions.screenshot("TextEdit", tmp_path / "shot.png")
+
+
+@pytest.mark.parametrize("combo", ["cmd+insert", "f21", "ctrl+num5"])
+def test_parse_keys_rejects_a_key_without_a_keycode(combo):
+    with pytest.raises(actions.UsageError):
+        app_actions.parse_keys(combo)

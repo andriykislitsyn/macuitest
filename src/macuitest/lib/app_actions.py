@@ -152,7 +152,8 @@ def parse_keys(combo: str) -> list[str]:
     unknown = [m for m in modifiers if m.lower() not in _MODIFIERS]
     if unknown:
         raise UsageError(f'Unknown modifier "{unknown[0]}". Use cmd, shift, alt, or ctrl')
-    if key not in KEYBOARD_KEYS or key in _MODIFIERS:
+    # Some names in the table have no keycode, and posting one would fail mid-shortcut.
+    if KEYBOARD_KEYS.get(key) is None or key in _MODIFIERS:
         raise UsageError(
             f'Unknown key "{key}". Use one character, or a name such as return, escape, tab,'
             " space, delete, up, or f5"

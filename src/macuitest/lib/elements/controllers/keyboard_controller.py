@@ -31,17 +31,22 @@ class KeyBoardController:
             time.sleep(pause)
 
     def hotkey(self, *args):
-        """Calling `hotkey('command', 'shift', 'a')` performs a "CMD-Shift-A" shortcut press."""
-        for c in args:
-            if len(c) > 1:
-                c = c.lower()
-            self.__send_key_event(c, "down")
-            time.sleep(0.025)
-        for c in reversed(args):
-            if len(c) > 1:
-                c = c.lower()
-            self.__send_key_event(c, "up")
-            time.sleep(0.025)
+        """Calling `hotkey('command', 'shift', 'a')` performs a "CMD-Shift-A" shortcut press.
+
+        Keys already down are released even when a later key fails, so no modifier stays held.
+        """
+        pressed = []
+        try:
+            for c in args:
+                if len(c) > 1:
+                    c = c.lower()
+                self.__send_key_event(c, "down")
+                pressed.append(c)
+                time.sleep(0.025)
+        finally:
+            for c in reversed(pressed):
+                self.__send_key_event(c, "up")
+                time.sleep(0.025)
 
     @staticmethod
     def send_unicode_event(char: str, event_type: str):

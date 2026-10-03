@@ -76,14 +76,14 @@ An agent with a shell works in three steps:
 | `quit` | Asks the app to quit, like Command-Q. Exits 1 when it's still running, such as while it asks to save. | No |
 | `menu` | Presses a menu item through accessibility, such as `macuitest menu TextEdit "File > Save…"`. | No |
 | `keys` | Posts one shortcut, such as `cmd+shift+s`. | Yes |
-| `type` | Types text into the focused element, checking focus before each character. | Yes |
+| `type` | Types text into the focused element, checking focus before each character. Escapes such as `\n` type as written: pass a real line break, such as `$'a\nb'` in zsh or bash, or send `keys <app> return`. | Yes |
 | `screenshot` | Writes a PNG of the app's window and prints its path. | No |
 
-Prefer `press` and `set`: they work while the app stays in the background. `click` is for apps with poor accessibility support, or that misbehave under fast accessibility actions. `click` refuses to click when the app doesn't come to the front, but it doesn't check whether another app's floating window covers the element.
+Prefer `press` and `set`: they work while the app stays in the background. `click` is for apps with poor accessibility support, or that misbehave under fast accessibility actions. `click`, `keys`, and `type` refuse input when the app doesn't come to the front. They can't tell when a launcher panel such as Spotlight holds keyboard focus over a frontmost app, or when another app's floating window covers the element.
 
 Every verb exits 0 when it's done, 1 when the element is missing, a wait times out, focus is refused, or the app rejects the action, and 2 for bad usage, such as an invalid locator. A locator string is parsed, never run as Python. `--window-title` and `--window-subrole` scope a locator string to one window.
 
-Reading is safe at any time. `press`, `set`, and `click` change the app, and `click` moves the user's focus, so have the agent ask before it runs them. A module reference imports the module, which runs its code, so allow these verbs unprompted only where the agent can't write Python files you haven't reviewed. In Claude Code, these rules in `.claude/settings.json` allow the reads and ask for the rest:
+Reading is safe at any time. `press`, `set`, `menu`, `quit`, and the verbs that take focus change the app, so have the agent ask before it runs them. A module reference imports the module, which runs its code, so allow these verbs unprompted only where the agent can't write Python files you haven't reviewed. In Claude Code, these rules in `.claude/settings.json` allow the reads and ask for the rest:
 
 ```json
 {
