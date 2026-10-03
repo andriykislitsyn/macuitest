@@ -13,7 +13,7 @@ uv run ty check
 
 Lock with a current uv, such as `uvx --from uv@latest uv lock`. An older uv rewrites `uv.lock` to an older lock revision.
 
-Unit tests never touch the real screen: an autouse guard in `tests/unit/conftest.py` fails any capture, and settings reset to `default.toml` before each test. To put text on a fake screen, use the `text_image` fixture. Every permission reads as granted in unit tests. Nothing guards System Events the same way, so patch `as_wrapper` or the reading method: an unpatched `Application` or AppleScript element read queries the real app and waits out its timeout.
+Unit tests never touch the real screen or real apps: autouse guards in `tests/unit/conftest.py` fail any capture and any AppleScript run, and settings reset to `default.toml` before each test. To put text on a fake screen, use the `text_image` fixture. To fake System Events, patch `as_wrapper.tell_app_process` or the method that reads. Every permission reads as granted in unit tests.
 
 ## Exploring an app
 

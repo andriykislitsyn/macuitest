@@ -39,3 +39,8 @@ def test_execution_errors_still_raise(ns_applescript):
 
     with pytest.raises(AppleScriptError):
         as_wrapper.execute("return missing value of nothing")
+
+
+def test_unit_tests_cant_run_real_applescript():
+    with pytest.raises(RuntimeError, match="must not run AppleScript"):
+        as_wrapper.tell_app_process("get name of window 1", app_process="Finder")
