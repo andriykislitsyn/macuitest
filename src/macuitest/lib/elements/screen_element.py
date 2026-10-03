@@ -59,41 +59,55 @@ class ScreenElement(ABC):
         """Return the element's box in `region`, or None. None means the default search area."""
 
     def paste(
-        self, x_off: int = 0, y_off: int = 0, phrase: str = "", region: Optional[Region] = None
+        self, x_off: int = 0, y_off: int = 0, phrase: str = "", *, region: Optional[Region] = None
     ):
         center = self.get_center(region)
         mouse.paste(center.x + x_off, center.y + y_off, phrase=phrase)
-
-    def double_click(self, x_off: int = 0, y_off: int = 0, region: Optional[Region] = None):
-        center = self.get_center(region)
-        mouse.double_click(center.x + x_off, center.y + y_off)
-
-    def right_click(
-        self,
-        x_off: int = 0,
-        y_off: int = 0,
-        hold: Optional[float] = None,
-        pause: Optional[float] = None,
-        region: Optional[Region] = None,
-    ):
-        center = self.get_center(region)
-        mouse.right_click(center.x + x_off, center.y + y_off, hold=hold, pause=pause)
 
     def click_mouse(
         self,
         x_off: int = 0,
         y_off: int = 0,
+        *,
         hold: Optional[float] = None,
+        duration: Optional[float] = None,
         pause: Optional[float] = None,
         region: Optional[Region] = None,
     ):
         center = self.get_center(region)
-        mouse.click(center.x + x_off, center.y + y_off, hold=hold, pause=pause)
+        mouse.click(center.x + x_off, center.y + y_off, hold=hold, duration=duration, pause=pause)
+
+    def double_click_mouse(
+        self,
+        x_off: int = 0,
+        y_off: int = 0,
+        *,
+        duration: Optional[float] = None,
+        region: Optional[Region] = None,
+    ):
+        center = self.get_center(region)
+        mouse.double_click(center.x + x_off, center.y + y_off, duration=duration)
+
+    def right_click_mouse(
+        self,
+        x_off: int = 0,
+        y_off: int = 0,
+        *,
+        hold: Optional[float] = None,
+        duration: Optional[float] = None,
+        pause: Optional[float] = None,
+        region: Optional[Region] = None,
+    ):
+        center = self.get_center(region)
+        mouse.right_click(
+            center.x + x_off, center.y + y_off, hold=hold, duration=duration, pause=pause
+        )
 
     def hover_mouse(
         self,
         x_off: int = 0,
         y_off: int = 0,
+        *,
         duration: Optional[float] = None,
         region: Optional[Region] = None,
     ):
@@ -102,8 +116,8 @@ class ScreenElement(ABC):
 
     @property
     def is_visible(self) -> bool:
-        """Whether the element appears on screen within `settings.elements.timeout` seconds."""
-        return bool(self.wait_displayed())
+        """Whether the element is on screen now. Doesn't wait: use `wait_displayed` for that."""
+        return self.locate() is not None
 
     def get_center(self, region: Optional[Region] = None) -> Point:
         """Return the center of the element's box in global display points.
@@ -118,7 +132,7 @@ class ScreenElement(ABC):
         return Point(int((box.x1 + box.x2) / 2), int((box.y1 + box.y2) / 2))
 
     def wait_displayed(
-        self, timeout: Optional[float] = None, region: Optional[Region] = None
+        self, timeout: Optional[float] = None, *, region: Optional[Region] = None
     ) -> Optional[Region]:
         """Return the element's box once it appears, or None after `timeout` seconds.
 
@@ -127,7 +141,9 @@ class ScreenElement(ABC):
         timeout = settings.elements.timeout if timeout is None else timeout
         return wait_condition(lambda: self.locate(region), timeout=timeout) or None
 
-    def wait_vanish(self, timeout: Optional[float] = None, region: Optional[Region] = None) -> bool:
+    def wait_vanish(
+        self, timeout: Optional[float] = None, *, region: Optional[Region] = None
+    ) -> bool:
         """Return whether the element disappears within `timeout` seconds.
 
         `timeout` defaults to `settings.elements.vanish_timeout`.

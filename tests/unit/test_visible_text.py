@@ -35,7 +35,7 @@ def test_click_mouse_clicks_the_text_center(ocr):
     with mock.patch.object(screen_element, "mouse") as mouse:
         VisibleText("Send", ocr=ocr).click_mouse(y_off=2)
 
-    mouse.click.assert_called_once_with(30, 32, hold=None, pause=None)
+    mouse.click.assert_called_once_with(30, 32, hold=None, duration=None, pause=None)
 
 
 def test_get_center_raises_when_the_text_never_appears(ocr):
