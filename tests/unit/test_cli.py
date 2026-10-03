@@ -8,6 +8,7 @@ import pytest
 from macuitest import cli
 from macuitest.config.constants import Region
 from macuitest.lib import actions
+from macuitest.lib import app_actions
 from macuitest.lib.elements.locators.accessibility import AXQuery
 from macuitest.lib.elements.locators.target import Target
 from macuitest.lib.elements.native.calls import AXErrorUnsupported
@@ -331,3 +332,58 @@ def test_click_on_an_app_without_a_window_says_so(target, capsys):
         assert cli.main(["click", "TextEdit", LOCATOR]) == 1
 
     assert capsys.readouterr().err == "TextEdit has no window. Launch it first.\n"
+
+
+@pytest.mark.parametrize(
+    "argv, function, args, kwargs",
+    [
+        (["launch", "TextEdit"], "launch", ("TextEdit",), {"timeout": 15}),
+        (["launch", "TextEdit", "--timeout", "3"], "launch", ("TextEdit",), {"timeout": 3.0}),
+        (["quit", "TextEdit"], "quit", ("TextEdit",), {"timeout": 10}),
+        (["menu", "TextEdit", "File > Save…"], "menu", ("TextEdit", "File > Save…"), {}),
+        (["keys", "TextEdit", "cmd+s"], "keys", ("TextEdit", "cmd+s"), {}),
+        (["type", "TextEdit", "hello"], "type_text", ("TextEdit", "hello"), {}),
+    ],
+)
+def test_app_verbs_pass_their_arguments(argv, function, args, kwargs):
+    with mock.patch.object(cli.app_actions, function, autospec=True) as called:
+        assert cli.main(argv) == 0
+
+    called.assert_called_once_with(*args, **kwargs)
+
+
+def test_quit_says_when_the_app_wasnt_running(capsys):
+    with mock.patch.object(cli.app_actions, "quit", autospec=True, return_value=False):
+        assert cli.main(["quit", "TextEdit"]) == 0
+
+    assert capsys.readouterr().out == "TextEdit isn't running\n"
+
+
+def test_screenshot_prints_the_path(capsys, tmp_path):
+    out = tmp_path / "shot.png"
+    with mock.patch.object(cli.app_actions, "screenshot", autospec=True, return_value=out) as shot:
+        assert (
+            cli.main(["screenshot", "TextEdit", "--window-title", "Fonts", "--out", str(out)]) == 0
+        )
+
+    shot.assert_called_once_with("TextEdit", out, window=AXQuery.of(title="Fonts"))
+    assert capsys.readouterr().out == f"{out}\n"
+
+
+@pytest.mark.parametrize(
+    "error, code, message",
+    [
+        (app_actions.LaunchError("Unable to find application named 'Nope'"), 1, "Unable to find"),
+        (app_actions.QuitError("TextEdit is still running"), 1, "still running"),
+        (actions.ActionError('No "Sav" in File'), 1, 'No "Sav" in File'),
+        (actions.FocusError("Stopped after 2 of 4 characters"), 1, "Stopped after"),
+        (actions.UsageError("Unknown key"), 2, "Unknown key"),
+        (actions.NoWindowError("TextEdit has no window"), 1, "TextEdit has no window"),
+        (PermissionError("Grant Screen Recording"), 1, "Grant Screen Recording"),
+    ],
+)
+def test_app_verb_errors_map_to_exit_codes(capsys, error, code, message):
+    with mock.patch.object(cli.app_actions, "keys", autospec=True, side_effect=error):
+        assert cli.main(["keys", "TextEdit", "cmd+s"]) == code
+
+    assert message in capsys.readouterr().err
