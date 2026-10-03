@@ -6,6 +6,7 @@ from macuitest.config.constants import Region
 from macuitest.lib import actions
 from macuitest.lib.elements import applescript_element as script
 from macuitest.lib.elements import native_element as native
+from macuitest.lib.elements.native.calls import AXErrorUnsupported
 from macuitest.lib.elements.visible_text import VisibleText
 
 
@@ -106,3 +107,123 @@ def test_find_returns_none_for_a_missing_applescript_element():
     type(element).exists = mock.PropertyMock(return_value=False)
 
     assert actions.find(element) is None
+
+
+def test_press_performs_the_press_action_on_an_element_declared_without_kind():
+    item = ax_item()
+    actions.press(native.NativeElement(item=item))
+
+    item.press.assert_called_once_with()
+
+
+def test_press_clicks_an_applescript_element_with_the_pause():
+    element = mock.create_autospec(script.Button, instance=True)
+
+    actions.press(element, pause=0.5)
+
+    element.click.assert_called_once_with(0.5)
+
+
+def test_press_rejects_a_screen_element_and_suggests_click():
+    with pytest.raises(actions.UsageError, match="click"):
+        actions.press(mock.create_autospec(VisibleText, instance=True))
+
+
+def test_set_value_writes_text_to_an_ax_element():
+    item = ax_item(AXValue="old")
+
+    actions.set_value(native.TextField(item=item), "new")
+
+    item.set_ax_attribute.assert_called_once_with("AXValue", "new")
+
+
+def test_set_value_converts_to_the_current_value_type():
+    item = ax_item(AXValue=0)
+
+    actions.set_value(native.CheckBox(item=item), "1")
+
+    item.set_ax_attribute.assert_called_once_with("AXValue", 1)
+
+
+def test_set_value_rejects_a_value_that_isnt_a_number_for_a_number():
+    with pytest.raises(ValueError):
+        actions.set_value(native.CheckBox(item=ax_item(AXValue=0)), "on")
+
+
+def test_set_value_raises_the_accessibility_error_when_not_settable():
+    item = ax_item(AXValue="old")
+    item.set_ax_attribute.side_effect = AXErrorUnsupported('Attribute "AXValue" is not settable')
+
+    with pytest.raises(AXErrorUnsupported):
+        actions.set_value(native.TextField(item=item), "new")
+
+
+def test_set_value_types_into_an_applescript_text_element():
+    element = mock.create_autospec(script.TextField, instance=True)
+
+    actions.set_value(element, "hi")
+
+    element.set_text.assert_called_once_with("hi")
+
+
+def test_set_value_rejects_a_screen_element():
+    with pytest.raises(actions.UsageError):
+        actions.set_value(mock.create_autospec(VisibleText, instance=True), "x")
+
+
+@pytest.fixture
+def front_app(monkeypatch):
+    """Serve an app root that reaches the front once activated."""
+    root = mock.Mock()
+    root.get_ax_attribute.side_effect = lambda name: name == "AXFrontmost"
+    monkeypatch.setattr(actions, "app_root", lambda app: root)
+    return root
+
+
+@pytest.mark.parametrize(
+    "options, method",
+    [
+        ({}, "click_mouse"),
+        ({"double": True}, "double_click_mouse"),
+        ({"right": True}, "right_click_mouse"),
+    ],
+)
+def test_click_activates_the_app_then_clicks(front_app, options, method):
+    element = mock.create_autospec(native.Button, instance=True)
+
+    actions.click(element, "TextEdit", **options)
+
+    front_app.activate.assert_called_once_with()
+    getattr(element, method).assert_called_once_with()
+
+
+def test_click_refuses_when_the_app_doesnt_reach_the_front(monkeypatch):
+    root = mock.Mock()
+    root.get_ax_attribute.return_value = False
+    monkeypatch.setattr(actions, "app_root", lambda app: root)
+    monkeypatch.setattr(actions, "FOCUS_TIMEOUT", 0)
+    element = mock.create_autospec(native.Button, instance=True)
+
+    with pytest.raises(actions.FocusError, match="TextEdit"):
+        actions.click(element, "TextEdit")
+
+    element.click_mouse.assert_not_called()
+
+
+def test_click_raises_lookup_error_when_the_app_has_no_window(monkeypatch):
+    monkeypatch.setattr(actions, "app_root", lambda app: None)
+
+    with pytest.raises(LookupError, match="TextEdit"):
+        actions.click(mock.create_autospec(native.Button, instance=True), "TextEdit")
+
+
+def test_click_needs_the_app():
+    with pytest.raises(actions.UsageError, match="app"):
+        actions.click(mock.create_autospec(native.Button, instance=True), None)
+
+
+def test_click_rejects_double_and_right_together(front_app):
+    with pytest.raises(actions.UsageError):
+        actions.click(
+            mock.create_autospec(native.Button, instance=True), "TextEdit", double=True, right=True
+        )
