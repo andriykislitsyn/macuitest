@@ -240,3 +240,9 @@ def test_set_full_screen_writes_the_full_screen_attribute(system_events):
     Window(LOCATOR, process="Finder").full_screen = True
 
     assert any('"AXFullScreen"' in command for command in system_events.commands)
+
+
+def test_set_value_escapes_quotes_and_backslashes(system_events, element):
+    element._set_value('He said "hi" \\ bye')
+
+    assert system_events.commands[-1] == f'set value of {LOCATOR} to "He said \\"hi\\" \\\\ bye"'
