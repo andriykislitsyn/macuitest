@@ -3,12 +3,10 @@ import textwrap
 
 import pytest
 
-from macuitest.lib.elements import applescript_element
 from macuitest.lib.elements import native_element
 from macuitest.lib.elements import native_element as native
 from macuitest.lib.elements.locators.accessibility import AXQuery
 from macuitest.lib.elements.locators.capture import _literal
-from macuitest.lib.elements.locators.factories import AppleScriptLocator
 from macuitest.lib.elements.locators.factories import AXLocator
 from macuitest.lib.elements.locators.factories import TextLocator
 from macuitest.lib.elements.locators.target import parse_locator
@@ -23,11 +21,9 @@ def test_parse_locator_reads_an_ax_call_with_its_kind():
     assert locator.kind is native_element.Button
 
 
-def test_parse_locator_reads_an_applescript_kind_from_applescript_element():
-    locator = parse_locator('applescript(\'button "OK" of window 1\', kind=Button)')
-
-    assert isinstance(locator, AppleScriptLocator)
-    assert locator.kind is applescript_element.Button
+def test_parse_locator_rejects_applescript_since_it_runs_as_script():
+    with pytest.raises(ValueError, match="Screen module"):
+        parse_locator('applescript("(do shell script \\"touch /tmp/pwned\\")")')
 
 
 def test_parse_locator_reads_text_within_an_ax_element():

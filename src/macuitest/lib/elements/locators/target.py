@@ -9,32 +9,29 @@ from typing import Callable
 from typing import Optional
 from typing import Sequence
 
-from macuitest.lib.elements import applescript_element
 from macuitest.lib.elements import native_element
 from macuitest.lib.elements.locators.accessibility import AXQuery
 from macuitest.lib.elements.locators.check import load_module
 from macuitest.lib.elements.locators.factories import AXLocator
-from macuitest.lib.elements.locators.factories import applescript
 from macuitest.lib.elements.locators.factories import ax
 from macuitest.lib.elements.locators.factories import text
 from macuitest.lib.elements.locators.screen import Locator
 from macuitest.lib.elements.locators.screen import Screen
 
-_FACTORIES: dict[str, Callable[..., Locator]] = {"applescript": applescript, "ax": ax, "text": text}
-# `kind=` names by factory, since both element modules define a Button.
-_KINDS = {
-    "ax": {
-        name: value
-        for name, value in vars(native_element).items()
-        if isinstance(value, type) and issubclass(value, native_element.NativeElement)
-    },
-    "applescript": {
-        name: value
-        for name, value in vars(applescript_element).items()
-        if isinstance(value, type) and issubclass(value, applescript_element.BaseUIElement)
-    },
+_FACTORIES: dict[str, Callable[..., Locator]] = {"ax": ax, "text": text}
+# Factories a locator string can't use, with the reason.
+_MODULE_ONLY = {
+    # Its PNG path comes from the module that declares the screen.
+    "image": "image() needs a Screen module",
+    # Its locator runs as AppleScript, which can run shell commands.
+    "applescript": "applescript() runs as AppleScript, so it works only in a Screen module",
 }
-
+# `kind=` names for ax().
+_KINDS = {
+    name: value
+    for name, value in vars(native_element).items()
+    if isinstance(value, type) and issubclass(value, native_element.NativeElement)
+}
 
 REFERENCE = re.compile(r"^(?P<path>.+\.py):(?P<screen>\w+)\.(?P<element>\w+)$")
 
@@ -94,7 +91,7 @@ def _reference(match: re.Match, label: str) -> Target:
 def parse_locator(source: str) -> Locator:
     """Return the locator that `source`, such as `ax(identifier="OK", kind=Button)`, declares.
 
-    Accepts one call to `ax`, `text`, or `applescript` with literal arguments, `kind=` naming an
+    Accepts one call to `ax` or `text` with literal arguments, `kind=` naming an
     element class, and `within=` holding a nested `ax()` call. Nothing in `source` is evaluated.
 
     Raises:
@@ -108,16 +105,15 @@ def parse_locator(source: str) -> Locator:
 
 
 def _build(node: ast.expr) -> Locator:
-    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "image":
-        raise ValueError("image() needs a Screen module: use <module.py>:<Screen>.<element>")
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+        if reason := _MODULE_ONLY.get(node.func.id):
+            raise ValueError(f"{reason}: use <module.py>:<Screen>.<element>")
     if not (
         isinstance(node, ast.Call)
         and isinstance(node.func, ast.Name)
         and node.func.id in _FACTORIES
     ):
-        raise ValueError(
-            f"Expected a call to ax(), text(), or applescript(), not {ast.unparse(node)}"
-        )
+        raise ValueError(f"Expected a call to ax() or text(), not {ast.unparse(node)}")
     factory = node.func.id
     arguments = [_literal(argument) for argument in node.args]
     keywords: dict[str, Any] = {}
@@ -125,7 +121,7 @@ def _build(node: ast.expr) -> Locator:
         if keyword.arg is None:
             raise ValueError(f"Unpacked arguments aren't allowed: {ast.unparse(node)}")
         if keyword.arg == "kind":
-            keywords["kind"] = _kind(factory, keyword.value)
+            keywords["kind"] = _kind(keyword.value)
         elif keyword.arg == "within":
             keywords["within"] = _within(keyword.value)
         else:
@@ -142,11 +138,10 @@ def _literal(node: ast.expr) -> Any:
     raise ValueError(f"Only literal strings and numbers are allowed, not {ast.unparse(node)}")
 
 
-def _kind(factory: str, node: ast.expr) -> type:
-    kinds = _KINDS.get(factory, {})
-    if isinstance(node, ast.Name) and node.id in kinds:
-        return kinds[node.id]
-    raise ValueError(f"kind= takes one of {', '.join(sorted(kinds))}, not {ast.unparse(node)}")
+def _kind(node: ast.expr) -> type:
+    if isinstance(node, ast.Name) and node.id in _KINDS:
+        return _KINDS[node.id]
+    raise ValueError(f"kind= takes one of {', '.join(sorted(_KINDS))}, not {ast.unparse(node)}")
 
 
 def _within(node: ast.expr) -> AXLocator:
