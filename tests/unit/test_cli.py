@@ -297,3 +297,12 @@ def test_window_flags_with_a_module_reference_exit_two(tmp_path, capsys):
 
     assert cli.main(["find", f"{module}:Main.ok", "--window-title", "Fonts"]) == 2
     assert "--window" in capsys.readouterr().err
+
+
+def test_find_prints_the_value_of_an_element_without_a_role(target, capsys):
+    with mock.patch.object(
+        cli.actions, "find", autospec=True, return_value=actions.Snapshot(value="OK")
+    ):
+        cli.main(["find", "TextEdit", LOCATOR])
+
+    assert capsys.readouterr().out == "value='OK'\n"

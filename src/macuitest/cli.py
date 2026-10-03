@@ -162,7 +162,8 @@ def _describe(snapshot: actions.Snapshot) -> str:
     if snapshot.box is not None:
         box = snapshot.box
         words.append(f"at {box.x1:g},{box.y1:g} {box.x2 - box.x1:g}x{box.y2 - box.y1:g}")
-    if snapshot.role:
+    # A screen element's snapshot is only its box.
+    if snapshot.role or snapshot.box is None:
         words.append(f"value={snapshot.value!r}")
     return " ".join(words)
 
