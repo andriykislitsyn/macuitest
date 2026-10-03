@@ -8,6 +8,7 @@ from macuitest.lib import actions
 from macuitest.lib.elements import applescript_element as script
 from macuitest.lib.elements import native_element as native
 from macuitest.lib.elements.controllers.mouse import Mouse
+from macuitest.lib.elements.native.calls import AXErrorInvalidUIElement
 from macuitest.lib.elements.native.calls import AXErrorUnsupported
 from macuitest.lib.elements.visible_text import VisibleText
 
@@ -302,3 +303,27 @@ def test_click_raises_no_window_error_when_the_app_has_no_window(monkeypatch):
 
     with pytest.raises(actions.NoWindowError, match="TextEdit has no window"):
         actions.click(mock.create_autospec(native.Button, instance=True), "TextEdit")
+
+
+def test_bring_to_front_returns_a_check_that_reads_focus_again(front_app):
+    front_app.get_ax_attribute.side_effect = [True, False]
+
+    in_front = actions.bring_to_front("TextEdit")
+
+    front_app.activate.assert_called_once_with()
+    assert in_front() is False
+
+
+def test_bring_to_front_raises_no_window_error_without_a_window(monkeypatch):
+    monkeypatch.setattr(actions, "app_root", lambda app: None)
+
+    with pytest.raises(actions.NoWindowError, match="TextEdit has no window"):
+        actions.bring_to_front("TextEdit")
+
+
+def test_bring_to_front_reads_an_app_that_quit_as_not_in_front(front_app, monkeypatch):
+    monkeypatch.setattr(actions, "FOCUS_TIMEOUT", 0)
+    front_app.get_ax_attribute.side_effect = AXErrorInvalidUIElement("gone")
+
+    with pytest.raises(actions.FocusError, match="TextEdit"):
+        actions.bring_to_front("TextEdit")

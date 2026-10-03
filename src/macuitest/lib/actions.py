@@ -8,6 +8,7 @@ import re
 import time
 from dataclasses import dataclass
 from typing import Any
+from typing import Callable
 from typing import Optional
 
 from macuitest.config.constants import Region
@@ -142,6 +143,32 @@ def set_value(element: Any, value: str) -> None:
         raise UsageError("set needs an ax() element, or an applescript() text element")
 
 
+def bring_to_front(app: str) -> Callable[[], bool]:
+    """Activate `app`, wait until it's in front, and return a check that it still is.
+
+    Raises:
+        NoWindowError: `app` has no window.
+        FocusError: `app` didn't come to the front.
+    """
+    root = app_root(app)
+    if root is None:
+        raise NoWindowError(f"{app} has no window")
+    try:
+        root.activate()
+    except GONE:
+        pass
+
+    def in_front() -> bool:
+        try:
+            return bool(root.get_ax_attribute("AXFrontmost"))
+        except GONE:
+            return False
+
+    if not wait_condition(in_front, timeout=FOCUS_TIMEOUT):
+        raise FocusError(f"{app} didn't come to the front, so no input was sent")
+    return in_front
+
+
 def click(element: Any, app: Optional[str], double: bool = False, right: bool = False) -> None:
     """Bring `app` to the front, find the element, then click its center with the mouse.
 
@@ -161,16 +188,7 @@ def click(element: Any, app: Optional[str], double: bool = False, right: bool = 
     process = getattr(element, "process", app)
     if process != app:
         raise UsageError(f"The element belongs to {process}, not {app}")
-    root = app_root(app)
-    if root is None:
-        raise NoWindowError(f"{app} has no window")
-    try:
-        root.activate()
-    except GONE:
-        pass
-    in_front = lambda: root.get_ax_attribute("AXFrontmost")  # noqa: E731
-    if not wait_condition(in_front, timeout=FOCUS_TIMEOUT):
-        raise FocusError(f"{app} didn't come to the front, so nothing was clicked")
+    in_front = bring_to_front(app)
     # Found after activating, since another window may cover the element until then.
     center = element.get_center() if isinstance(element, ScreenElement) else element.frame.center
     # Finding a screen element can take seconds, enough for the user to switch apps.
