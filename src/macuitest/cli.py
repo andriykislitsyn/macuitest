@@ -1,6 +1,7 @@
 """The macuitest command: inspect apps, manage screen locators, and act on elements."""
 
 import argparse
+import json
 import sys
 from pathlib import Path
 from typing import Optional
@@ -79,8 +80,10 @@ def main(argv: Optional[list[str]] = None) -> int:
         window = AXQuery.of(title=args.window_title, subrole=args.window_subrole)
     if args.command in VERBS:
         parts, rest = _split_target(args.target)
-        if len(rest) != (1 if args.command == "set" else 0):
-            parser.error(f"{args.command}: unexpected arguments {' '.join(rest) or '(none)'}")
+        if args.command == "set" and not rest:
+            parser.error("set needs a value after the element")
+        if len(rest) > (1 if args.command == "set" else 0):
+            parser.error(f"{args.command}: unexpected arguments {' '.join(rest)}")
         return _act(args, parts, rest, window)
     if args.command == "tree":
         return _tree(args.app, window, args.role, args.activate)
@@ -115,6 +118,9 @@ def _act(
     try:
         target = resolve(parts, window)
         return _run(args, target, rest)
+    except actions.NoWindowError as error:
+        print(f"{error}. Launch it first.", file=sys.stderr)
+        return 1
     except (LookupError, UIElementNotFoundOnScreen):
         label = target.label if target else " ".join(parts)
         app = target.app if target and target.app else "<app>"
@@ -164,7 +170,7 @@ def _describe(snapshot: actions.Snapshot) -> str:
     if snapshot.role:
         words.append(snapshot.role)
     if snapshot.title:
-        words.append(f'"{snapshot.title}"')
+        words.append(json.dumps(snapshot.title, ensure_ascii=False))
     if snapshot.box is not None:
         box = snapshot.box
         words.append(f"at {box.x1:g},{box.y1:g} {box.x2 - box.x1:g}x{box.y2 - box.y1:g}")

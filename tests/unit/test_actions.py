@@ -274,3 +274,31 @@ def test_click_rejects_double_and_right_together(front_app):
         actions.click(
             mock.create_autospec(native.Button, instance=True), "TextEdit", double=True, right=True
         )
+
+
+def test_read_strips_bidi_marks_apps_put_around_text():
+    element = native.StaticText(item=ax_item(AXValue="‎7‎"))
+
+    assert actions.read(element) == "7"
+
+
+def test_read_returns_none_for_a_static_text_without_a_value():
+    element = native.StaticText(item=ax_item(AXValue=None))
+
+    assert actions.read(element) is None
+
+
+def test_find_strips_bidi_marks_from_the_value():
+    element = native.StaticText(item=ax_item(AXRole="AXStaticText", AXValue="‎42"))
+
+    snapshot = actions.find(element)
+
+    assert snapshot is not None
+    assert snapshot.value == "42"
+
+
+def test_click_raises_no_window_error_when_the_app_has_no_window(monkeypatch):
+    monkeypatch.setattr(actions, "app_root", lambda app: None)
+
+    with pytest.raises(actions.NoWindowError, match="TextEdit has no window"):
+        actions.click(mock.create_autospec(native.Button, instance=True), "TextEdit")

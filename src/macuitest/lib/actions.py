@@ -4,6 +4,7 @@ Functions return values and raise typed errors. They never print, so the command
 front ends format results their own way.
 """
 
+import re
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -21,6 +22,8 @@ from macuitest.lib.elements.screen_element import ScreenElement
 
 # Seconds to wait for an activated app to come to the front before refusing to click.
 FOCUS_TIMEOUT: float = 3
+# Invisible direction marks, which apps such as Calculator put around displayed text.
+_BIDI_MARKS = re.compile("[\u200e\u200f\u202a-\u202e\u2066-\u2069]")
 
 
 class UsageError(ValueError):
@@ -33,6 +36,10 @@ class FocusError(RuntimeError):
 
 class ActionError(RuntimeError):
     """The element doesn't support the action."""
+
+
+class NoWindowError(LookupError):
+    """The app isn't running, or has no window to act in."""
 
 
 @dataclass(frozen=True)
@@ -56,25 +63,28 @@ def find(element: Any) -> Optional[Snapshot]:
         except LookupError:
             return None
         read = item.get_ax_attribute
-        return Snapshot(read("AXRole"), read("AXTitle"), read("AXValue"), frame_of(item))
+        value = _without_marks(read("AXValue"))
+        return Snapshot(read("AXRole"), read("AXTitle"), value, frame_of(item))
     if not element.exists:
         return None
-    return Snapshot(value=element.value)
+    return Snapshot(value=_without_marks(element.value))
 
 
 def read(element: Any) -> Any:
-    """Return a text element's text, else the element's value.
+    """Return the element's value, or an AppleScript text element's text, without direction marks.
 
     Raises:
         UsageError: The element is visible text or an image.
     """
     if isinstance(element, ScreenElement):
         raise UsageError("read needs an ax() or applescript() element")
-    if isinstance(element, native_element.StaticText):
-        return element.text
     if isinstance(element, applescript_element.TextElement):
-        return element.get_text()
-    return element.value
+        return _without_marks(element.get_text())
+    return _without_marks(element.value)
+
+
+def _without_marks(value: Any) -> Any:
+    return _BIDI_MARKS.sub("", value) if isinstance(value, str) else value
 
 
 def wait(element: Any, vanish: bool = False, timeout: Optional[float] = None) -> bool:
@@ -140,7 +150,8 @@ def click(element: Any, app: Optional[str], double: bool = False, right: bool = 
     Raises:
         UsageError: `app` is None, both `double` and `right` are set, or the element belongs to
             another process.
-        LookupError: `app` has no window, or the element isn't there.
+        NoWindowError: `app` has no window.
+        LookupError: The element isn't there.
         FocusError: `app` isn't in front, so nothing was clicked.
     """
     if double and right:
@@ -152,7 +163,7 @@ def click(element: Any, app: Optional[str], double: bool = False, right: bool = 
         raise UsageError(f"The element belongs to {process}, not {app}")
     root = app_root(app)
     if root is None:
-        raise LookupError(f"{app} has no window")
+        raise NoWindowError(f"{app} has no window")
     try:
         root.activate()
     except GONE:

@@ -1,6 +1,8 @@
 import os
 import textwrap
 
+import cv2
+import numpy
 import pytest
 
 from macuitest.lib.elements import native_element
@@ -185,3 +187,44 @@ def test_resolve_reports_a_module_that_fails_as_a_bad_reference(tmp_path, source
 
     with pytest.raises(ValueError, match="screens.py"):
         resolve([f"{module}:Fonts.search"])
+
+
+def test_resolve_scopes_a_module_text_element_to_its_within(tmp_path):
+    module = tmp_path / "screens.py"
+    module.write_text(
+        textwrap.dedent(
+            """\
+            from macuitest.lib.elements.locators import Screen, ax, text
+
+
+            class Calculator(Screen, app="Calculator"):
+                keypad = ax(identifier="CalculatorKeypadView")
+                all_clear = text("AC", within=keypad)
+            """
+        )
+    )
+
+    element = resolve([f"{module}:Calculator.all_clear"]).element
+
+    assert element.scope == vars(module_screen(module, "Calculator"))["keypad"].region
+
+
+def module_screen(module, name):
+    import sys
+
+    return getattr(sys.modules[f"macuitest_checked_{module.stem}"], name)
+
+
+def test_resolve_loads_a_module_image_element_from_its_folder(tmp_path):
+    module = tmp_path / "screens.py"
+    module.write_text(
+        "from macuitest.lib.elements.locators import Screen, image\n\n\n"
+        "class Fonts(Screen, app='TextEdit'):\n    search = image()\n"
+    )
+    png = tmp_path / "screens" / "fonts" / "search.png"
+    png.parent.mkdir(parents=True)
+    cv2.imwrite(str(png), numpy.zeros((8, 8), dtype=numpy.uint8))
+
+    element = resolve([f"{module}:Fonts.search"]).element
+
+    assert element.path == png

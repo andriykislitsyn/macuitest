@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- `macuitest read` and `find` drop invisible direction marks, such as the ones Calculator puts around its display, so `read` prints `7`, not `‎7`.
+- `macuitest read` prints an empty line for a static text without a value, not `None`.
+- `macuitest click` on an app without a window says so, and suggests launching it.
+- `macuitest set` without a value says it needs one.
+- `macuitest find` prints a title as a string literal, so a quoted title can be copied into a locator.
+
 ## 0.10.0 (2026-10-03)
 
 ### Breaking changes
