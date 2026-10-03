@@ -10,6 +10,7 @@
 
 - `macuitest launch`, `quit`, `menu`, `keys`, `type`, and `screenshot` let an agent open and quit apps, press menu items, post shortcuts, type text, and see a window, without AppleScript. `quit` is polite, so an app asking to save stays open.
 - `tree` and `capture` give an element without labels of its own a `.child()` locator through its nearest labeled ancestor, such as Calculator's display text, instead of no locator or `image()`. Elements in tables and lists, and layout containers, still get none.
+- `macuitest check --live <module>` looks up every `ax()` and `applescript()` element of the module's screens in the running app, read-only, and lists the ones it doesn't find. It exits 1 on any miss, or when an app isn't running.
 - `macuitest` locator strings accept `.child()`, and `child()` takes `kind=` for the descendant's element class.
 
 ### Fixed

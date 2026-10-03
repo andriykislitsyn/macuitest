@@ -1,6 +1,6 @@
 # Agent notes for macuitest
 
-macuitest drives real macOS apps. Anything that posts input (clicks, keys, `Application.activate`, `macuitest click`, `launch`, `keys`, `type`, `capture`, `tree --activate`) moves the user's focus and can type into the wrong app. Run those only when the user approves that run. `macuitest press`, `set`, `menu`, and `quit` change the app without taking focus, and still need approval. Reading is safe: `macuitest tree`, `find`, `read`, and `wait` with a locator string, `macuitest screenshot`, AX attribute reads, and System Events `get` and `exists` queries. A module reference, and `check`, import the module and run its code.
+macuitest drives real macOS apps. Anything that posts input (clicks, keys, `Application.activate`, `macuitest click`, `launch`, `keys`, `type`, `capture`, `tree --activate`) moves the user's focus and can type into the wrong app. Run those only when the user approves that run. `macuitest press`, `set`, `menu`, and `quit` change the app without taking focus, and still need approval. Reading is safe: `macuitest tree`, `find`, `read`, and `wait` with a locator string, `macuitest screenshot`, AX attribute reads, and System Events `get` and `exists` queries. A module reference, and `check`, import the module and run its code. `check --live` also reads the running app through accessibility and System Events, without taking focus.
 
 ## Commands
 

@@ -217,7 +217,7 @@ Rows of tables, outlines, and lists show data that changes, such as the font lis
 
 Then edit the generated module: delete the entries you don't need, and switch an entry to `image()` where its accessibility attributes don't identify it. Identifiers that encode state, such as Calculator's `Mode: basic; unitConversion: false`, need a stable replacement, such as a match on the description.
 
-`check` lists declared images that are missing on disk and PNGs that no element declares. It exits with status 1 when it finds either.
+`check` lists declared images that are missing on disk and PNGs that no element declares. It exits with status 1 when it finds either. With `--live`, it also looks up each `ax()` and `applescript()` element in the running app, without pressing anything or bringing the app forward, and lists the ones it doesn't find. It skips `text()` and `image()` elements, which match pixels, and screens declared without `app=`. An element that appears only after an action, such as a result row, shows as not found. Run it after a macOS update.
 
 ## Configure macuitest
 

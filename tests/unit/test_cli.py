@@ -9,6 +9,8 @@ from macuitest import cli
 from macuitest.config.constants import Region
 from macuitest.lib import actions
 from macuitest.lib import app_actions
+from macuitest.lib.applescript_lib.applescript_wrapper import AppleScriptError
+from macuitest.lib.elements.locators import check
 from macuitest.lib.elements.locators.accessibility import AXQuery
 from macuitest.lib.elements.locators.target import Target
 from macuitest.lib.elements.native.calls import AXErrorUnsupported
@@ -387,3 +389,71 @@ def test_app_verb_errors_map_to_exit_codes(capsys, error, code, message):
         assert cli.main(["keys", "TextEdit", "cmd+s"]) == code
 
     assert message in capsys.readouterr().err
+
+
+LIVE_MODULE = """
+from macuitest.lib.elements.locators import Screen, ax, text
+
+class Main(Screen, app="Calculator"):
+    seven = ax(identifier="Seven")
+    result = ax(identifier="Result")
+    label = text("Send")
+"""
+
+
+@pytest.fixture
+def live_module(tmp_path):
+    module = tmp_path / "screens.py"
+    module.write_text(textwrap.dedent(LIVE_MODULE))
+    return module
+
+
+def test_check_live_lists_missing_elements_and_the_counts(live_module, capsys):
+    report = check.LiveReport(
+        found=["Main.seven"], missing=["Main.result"], skipped=["Main.label"], not_running=[]
+    )
+    with mock.patch.object(cli, "check_live", return_value=report):
+        code = cli.main(["check", "--live", str(live_module)])
+
+    out = capsys.readouterr().out
+    assert code == 1
+    assert "Not found: Main.result" in out
+    assert "1 of 2 found, 1 not checked" in out
+
+
+def test_check_live_exits_zero_when_everything_resolves(live_module, capsys):
+    report = check.LiveReport(
+        found=["Main.seven", "Main.result"], missing=[], skipped=["Main.label"], not_running=[]
+    )
+    with mock.patch.object(cli, "check_live", return_value=report):
+        code = cli.main(["check", "--live", str(live_module)])
+
+    assert code == 0
+    assert "2 of 2 found, 1 not checked" in capsys.readouterr().out
+
+
+def test_check_live_says_to_launch_an_app_that_isnt_running(live_module, capsys):
+    report = check.LiveReport(found=[], missing=[], skipped=[], not_running=["Calculator"])
+    with mock.patch.object(cli, "check_live", return_value=report):
+        code = cli.main(["check", "--live", str(live_module)])
+
+    assert code == 1
+    assert "Calculator isn't running. Launch it first." in capsys.readouterr().err
+
+
+def test_check_without_live_never_reads_the_running_apps(live_module):
+    with mock.patch.object(cli, "check_live", autospec=True) as check_live:
+        cli.main(["check", str(live_module)])
+
+    check_live.assert_not_called()
+
+
+def test_check_live_reports_a_system_events_failure_and_exits_one(live_module, capsys):
+    error = AppleScriptError(
+        {"NSAppleScriptErrorMessage": "boom", "NSAppleScriptErrorNumber": -1743}
+    )
+    with mock.patch.object(cli, "check_live", side_effect=error):
+        code = cli.main(["check", "--live", str(live_module)])
+
+    assert code == 1
+    assert "boom" in capsys.readouterr().err
