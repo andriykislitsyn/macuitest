@@ -17,6 +17,7 @@ def ax_item(**attributes):
     item = mock.Mock()
     values = {"AXPosition": (412, 88), "AXSize": (24, 24), **attributes}
     item.get_ax_attribute.side_effect = values.get
+    item.ax_actions = ["AXPress"]
     return item
 
 
@@ -116,6 +117,16 @@ def test_press_performs_the_press_action_on_an_element_declared_without_kind():
     actions.press(native.NativeElement(item=item))
 
     item.press.assert_called_once_with()
+
+
+def test_press_refuses_an_element_without_a_press_action():
+    item = ax_item()
+    item.ax_actions = ["AXShowMenu"]
+
+    with pytest.raises(actions.ActionError, match="AXShowMenu"):
+        actions.press(native.StaticText(item=item))
+
+    item.press.assert_not_called()
 
 
 def test_press_clicks_an_applescript_element_with_the_pause():

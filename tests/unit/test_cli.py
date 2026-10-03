@@ -266,6 +266,7 @@ def test_click_passes_the_app_and_options(target):
         (actions.UsageError("press needs an ax() element"), 2),
         (ValueError("could not convert"), 2),
         (actions.FocusError("TextEdit didn't come to the front"), 1),
+        (actions.ActionError("no press action"), 1),
         (AXErrorUnsupported('Attribute "AXValue" is not settable'), 1),
         (PermissionError("Grant Accessibility"), 1),
     ],

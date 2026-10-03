@@ -69,7 +69,7 @@ An agent with a shell works in three steps:
 | `find` | Prints the element's role, title, frame, and value, or exits 1 when it isn't there. Doesn't wait. | No |
 | `read` | Prints the element's text or value. | No |
 | `wait` | Waits for the element to appear, or to vanish with `--vanish`. | No |
-| `press` | Performs the element's accessibility press action without moving the pointer. | No |
+| `press` | Performs the element's accessibility press action without moving the pointer. Exits 1 when the element offers none, such as a sidebar label: use `click` there. | No |
 | `set` | Writes the element's value, such as a text field's text. | No |
 | `click` | Brings the app to the front, then clicks with the mouse. `--double` and `--right` change the click. | Yes |
 

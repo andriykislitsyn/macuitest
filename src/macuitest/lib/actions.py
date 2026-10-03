@@ -31,6 +31,10 @@ class FocusError(RuntimeError):
     """The app didn't come to the front, so no input was sent."""
 
 
+class ActionError(RuntimeError):
+    """The element doesn't support the action."""
+
+
 @dataclass(frozen=True)
 class Snapshot:
     """What `find` saw: the accessibility role, title, and value, and the box on screen."""
@@ -88,13 +92,20 @@ def press(element: Any, pause: Optional[float] = None) -> None:
 
     Raises:
         UsageError: The element is visible text or an image.
+        ActionError: The accessibility element doesn't offer a press action.
     """
     if isinstance(element, ScreenElement):
         raise UsageError("press needs an ax() or applescript() element. Use click for this one.")
     if isinstance(element, native_element.NativeElement):
+        item = element.item
+        # macOS reports success for a press the element doesn't support, and nothing happens.
+        supported = item.ax_actions
+        if "AXPress" not in supported:
+            offered = ", ".join(supported) or "none"
+            raise ActionError(f"The element has no press action (it offers: {offered}). Try click.")
         if pause:
             time.sleep(pause)
-        element.item.press()
+        item.press()
     elif pause is None:
         element.click()
     else:

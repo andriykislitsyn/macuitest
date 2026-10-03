@@ -123,7 +123,13 @@ def _act(
     except ValueError as error:
         print(error, file=sys.stderr)
         return 2
-    except (actions.FocusError, AXError, AppleScriptError, PermissionError) as error:
+    except (
+        actions.ActionError,
+        actions.FocusError,
+        AXError,
+        AppleScriptError,
+        PermissionError,
+    ) as error:
         print(error, file=sys.stderr)
         return 1
 
