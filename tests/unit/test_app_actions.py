@@ -95,3 +95,88 @@ def test_quit_raises_when_the_app_is_still_running(workspace, monkeypatch):
 
     with pytest.raises(app_actions.QuitError, match="may be asking to save"):
         app_actions.quit("TextEdit", timeout=0)
+
+
+class FakeAX:
+    """An accessibility element with fixed attributes that records presses."""
+
+    def __init__(self, *children, **attributes):
+        self.attributes = {"AXChildren": list(children), "AXEnabled": True, **attributes}
+        self.presses = 0
+
+    def get_ax_attribute(self, name):
+        return self.attributes.get(name)
+
+    def press(self):
+        self.presses += 1
+
+
+def item(title, *children, enabled=True):
+    return FakeAX(*children, AXRole="AXMenuItem", AXTitle=title, AXEnabled=enabled)
+
+
+def submenu(*items):
+    return FakeAX(*items, AXRole="AXMenu")
+
+
+@pytest.fixture
+def menu_bar(monkeypatch):
+    """Serve TextEdit with File > New, Save…, Export > PDF, and a disabled Revert."""
+    pdf = item("PDF")
+    parts = {
+        "new": item("New"),
+        "save": item("Save…"),
+        "pdf": pdf,
+        "revert": item("Revert", enabled=False),
+    }
+    file_menu = submenu(
+        parts["new"], item(""), parts["save"], item("Export", submenu(pdf)), parts["revert"]
+    )
+    bar = FakeAX(
+        FakeAX(file_menu, AXRole="AXMenuBarItem", AXTitle="File"),
+        AXRole="AXMenuBar",
+    )
+    monkeypatch.setattr(app_actions, "app_element", lambda app: FakeAX(bar))
+    return parts
+
+
+def test_menu_presses_an_item(menu_bar):
+    app_actions.menu("TextEdit", "File > New")
+
+    assert menu_bar["new"].presses == 1
+
+
+def test_menu_matches_three_dots_to_an_ellipsis(menu_bar):
+    app_actions.menu("TextEdit", "File > Save...")
+
+    assert menu_bar["save"].presses == 1
+
+
+def test_menu_walks_into_a_submenu(menu_bar):
+    app_actions.menu("TextEdit", "File>Export>PDF")
+
+    assert menu_bar["pdf"].presses == 1
+
+
+def test_menu_lists_the_titles_where_a_step_is_missing(menu_bar):
+    with pytest.raises(actions.ActionError, match='No "Sav" in File. It has: New, Save…, Export'):
+        app_actions.menu("TextEdit", "File > Sav")
+
+
+def test_menu_refuses_a_disabled_item(menu_bar):
+    with pytest.raises(actions.ActionError, match="Revert is disabled"):
+        app_actions.menu("TextEdit", "File > Revert")
+
+    assert menu_bar["revert"].presses == 0
+
+
+def test_menu_needs_a_menu_and_an_item(menu_bar):
+    with pytest.raises(actions.UsageError, match="File > Save"):
+        app_actions.menu("TextEdit", "File")
+
+
+def test_menu_raises_no_window_error_when_the_app_isnt_running(monkeypatch):
+    monkeypatch.setattr(app_actions, "app_element", lambda app: None)
+
+    with pytest.raises(actions.NoWindowError, match="TextEdit isn't running"):
+        app_actions.menu("TextEdit", "File > New")

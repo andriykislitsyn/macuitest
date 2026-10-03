@@ -9,7 +9,9 @@ from typing import Optional
 
 import AppKit
 
+from macuitest.lib.actions import ActionError
 from macuitest.lib.actions import NoWindowError
+from macuitest.lib.actions import UsageError
 from macuitest.lib.core import wait_condition
 from macuitest.lib.elements.locators.accessibility import GONE
 from macuitest.lib.elements.locators.accessibility import alive
@@ -64,6 +66,52 @@ def quit(app: str, timeout: float = QUIT_TIMEOUT) -> bool:
             f"{app} is still running. It may be asking to save: answer it with find and press."
         )
     return True
+
+
+def menu(app: str, path: str) -> None:
+    """Press the menu item `path` names, such as "File > Save…", without taking focus.
+
+    Three dots match an ellipsis.
+
+    Raises:
+        UsageError: `path` doesn't name a menu and an item.
+        NoWindowError: `app` isn't running.
+        ActionError: A step isn't in its menu, or the item is disabled.
+    """
+    steps = [_menu_title(step.strip()) for step in path.split(">")]
+    if len(steps) < 2 or not all(steps):
+        raise UsageError('Name a menu and an item, such as "File > Save…"')
+    root = app_element(app)
+    if root is None:
+        raise NoWindowError(f"{app} isn't running")
+    bar = next((c for c in _children(root) if c.get_ax_attribute("AXRole") == "AXMenuBar"), None)
+    if bar is None:
+        raise ActionError(f"{app} has no menu bar")
+    choices, where = _children(bar), "the menu bar"
+    for depth, step in enumerate(steps):
+        match = next((c for c in choices if _menu_title(_title(c)) == step), None)
+        if match is None:
+            titles = ", ".join(t for t in (_title(c) for c in choices) if t)
+            raise ActionError(f'No "{step}" in {where}. It has: {titles}')
+        if depth == len(steps) - 1:
+            if not match.get_ax_attribute("AXEnabled"):
+                raise ActionError(f"{_title(match)} is disabled")
+            match.press()
+            return
+        menus = [c for c in _children(match) if c.get_ax_attribute("AXRole") == "AXMenu"]
+        choices, where = (_children(menus[0]) if menus else []), _title(match)
+
+
+def _children(element: Any) -> list[Any]:
+    return element.get_ax_attribute("AXChildren") or []
+
+
+def _title(element: Any) -> str:
+    return element.get_ax_attribute("AXTitle") or ""
+
+
+def _menu_title(title: str) -> str:
+    return title.replace("...", "…")
 
 
 def running(app: str) -> list[Any]:
