@@ -8,6 +8,7 @@ from macuitest.lib.elements.locators.capture import capture
 from macuitest.lib.elements.locators.capture import walk
 from macuitest.lib.elements.locators.capture import window_number
 from macuitest.lib.elements.native.calls import AXErrorFailure
+from macuitest.lib.elements.ui_element import recorded_scale
 
 
 class FakeAX:
@@ -190,6 +191,12 @@ def test_capture_writes_a_module_and_a_png_per_element_inside_the_window(app, tm
     assert png is not None
     # 60x24 pt plus 4 pt on each side, at 2x.
     assert png.shape[:2] == (64, 136)
+
+
+def test_capture_records_the_capture_scale_in_each_png(app, tmp_path):
+    capture("Calculator", tmp_path / "calculator.py")
+
+    assert recorded_scale(tmp_path / "calculator" / "calculator" / "ok.png") == 2
 
 
 def test_capture_keeps_only_the_given_roles(app, tmp_path):

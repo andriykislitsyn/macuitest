@@ -12,6 +12,7 @@ from typing import Sequence
 import Quartz
 from Foundation import NSURL
 
+from macuitest.config.constants import POINTS_PER_INCH
 from macuitest.config.constants import Region
 from macuitest.lib.core import wait_condition
 from macuitest.lib.elements.locators.accessibility import GONE
@@ -237,8 +238,10 @@ def window_number(pid: int, frame: Region) -> Optional[int]:
     return int(matches[0]["kCGWindowNumber"]) if matches else None
 
 
-def write_png(image: Any, box: tuple[int, int, int, int], path: Path) -> None:
+def write_png(image: Any, box: tuple[int, int, int, int], path: Path, scale: float) -> None:
     """Write the `box` (x, y, width, height) pixels of CGImage `image` to `path` as a PNG.
+
+    The PNG records `scale`, the image's pixels per point, as its DPI.
 
     Raises:
         OSError: The PNG can't be written.
@@ -249,7 +252,12 @@ def write_png(image: Any, box: tuple[int, int, int, int], path: Path) -> None:
     )
     if destination is None:
         raise OSError(f"Can't write {path}")
-    Quartz.CGImageDestinationAddImage(destination, cropped, None)
+    dpi = POINTS_PER_INCH * scale
+    Quartz.CGImageDestinationAddImage(
+        destination,
+        cropped,
+        {Quartz.kCGImagePropertyDPIWidth: dpi, Quartz.kCGImagePropertyDPIHeight: dpi},
+    )
     if not Quartz.CGImageDestinationFinalize(destination):
         raise OSError(f"Can't write {path}")
 
@@ -328,7 +336,7 @@ def capture(
         frame = entry.found.frame
         box = None if frame is None else crop_box(frame, window_frame, margin, scale)
         if box is not None:
-            write_png(image, box, png)
+            write_png(image, box, png, scale)
     out.write_text(render_module(screen, app, entries, window))
     return [out, *pngs]
 
