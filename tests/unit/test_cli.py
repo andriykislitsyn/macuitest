@@ -307,3 +307,27 @@ def test_find_prints_the_value_of_an_element_without_a_role(target, capsys):
         cli.main(["find", "TextEdit", LOCATOR])
 
     assert capsys.readouterr().out == "value='OK'\n"
+
+
+def test_set_without_a_value_asks_for_one(target, capsys):
+    with pytest.raises(SystemExit) as exit_:
+        cli.main(["set", "TextEdit", LOCATOR])
+
+    assert exit_.value.code == 2
+    assert "set needs a value after the element" in capsys.readouterr().err
+
+
+def test_find_prints_a_title_as_a_string_literal(target, capsys):
+    snapshot = actions.Snapshot("AXButton", 'Say "hi"', None, None)
+    with mock.patch.object(cli.actions, "find", autospec=True, return_value=snapshot):
+        cli.main(["find", "TextEdit", LOCATOR])
+
+    assert capsys.readouterr().out == 'AXButton "Say \\"hi\\"" value=None\n'
+
+
+def test_click_on_an_app_without_a_window_says_so(target, capsys):
+    error = actions.NoWindowError("TextEdit has no window")
+    with mock.patch.object(cli.actions, "click", autospec=True, side_effect=error):
+        assert cli.main(["click", "TextEdit", LOCATOR]) == 1
+
+    assert capsys.readouterr().err == "TextEdit has no window. Launch it first.\n"
