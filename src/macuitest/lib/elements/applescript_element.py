@@ -15,6 +15,7 @@ from macuitest.config.constants import DisclosureTriangleState
 from macuitest.config.constants import Frame
 from macuitest.config.constants import Point
 from macuitest.config.constants import Region
+from macuitest.config.settings import settings
 from macuitest.lib import core
 from macuitest.lib.applescript_lib.aeconverter import AEType
 from macuitest.lib.applescript_lib.applescript_wrapper import AppleScriptError
@@ -89,33 +90,39 @@ class BaseUIElement:
         c = self.frame.center
         mouse.scroll(c.x + x_off, c.y + y_off, scrolls=clicks)
 
-    def doubleclick_mouse(self, x_off: int = 0, y_off: int = 0, duration: Optional[float] = None):
-        c = self.frame.center
-        mouse.double_click(c.x + x_off, c.y + y_off, duration=duration)
-
-    def rightclick_mouse(
-        self,
-        x_off: int = 0,
-        y_off: int = 0,
-        hold: Optional[float] = None,
-        duration: Optional[float] = None,
-        pause: Optional[float] = None,
-    ) -> None:
-        c = self.frame.center
-        mouse.right_click(c.x + x_off, c.y + y_off, hold, duration, pause)
-
     def click_mouse(
         self,
         x_off: int = 0,
         y_off: int = 0,
+        *,
         hold: Optional[float] = None,
         duration: Optional[float] = None,
         pause: Optional[float] = None,
     ) -> None:
         c = self.frame.center
-        mouse.click(c.x + x_off, c.y + y_off, hold, duration, pause)
+        mouse.click(c.x + x_off, c.y + y_off, hold=hold, duration=duration, pause=pause)
 
-    def hover_mouse(self, x_off: int = 0, y_off: int = 0, duration: Optional[float] = None) -> None:
+    def double_click_mouse(
+        self, x_off: int = 0, y_off: int = 0, *, duration: Optional[float] = None
+    ) -> None:
+        c = self.frame.center
+        mouse.double_click(c.x + x_off, c.y + y_off, duration=duration)
+
+    def right_click_mouse(
+        self,
+        x_off: int = 0,
+        y_off: int = 0,
+        *,
+        hold: Optional[float] = None,
+        duration: Optional[float] = None,
+        pause: Optional[float] = None,
+    ) -> None:
+        c = self.frame.center
+        mouse.right_click(c.x + x_off, c.y + y_off, hold=hold, duration=duration, pause=pause)
+
+    def hover_mouse(
+        self, x_off: int = 0, y_off: int = 0, *, duration: Optional[float] = None
+    ) -> None:
         c = self.frame.center
         mouse.hover(c.x + x_off, c.y + y_off, duration=duration)
 
@@ -192,20 +199,37 @@ class BaseUIElement:
         """Check whether element enabled"""
         return self.__attribute("AXEnabled")
 
-    @property
-    def did_vanish(self) -> bool:
-        return self.wait_vanish()
+    def wait_vanish(self, timeout: Optional[float] = None) -> bool:
+        """Return whether the element disappears within `timeout` seconds.
 
-    def wait_vanish(self, timeout: float = 5) -> bool:
+        `timeout` defaults to `settings.elements.vanish_timeout`.
+        """
+        timeout = settings.elements.vanish_timeout if timeout is None else timeout
         self.wait_displayed(timeout=0.3)
-        return wait_condition(lambda: self.is_exists() is False, timeout=timeout)
+        return wait_condition(lambda: not self.exists, timeout=timeout)
 
     @property
     def is_visible(self) -> bool:
-        return self.wait_displayed()
+        """Whether System Events finds the element now. Doesn't wait."""
+        return self.exists
 
-    def wait_displayed(self, timeout: Union[int, float] = 5):
-        return wait_condition(self.is_exists, timeout=timeout)
+    def wait_displayed(self, timeout: Optional[float] = None) -> bool:
+        """Return whether the element appears within `timeout` seconds.
+
+        `timeout` defaults to `settings.elements.timeout`.
+        """
+        timeout = settings.elements.timeout if timeout is None else timeout
+        return bool(wait_condition(lambda: self.exists, timeout=timeout))
+
+    @property
+    def exists(self) -> bool:
+        """Whether System Events finds the element now."""
+        try:
+            return bool(self._execute("return exists"))
+        except AppleScriptError as e:
+            if e.number == -10000:
+                return False
+            raise
 
     def perform_action(self, action):
         self._execute(f'perform action "{action}" of')
@@ -233,15 +257,6 @@ class BaseUIElement:
         except AppleScriptError:
             return []
 
-    def is_exists(self) -> bool:
-        try:
-            return self._execute("return exists")
-        except AppleScriptError as e:
-            if e.number == -10000:
-                pass
-            else:
-                raise
-
     def __when_present(self, run: Callable[[], Any]) -> Any:
         """Return `run()`, waiting for the element only when the first attempt can't find it.
 
@@ -251,7 +266,7 @@ class BaseUIElement:
         try:
             return run()
         except AppleScriptError as e:
-            if e.number not in _MISSING or self.is_exists():
+            if e.number not in _MISSING or self.exists:
                 raise
             # System Events' message names the link of the locator that resolved to nothing.
             missing = e
@@ -521,14 +536,16 @@ class Window(BaseUIElement):
         converted = {True: "true", False: "false"}.get(value)
         self._set_attribute("AXMinimized", converted)
 
-    def is_minimized(self):
+    @property
+    def is_minimized(self) -> bool:
         return self.get_attribute_value("AXMinimized")
 
     def set_full_screen(self, value):
         converted = {True: "true", False: "false"}.get(value)
-        self._set_attribute("AXFrontmost", converted)
+        self._set_attribute("AXFullScreen", converted)
 
-    def is_full_screen(self):
+    @property
+    def is_full_screen(self) -> bool:
         return self.get_attribute_value("AXFullScreen")
 
     @property
@@ -537,8 +554,8 @@ class Window(BaseUIElement):
 
     position = property(get_position, set_position)
     size = property(get_size, set_size)
-    minimized = property(is_minimized, set_minimized)
-    full_screen = property(is_full_screen, set_full_screen)
+    minimized = property(is_minimized.fget, set_minimized)
+    full_screen = property(is_full_screen.fget, set_full_screen)
 
 
 class WebView(BaseUIElement):
