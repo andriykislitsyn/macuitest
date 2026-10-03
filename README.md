@@ -77,7 +77,7 @@ Prefer `press` and `set`: they work while the app stays in the background. `clic
 
 Every verb exits 0 when it's done, 1 when the element is missing, a wait times out, focus is refused, or the app rejects the action, and 2 for bad usage, such as an invalid locator. A locator string is parsed, never run as Python. `--window-title` and `--window-subrole` scope a locator string to one window.
 
-Reading is safe at any time. `press`, `set`, and `click` change the app, and `click` moves the user's focus, so have the agent ask before it runs them. In Claude Code, these rules in `.claude/settings.json` allow the reads and ask for the rest:
+Reading is safe at any time. `press`, `set`, and `click` change the app, and `click` moves the user's focus, so have the agent ask before it runs them. A module reference imports the module, which runs its code, so allow these verbs unprompted only where the agent can't write Python files you haven't reviewed. In Claude Code, these rules in `.claude/settings.json` allow the reads and ask for the rest:
 
 ```json
 {
