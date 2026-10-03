@@ -5,12 +5,12 @@ build-backend = "uv_build"
 [project]
 name = "macuitest"
 version = "0.9.0"
-description = "A Python library for end-to-end tests of macOS apps"
+description = "Drive macOS apps from Python, for end-to-end tests and AI agents"
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [{ name = "Andrii Kislitsyn", email = "andriikislitsyn@gmail.com" }]
-keywords = ["macOS", "Testing", "E2E", "UI", "Automator", "Accessibility"]
+keywords = ["macOS", "Testing", "E2E", "UI", "Automator", "Accessibility", "AI agents", "Computer use"]
 classifiers = [
     "Topic :: Software Development :: Testing",
     "Topic :: Software Development :: Quality Assurance",
