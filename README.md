@@ -2,7 +2,7 @@
 
 # macuitest
 
-macuitest is a Python library for end-to-end tests of macOS apps. It finds elements by accessibility attributes, AppleScript locator, screenshot, or visible text, then clicks, types, and waits on them the way a person would. It also includes helpers for the system around the app, such as preferences, property lists, processes, and files, so a test can set up state and check results outside the app's window.
+macuitest drives macOS apps from Python, for end-to-end test suites and for AI agents that operate a Mac. It finds elements by accessibility attributes, AppleScript locator, screenshot, or visible text, then clicks, types, and waits on them the way a person would. It also includes helpers for the system around the app, such as preferences, property lists, processes, and files, so a test can set up state and check results outside the app's window.
 
 To see complete suites for real apps, go to [macuitest examples](https://github.com/andriykislitsyn/macuitest-examples).
 
@@ -53,6 +53,18 @@ VisibleText("New Finder Window").click_mouse()
 # A screenshot of the element, found with template matching.
 UIElement("screenshots/sidebar_toggle.png").wait_displayed()
 ```
+
+## Use macuitest from an AI agent
+
+An agent that operates a Mac through screenshots alone has to read each frame with a vision model and click by coordinates. macuitest reads the app's accessibility tree instead, the same tree VoiceOver uses. A lookup takes milliseconds, names the exact element, and keeps working when the window moves or the theme changes. Visible text and screenshot matching cover controls that the tree doesn't describe. Apps that draw everything themselves, such as games and canvas editors, still need screenshot-based control.
+
+An agent with a shell works in three steps:
+
+1. Read the UI with `python -m macuitest.locators tree <app>`. It prints every element with the `ax()` locator that finds it. See [Inspect an app](#inspect-an-app).
+2. Act on an element: declare that locator on a `Screen` in a short script and call it, such as `Calculator.seven.press()`. See [Declare an app's elements with screens](#declare-an-apps-elements-with-screens).
+3. To reuse locators across runs, write them to a `Screen` module with `capture`. See [Capture elements](#capture-elements).
+
+Reading the tree is safe at any time. Clicks, keystrokes, and `activate` move the user's focus and can type into the wrong app, so have the agent ask before it runs them.
 
 ## Element types
 
