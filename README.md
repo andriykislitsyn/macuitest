@@ -77,7 +77,7 @@ An agent with a shell works in three steps:
 | `menu` | Presses a menu item through accessibility, such as `macuitest menu TextEdit "File > Save…"`. | No |
 | `keys` | Posts one shortcut, such as `cmd+shift+s`. | Yes |
 | `type` | Types text into the focused element, checking focus before each character. Escapes such as `\n` type as written: pass a real line break, such as `$'a\nb'` in zsh or bash, or send `keys <app> return`. | Yes |
-| `screenshot` | Writes a PNG of the app's window and prints its path. | No |
+| `screenshot` | Writes a PNG of the app's window, with any sheet or popover over it, and prints its path. | No |
 
 Prefer `press` and `set`: they work while the app stays in the background. `click` is for apps with poor accessibility support, or that misbehave under fast accessibility actions. `click`, `keys`, and `type` refuse input when the app doesn't come to the front. They can't tell when a launcher panel such as Spotlight holds keyboard focus over a frontmost app, or when another app's floating window covers the element.
 

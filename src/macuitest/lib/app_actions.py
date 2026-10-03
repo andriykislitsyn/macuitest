@@ -13,6 +13,7 @@ from typing import Optional
 import AppKit
 import Quartz
 
+from macuitest.config.constants import Region
 from macuitest.lib.actions import ActionError
 from macuitest.lib.actions import FocusError
 from macuitest.lib.actions import NoWindowError
@@ -213,7 +214,7 @@ def screenshot(app: str, out: Optional[Path] = None, window: Optional[AXQuery] =
     number = window_number(target.pid, frame)
     if number is None:
         raise NoWindowError(f"Can't find {app}'s window on the window server")
-    image = monitor.capture_window(number)
+    image = monitor.capture_windows([*_windows_in_front(target.pid, number, frame), number], frame)
     width, height = Quartz.CGImageGetWidth(image), Quartz.CGImageGetHeight(image)
     if out is None:
         handle, name = tempfile.mkstemp(prefix=f"macuitest-{snake_case(app)}-", suffix=".png")
@@ -221,6 +222,29 @@ def screenshot(app: str, out: Optional[Path] = None, window: Optional[AXQuery] =
         out = Path(name)
     write_png(image, (0, 0, width, height), out, width / (frame.x2 - frame.x1))
     return out
+
+
+def _windows_in_front(pid: int, number: int, frame: Region) -> list[int]:
+    """Return `pid`'s on-screen windows in front of window `number` that overlap `frame`.
+
+    Sheets and popovers are windows of their own, drawn over the window they belong to.
+    """
+    infos = Quartz.CGWindowListCopyWindowInfo(
+        Quartz.kCGWindowListOptionOnScreenOnly, Quartz.kCGNullWindowID
+    )
+    found = []
+    for info in infos or []:
+        if info.get("kCGWindowNumber") == number:
+            return found
+        if info.get("kCGWindowOwnerPID") != pid:
+            continue
+        bounds = info.get("kCGWindowBounds") or {}
+        x, y = bounds.get("X", 0), bounds.get("Y", 0)
+        width, height = bounds.get("Width", 0), bounds.get("Height", 0)
+        if x < frame.x2 and frame.x1 < x + width and y < frame.y2 and frame.y1 < y + height:
+            found.append(int(info["kCGWindowNumber"]))
+    # The window isn't on screen, such as on another Space: capture it alone.
+    return []
 
 
 def running(app: str) -> list[Any]:

@@ -31,6 +31,7 @@ def no_screen_capture(monkeypatch):
         )
 
     monkeypatch.setattr(monitor_module.CoreGraphics, "CGWindowListCreateImage", capture)
+    monkeypatch.setattr(monitor_module.CoreGraphics, "CGWindowListCreateImageFromArray", capture)
 
 
 class _NoAppleScript:

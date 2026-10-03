@@ -2,6 +2,7 @@ from unittest import mock
 
 import pytest
 
+from macuitest.config.constants import Region
 from macuitest.lib import actions
 from macuitest.lib import app_actions
 from macuitest.lib.elements.controllers.keyboard_controller import KeyBoardController
@@ -282,8 +283,9 @@ def textedit_window(monkeypatch, text_image):
         app_actions, "standard_window", lambda app, query=None: queries.append(query) or window
     )
     monkeypatch.setattr(app_actions, "window_number", lambda pid, frame: 7)
+    monkeypatch.setattr(app_actions.Quartz, "CGWindowListCopyWindowInfo", lambda option, w: [])
     monkeypatch.setattr(
-        app_actions.monitor, "capture_window", lambda number: text_image([], 200, 100)
+        app_actions.monitor, "capture_windows", lambda numbers, region: text_image([], 200, 100)
     )
     return queries
 
@@ -322,10 +324,10 @@ def test_screenshot_needs_a_window(monkeypatch, tmp_path):
 
 
 def test_screenshot_needs_screen_recording(textedit_window, monkeypatch, tmp_path):
-    def denied(number):
+    def denied(numbers, region):
         raise PermissionError("Grant Screen Recording")
 
-    monkeypatch.setattr(app_actions.monitor, "capture_window", denied)
+    monkeypatch.setattr(app_actions.monitor, "capture_windows", denied)
 
     with pytest.raises(PermissionError):
         app_actions.screenshot("TextEdit", tmp_path / "shot.png")
@@ -335,3 +337,34 @@ def test_screenshot_needs_screen_recording(textedit_window, monkeypatch, tmp_pat
 def test_parse_keys_rejects_a_key_without_a_keycode(combo):
     with pytest.raises(actions.UsageError):
         app_actions.parse_keys(combo)
+
+
+def window_info(number, pid, x, y, width, height):
+    bounds = {"X": x, "Y": y, "Width": width, "Height": height}
+    return {"kCGWindowNumber": number, "kCGWindowOwnerPID": pid, "kCGWindowBounds": bounds}
+
+
+def test_screenshot_includes_the_app_windows_in_front_such_as_a_sheet(
+    textedit_window, monkeypatch, tmp_path, text_image
+):
+    on_screen = [
+        window_info(3, 99, 0, 0, 500, 500),  # Another app's window in front: left out.
+        window_info(9, 41, 60, 40, 100, 50),  # TextEdit's Save sheet over the window.
+        window_info(8, 41, 600, 600, 50, 50),  # A TextEdit panel elsewhere: left out.
+        window_info(7, 41, 10, 20, 200, 100),  # The window itself.
+        window_info(5, 41, 20, 30, 200, 100),  # A TextEdit window behind it: left out.
+    ]
+    monkeypatch.setattr(
+        app_actions.Quartz, "CGWindowListCopyWindowInfo", lambda option, window: on_screen
+    )
+    captured = []
+
+    def capture_windows(numbers, region):
+        captured.append((numbers, region))
+        return text_image([], 200, 100)
+
+    monkeypatch.setattr(app_actions.monitor, "capture_windows", capture_windows)
+
+    app_actions.screenshot("TextEdit", tmp_path / "shot.png")
+
+    assert captured == [([9, 7], Region(10, 20, 210, 120))]
