@@ -30,6 +30,9 @@ dependencies = [
     "pyobjc-framework-Vision>=7.3",
 ]
 
+[project.scripts]
+macuitest = "macuitest.cli:main"
+
 [project.urls]
 Homepage = "https://github.com/andriykislitsyn/macuitest"
 Changelog = "https://github.com/andriykislitsyn/macuitest/blob/main/CHANGELOG.md"

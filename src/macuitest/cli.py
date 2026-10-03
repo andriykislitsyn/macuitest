@@ -1,4 +1,4 @@
-"""Inspect apps and manage screen locators: `python -m macuitest.locators tree|capture|check`."""
+"""The macuitest command: inspect apps, manage screen locators, and act on elements."""
 
 import argparse
 import sys
@@ -14,7 +14,7 @@ from macuitest.lib.elements.locators.tree import tree
 
 def main(argv: Optional[list[str]] = None) -> int:
     """Run the command line and return its exit code."""
-    parser = argparse.ArgumentParser(prog="python -m macuitest.locators")
+    parser = argparse.ArgumentParser(prog="macuitest")
     commands = parser.add_subparsers(dest="command", required=True)
     capturing = commands.add_parser(
         "capture", help="write a PNG per element of an app's window and a Screen module"
@@ -93,7 +93,3 @@ def _margin(value: str) -> float:
     if margin < 0:
         raise argparse.ArgumentTypeError(f"must be 0 or more, not {value}")
     return margin
-
-
-if __name__ == "__main__":
-    sys.exit(main())

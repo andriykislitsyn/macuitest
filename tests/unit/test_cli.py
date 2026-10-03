@@ -1,10 +1,12 @@
+import subprocess
+import sys
 import textwrap
 from unittest import mock
 
 import pytest
 
+from macuitest import cli
 from macuitest.lib.elements.locators.accessibility import AXQuery
-from macuitest.locators import __main__ as cli
 
 
 def test_check_exits_zero_for_a_clean_module(tmp_path, capsys):
@@ -118,3 +120,23 @@ def test_check_of_a_module_it_cant_load_exits_one_with_the_message(tmp_path, cap
 
     assert code == 1
     assert name in capsys.readouterr().err
+
+
+def test_python_m_macuitest_runs_the_command_line():
+    result = subprocess.run(
+        [sys.executable, "-m", "macuitest", "--help"], capture_output=True, text=True, check=False
+    )
+
+    assert result.returncode == 0
+    assert "usage: macuitest" in result.stdout
+
+
+def test_the_old_locators_command_is_gone():
+    result = subprocess.run(
+        [sys.executable, "-m", "macuitest.locators", "--help"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode != 0
