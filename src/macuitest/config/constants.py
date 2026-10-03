@@ -12,6 +12,8 @@ SECOND: int = 1
 MINUTE: int = 60 * SECOND
 HOUR: int = 60 * MINUTE
 
+POINTS_PER_INCH: int = 72  # A PNG's DPI over this is its pixels per point.
+
 
 class DNSMapping(str):
     pass

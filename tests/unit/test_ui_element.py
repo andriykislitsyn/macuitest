@@ -3,6 +3,8 @@ from unittest import mock
 import cv2
 import numpy
 import pytest
+import Quartz
+from Foundation import NSURL
 
 from macuitest.config.constants import Point
 from macuitest.config.constants import Region
@@ -31,11 +33,24 @@ def fake_monitor(screen):
         yield fake
 
 
-def save_template(screen, tmp_path, x=TEMPLATE_PX[0], y=TEMPLATE_PX[1]):
+def save_template(screen, tmp_path, x=TEMPLATE_PX[0], y=TEMPLATE_PX[1], dpi=None):
     width, height = TEMPLATE_SIZE_PX
     path = tmp_path / "template.png"
     cv2.imwrite(str(path), cv2.cvtColor(screen[y : y + height, x : x + width], cv2.COLOR_BGRA2GRAY))
+    if dpi is not None:
+        stamp_dpi(path, dpi)
     return path
+
+
+def stamp_dpi(path, dpi):
+    """Rewrite the PNG at `path` with `dpi` in its metadata, like a macOS screenshot."""
+    url = NSURL.fileURLWithPath_(str(path))
+    image = Quartz.CGImageSourceCreateImageAtIndex(
+        Quartz.CGImageSourceCreateWithURL(url, None), 0, None
+    )
+    destination = Quartz.CGImageDestinationCreateWithURL(url, "public.png", 1, None)
+    Quartz.CGImageDestinationAddImage(destination, image, {"DPIWidth": dpi, "DPIHeight": dpi})
+    assert Quartz.CGImageDestinationFinalize(destination)
 
 
 def test_detect_on_screen_converts_pixels_to_points_from_region_origin(
@@ -161,3 +176,33 @@ def test_similarity_reads_the_value_in_effect(fake_monitor, screen, tmp_path, mo
     assert element.similarity == 0.8
     element.similarity = 0.6
     assert element.similarity == 0.6
+
+
+def test_a_2x_pattern_matches_a_2x_capture_on_a_1x_main_display(fake_monitor, screen, tmp_path):
+    fake_monitor.is_retina = False
+    element = UIElement(save_template(screen, tmp_path, dpi=144))
+
+    assert element.detect_on_screen(REGION) == Point(REGION.x1 + 100, REGION.y1 + 50)
+
+
+def test_a_1x_pattern_matches_a_1x_capture_on_a_2x_main_display(fake_monitor, screen, tmp_path):
+    capture_1x = cv2.resize(screen, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_AREA)
+    fake_monitor.make_snapshot.return_value = capture_1x
+    element = UIElement(save_template(capture_1x, tmp_path, x=100, y=50, dpi=72))
+
+    assert element.detect_on_screen(Region(0, 0, 300, 200)) == Point(100, 50)
+
+
+@pytest.mark.parametrize("is_retina, expected", [(True, 20), (False, 40)])
+def test_a_pattern_without_dpi_takes_the_main_display_scale(
+    fake_monitor, screen, tmp_path, is_retina, expected
+):
+    fake_monitor.is_retina = is_retina
+
+    assert UIElement(save_template(screen, tmp_path)).width == expected
+
+
+def test_a_dpi_off_the_screen_scales_takes_the_main_display_scale(fake_monitor, screen, tmp_path):
+    fake_monitor.is_retina = True
+
+    assert UIElement(save_template(screen, tmp_path, dpi=300)).width == 20

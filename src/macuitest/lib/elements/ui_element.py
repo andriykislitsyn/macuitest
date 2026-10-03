@@ -4,7 +4,10 @@ from typing import Union
 
 import cv2
 import numpy
+import Quartz
+from Foundation import NSURL
 
+from macuitest.config.constants import POINTS_PER_INCH
 from macuitest.config.constants import Point
 from macuitest.config.constants import Region
 from macuitest.config.settings import settings
@@ -23,9 +26,11 @@ class UIElement(ScreenElement):
     def __init__(self, screenshot_path: Union[str, Path], similarity: Optional[float] = None):
         self.path = screenshot_path.strip() if isinstance(screenshot_path, str) else screenshot_path
         self.__similarity = similarity
-        # Patterns are assumed captured on the menu bar display, at its pixels per point.
-        self.__template_scale = 2 if monitor.is_retina else 1
-        self.image, self.width, self.height = self.__load_image()
+        self.image = self.__load_image()
+        # A pattern without a recorded scale is assumed captured on the menu bar display.
+        self.__template_scale = recorded_scale(self.path) or (2 if monitor.is_retina else 1)
+        height, width = self.image.shape
+        self.width, self.height = width / self.__template_scale, height / self.__template_scale
         self.__templates = {float(self.__template_scale): self.image}
 
     def __repr__(self):
@@ -76,12 +81,27 @@ class UIElement(ScreenElement):
             )
         return self.__templates[capture_scale]
 
-    def __load_image(self) -> tuple[numpy.ndarray, float, float]:
-        """Load the image from disk and return it with its width and height in points."""
+    def __load_image(self) -> numpy.ndarray:
+        """Load the image from disk in grayscale."""
         if not Path(self.path).exists():
             raise FileNotFoundError(f"Cannot find request screenshot: {self.path}")
         image = cv2.imread(str(self.path), cv2.IMREAD_GRAYSCALE)
         if image is None:
             raise IOError(f"Cannot not load screenshot: {self.path}")
-        height, width = image.shape
-        return image, width / self.__template_scale, height / self.__template_scale
+        return image
+
+
+def recorded_scale(path: Union[str, Path]) -> Optional[int]:
+    """Return the pixels per point a PNG's DPI records: 1, 2, or 3.
+
+    Returns:
+        None when the PNG records no DPI, or one that isn't 72, 144, or 216, such as an
+        image editor's 300.
+    """
+    source = Quartz.CGImageSourceCreateWithURL(NSURL.fileURLWithPath_(str(path)), None)
+    properties = source and Quartz.CGImageSourceCopyPropertiesAtIndex(source, 0, None)
+    dpi = properties and properties.get(Quartz.kCGImagePropertyDPIWidth)
+    if dpi is None:
+        return None
+    scale, remainder = divmod(dpi, POINTS_PER_INCH)
+    return int(scale) if remainder == 0 and scale in (1, 2, 3) else None
