@@ -175,3 +175,74 @@ def test_a_rendered_module_with_role_named_elements_imports(tmp_path):
     module = load_module(path)
 
     assert {"image_", "image_2", "image_3"} <= set(vars(module.App))
+
+
+def test_an_unlabeled_element_is_found_through_its_nearest_identified_ancestor():
+    view = Found("AXScrollArea", FRAME, identifier="StandardInputView", depth=1)
+    text = Found("AXStaticText", FRAME, depth=2, value="42")
+
+    assert locator_for(text, [view, text]) == (
+        'ax(identifier="StandardInputView").child(role="AXStaticText", kind=StaticText)',
+        "StaticText",
+    )
+
+
+def test_a_child_locator_prefers_the_description_with_the_role():
+    twin = Found("AXImage", FRAME, description="Logo", depth=1)
+    view = Found("AXGroup", FRAME, identifier="Keypad", depth=1)
+    first = Found("AXImage", FRAME, depth=2)
+    second = Found("AXImage", FRAME, description="Logo", depth=2)
+    walked = [twin, view, first, second]
+
+    assert locator_for(second, walked)[0] == (
+        'ax(identifier="Keypad").child(description="Logo", role="AXImage", kind=Image)'
+    )
+
+
+def test_an_element_after_an_earlier_match_in_its_ancestor_gets_no_child_locator():
+    view = Found("AXGroup", FRAME, identifier="Keypad", depth=1)
+    first = Found("AXStaticText", FRAME, depth=2)
+    second = Found("AXStaticText", FRAME, depth=2)
+
+    assert locator_for(second, [view, first, second]) == ("image()", None)
+
+
+def test_a_child_locator_searches_only_the_ancestor_subtree():
+    other = Found("AXGroup", FRAME, identifier="Other", depth=1)
+    earlier = Found("AXStaticText", FRAME, depth=2)
+    view = Found("AXGroup", FRAME, identifier="View", depth=1)
+    text = Found("AXStaticText", FRAME, depth=2)
+
+    assert locator_for(text, [other, earlier, view, text])[0] == (
+        'ax(identifier="View").child(role="AXStaticText", kind=StaticText)'
+    )
+
+
+def test_a_child_locator_drops_the_ancestor_kind():
+    button = Found("AXButton", FRAME, identifier="Seven", depth=1)
+    text = Found("AXStaticText", FRAME, depth=2)
+
+    assert locator_for(text, [button, text])[0] == (
+        'ax(identifier="Seven").child(role="AXStaticText", kind=StaticText)'
+    )
+
+
+def test_a_row_inside_a_table_gets_no_child_locator():
+    table = Found("AXTable", FRAME, description="Fonts", depth=1)
+    row = Found("AXRow", FRAME, depth=2, in_collection=True)
+
+    assert locator_for(row, [table, row]) == ("image()", None)
+
+
+def test_a_layout_container_gets_no_child_locator():
+    view = Found("AXGroup", FRAME, identifier="Main", depth=1)
+    group = Found("AXGroup", FRAME, depth=2)
+
+    assert locator_for(group, [view, group]) == ("image()", None)
+
+
+def test_an_element_without_a_labeled_ancestor_gets_an_image():
+    group = Found("AXGroup", FRAME, depth=1)
+    text = Found("AXStaticText", FRAME, depth=2)
+
+    assert locator_for(text, [group, text]) == ("image()", None)

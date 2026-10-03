@@ -96,8 +96,9 @@ def _reference(match: re.Match, label: str) -> Target:
 def parse_locator(source: str) -> Locator:
     """Return the locator that `source`, such as `ax(identifier="OK", kind=Button)`, declares.
 
-    Accepts one call to `ax` or `text` with literal arguments, `kind=` naming an
-    element class, and `within=` holding a nested `ax()` call. Nothing in `source` is evaluated.
+    Accepts one call to `ax` or `text`, optionally followed by `.child()` calls after `ax`, with
+    literal arguments, `kind=` naming an element class, and `within=` holding a nested `ax()`
+    call. Nothing in `source` is evaluated.
 
     Raises:
         ValueError: `source` is anything else.
@@ -106,20 +107,37 @@ def parse_locator(source: str) -> Locator:
         node = ast.parse(source, mode="eval").body
     except SyntaxError as error:
         raise ValueError(f"Not a locator: {source!r}") from error
-    return _build(node)
+    try:
+        return _build(node)
+    except RecursionError as error:
+        raise ValueError("The locator nests too deeply") from error
 
 
 def _build(node: ast.expr) -> Locator:
-    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
-        if reason := _MODULE_ONLY.get(node.func.id):
-            raise ValueError(f"{reason}: use <module.py>:<Screen>.<element>")
-    if not (
-        isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Name)
-        and node.func.id in _FACTORIES
-    ):
-        raise ValueError(f"Expected a call to ax() or text(), not {ast.unparse(node)}")
-    factory = node.func.id
+    expected = f"Expected a call to ax() or text(), not {ast.unparse(node)}"
+    if not isinstance(node, ast.Call):
+        raise ValueError(expected)
+    arguments, keywords = _arguments(node)
+    function = node.func
+    make: Callable[..., Locator]
+    if isinstance(function, ast.Attribute) and function.attr == "child":
+        parent = _build(function.value)
+        if not isinstance(parent, AXLocator):
+            raise ValueError(f".child() follows an ax() call, not {ast.unparse(function.value)}")
+        make = parent.child
+    elif isinstance(function, ast.Name) and function.id in _MODULE_ONLY:
+        raise ValueError(f"{_MODULE_ONLY[function.id]}: use <module.py>:<Screen>.<element>")
+    elif isinstance(function, ast.Name) and function.id in _FACTORIES:
+        make = _FACTORIES[function.id]
+    else:
+        raise ValueError(expected)
+    try:
+        return make(*arguments, **keywords)
+    except TypeError as error:
+        raise ValueError(f"{ast.unparse(node)}: {error}") from error
+
+
+def _arguments(node: ast.Call) -> tuple[list[Any], dict[str, Any]]:
     arguments = [_literal(argument) for argument in node.args]
     keywords: dict[str, Any] = {}
     for keyword in node.keywords:
@@ -131,10 +149,7 @@ def _build(node: ast.expr) -> Locator:
             keywords["within"] = _within(keyword.value)
         else:
             keywords[keyword.arg] = _literal(keyword.value)
-    try:
-        return _FACTORIES[factory](*arguments, **keywords)
-    except TypeError as error:
-        raise ValueError(f"{ast.unparse(node)}: {error}") from error
+    return arguments, keywords
 
 
 def _literal(node: ast.expr) -> Any:

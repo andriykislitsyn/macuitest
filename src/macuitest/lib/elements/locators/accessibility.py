@@ -20,6 +20,8 @@ from macuitest.lib.operating_system.permissions import require_accessibility
 # Raised for an app that is quitting or not answering yet, for an element that just vanished,
 # and by SwiftUI for some attributes of otherwise readable elements (AXErrorFailure).
 GONE = (AXErrorCannotComplete, AXErrorFailure, AXErrorIllegalArgument, AXErrorInvalidUIElement)
+# How deep lookups and walks descend. Real UIs nest a few dozen levels at most.
+MAX_DEPTH = 100
 # Process IDs by app name. Finding a running app through NSWorkspace spins the run loop for 1 s.
 _pids: dict[str, int] = {}
 
@@ -71,11 +73,23 @@ def find_first(roots: Iterable[Any], query: AXQuery) -> Optional[Any]:
 
     Elements that vanish during the search are skipped.
     """
+    path = find_path(roots, query)
+    return None if path is None else path[-1]
+
+
+def find_path(
+    roots: Iterable[Any], query: AXQuery, above: tuple[Any, ...] = ()
+) -> Optional[tuple[Any, ...]]:
+    """Return the path from a root to the first descendant that matches `query`, or None.
+
+    `above` is the path to the roots' parent when the roots came from an earlier search, so a
+    nested search skips the same loops and stops at the same depth as one from the window.
+    """
     for root in roots:
-        for element in _descendants(root):
+        for path in _descendants(root, above):
             try:
-                if query.matches(element):
-                    return element
+                if query.matches(path[-1]):
+                    return path
             except GONE:
                 continue
     return None
@@ -174,11 +188,24 @@ def _alive(pid: int) -> bool:
     return True
 
 
-def _descendants(element: Any) -> Iterator[Any]:
+def identity(element: Any) -> Any:
+    """Return what tells accessibility elements apart: the AX reference, else the object."""
+    return getattr(element, "ref", element)
+
+
+def _descendants(element: Any, above: tuple[Any, ...] = ()) -> Iterator[tuple[Any, ...]]:
+    """Yield the path to each descendant of `element`, depth first. `above` leads to `element`."""
+    path = (*above, element)
+    if len(path) > MAX_DEPTH:
+        return
     try:
         children = element.get_ax_attribute("AXChildren") or []
     except GONE:
         return
+    ancestors = [identity(ancestor) for ancestor in path]
     for child in children:
-        yield child
-        yield from _descendants(child)
+        # Some apps list an ancestor among an element's children, which would loop forever.
+        if identity(child) in ancestors:
+            continue
+        yield (*path, child)
+        yield from _descendants(child, path)
