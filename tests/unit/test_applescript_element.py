@@ -4,11 +4,13 @@ import pytest
 
 from macuitest.config.constants import Frame
 from macuitest.config.constants import Point
+from macuitest.config.settings import settings
 from macuitest.lib.applescript_lib import applescript_wrapper
 from macuitest.lib.applescript_lib.aeconverter import AEType
 from macuitest.lib.applescript_lib.applescript_wrapper import AppleScriptError
 from macuitest.lib.elements import applescript_element
 from macuitest.lib.elements.applescript_element import BaseUIElement
+from macuitest.lib.elements.applescript_element import Window
 
 LOCATOR = 'button "OK" of window 1'
 
@@ -151,3 +153,90 @@ def test_lookup_error_keeps_system_events_message(system_events, element):
         element.click()
 
     assert isinstance(missing.value.__cause__, AppleScriptError)
+
+
+@pytest.fixture
+def mouse():
+    with mock.patch.object(applescript_element, "mouse") as fake:
+        yield fake
+
+
+@pytest.mark.parametrize(
+    "method, controller, options",
+    [
+        ("click_mouse", "click", {"hold": 1, "duration": 2, "pause": 3}),
+        ("right_click_mouse", "right_click", {"hold": 1, "duration": 2, "pause": 3}),
+        ("double_click_mouse", "double_click", {"duration": 2}),
+        ("hover_mouse", "hover", {"duration": 2}),
+    ],
+)
+def test_mouse_methods_pass_their_options(
+    system_events, element, mouse, method, controller, options
+):
+    getattr(element, method)(1, 1, **options)
+
+    getattr(mouse, controller).assert_called_once_with(31, 36, **options)
+
+
+@pytest.mark.parametrize(
+    "method", ["click_mouse", "right_click_mouse", "double_click_mouse", "hover_mouse"]
+)
+def test_mouse_options_are_keyword_only(system_events, element, mouse, method):
+    with pytest.raises(TypeError):
+        getattr(element, method)(0, 0, 0.5)
+
+
+def test_is_visible_checks_once_without_waiting(monkeypatch, element):
+    events = FakeSystemEvents(appears_after_checks=2)
+    monkeypatch.setattr(applescript_element.as_wrapper, "tell_app_process", events)
+
+    assert element.is_visible is False
+    assert events.commands == [f"return exists {LOCATOR}"]
+
+
+def test_exists_reads_a_handler_error_as_false(element, monkeypatch):
+    def fail(command, app_process):
+        raise cant_get(number=-10000)
+
+    monkeypatch.setattr(applescript_element.as_wrapper, "tell_app_process", fail)
+
+    assert element.exists is False
+
+
+@pytest.mark.parametrize(
+    "method, setting", [("wait_displayed", "timeout"), ("wait_vanish", "vanish_timeout")]
+)
+def test_waits_default_to_the_elements_timeouts(
+    system_events, element, monkeypatch, method, setting
+):
+    monkeypatch.setattr(settings.elements, setting, 7)
+    with mock.patch.object(applescript_element, "wait_condition", autospec=True) as wait:
+        getattr(element, method)()
+
+    assert wait.call_args.kwargs["timeout"] == 7
+
+
+def test_reads_wait_for_the_configured_timeout(system_events, element, monkeypatch):
+    monkeypatch.setattr(settings.elements, "timeout", 7)
+    system_events.checks_until_present = 2
+    with mock.patch.object(
+        applescript_element, "wait_condition", wraps=applescript_element.wait_condition
+    ) as wait:
+        assert element.title == "OK"
+
+    assert wait.call_args.kwargs["timeout"] == 7
+
+
+@pytest.mark.parametrize(
+    "name, attribute", [("is_minimized", "AXMinimized"), ("is_full_screen", "AXFullScreen")]
+)
+def test_window_state_reads_are_properties(system_events, name, attribute):
+    system_events.attributes = {attribute: True}
+
+    assert getattr(Window(LOCATOR, process="Finder"), name) is True
+
+
+def test_set_full_screen_writes_the_full_screen_attribute(system_events):
+    Window(LOCATOR, process="Finder").full_screen = True
+
+    assert any('"AXFullScreen"' in command for command in system_events.commands)

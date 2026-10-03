@@ -67,12 +67,12 @@ def test_detect_on_screen_returns_none_without_a_match(fake_monitor, screen, tmp
     assert element.detect_on_screen(REGION) is None
 
 
-@pytest.mark.parametrize("match, expected", [(False, False), (Point(0, 0), True)])
+@pytest.mark.parametrize("match, expected", [(None, False), (Region(0, 0, 1, 1), True)])
 def test_is_visible_reflects_whether_the_pattern_matched(
     fake_monitor, screen, tmp_path, match, expected
 ):
     element = UIElement(save_template(screen, tmp_path))
-    with mock.patch.object(UIElement, "wait_displayed", return_value=match):
+    with mock.patch.object(UIElement, "locate", return_value=match):
         assert element.is_visible is expected
 
 
@@ -118,7 +118,9 @@ def test_click_mouse_clicks_the_box_center(fake_monitor, screen, tmp_path):
     with mock.patch.object(screen_element, "mouse") as mouse:
         element.click_mouse(x_off=1, region=REGION)
 
-    mouse.click.assert_called_once_with(REGION.x1 + 110 + 1, REGION.y1 + 58, hold=None, pause=None)
+    mouse.click.assert_called_once_with(
+        REGION.x1 + 110 + 1, REGION.y1 + 58, hold=None, duration=None, pause=None
+    )
 
 
 def test_detect_on_screen_searches_the_configured_display(

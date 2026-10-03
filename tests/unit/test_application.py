@@ -14,7 +14,12 @@ STANDARD_WINDOW = '(first window whose subrole is "AXStandardWindow")'
 def tell_app_process():
     with (
         mock.patch.object(application.as_wrapper, "tell_app_process") as tell,
-        mock.patch.object(Application, "is_frontmost", side_effect=AssertionError("not needed")),
+        mock.patch.object(
+            Application,
+            "is_frontmost",
+            new_callable=mock.PropertyMock,
+            side_effect=AssertionError("not needed"),
+        ),
     ):
         yield tell
 
@@ -56,3 +61,18 @@ def test_window_setters_raise_when_system_events_fails(tell_app_process, method)
 
     with pytest.raises(AppleScriptError):
         getattr(Application("Google Chrome"), method)("{1, 1}")
+
+
+@pytest.mark.parametrize("name", ["is_frontmost", "is_hidden"])
+def test_state_reads_are_properties(name):
+    with mock.patch.object(Application, "_read_attribute", return_value=True):
+        assert getattr(Application("Finder"), name) is True
+
+
+@pytest.mark.parametrize("name, reads", [("frontmost", "is_frontmost"), ("hidden", "is_hidden")])
+def test_state_twins_read_through_the_is_properties(name, reads):
+    with (
+        mock.patch.object(Application, "_read_attribute", return_value=False),
+        mock.patch.object(Application, reads, new_callable=mock.PropertyMock, return_value=True),
+    ):
+        assert getattr(Application("Finder"), name) is True

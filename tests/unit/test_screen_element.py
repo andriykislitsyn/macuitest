@@ -1,6 +1,11 @@
 from typing import Optional
+from unittest import mock
+
+import pytest
 
 from macuitest.config.constants import Region
+from macuitest.config.settings import settings
+from macuitest.lib.elements import screen_element
 from macuitest.lib.elements.screen_element import ScreenElement
 
 BOX = Region(1, 2, 3, 4)
@@ -59,3 +64,61 @@ def test_without_a_scope_the_defaults_apply():
     element.locate()
 
     assert element.searched == [None]
+
+
+class LateElement(ScreenElement):
+    """Appear at `BOX` on the `appears_on`-th search, counting from 1."""
+
+    def __init__(self, appears_on=1):
+        self.searches = 0
+        self.appears_on = appears_on
+
+    def _locate(self, region):
+        self.searches += 1
+        return BOX if self.searches >= self.appears_on else None
+
+
+@pytest.fixture
+def mouse():
+    with mock.patch.object(screen_element, "mouse") as fake:
+        yield fake
+
+
+def test_is_visible_checks_once_without_waiting(monkeypatch):
+    monkeypatch.setattr(settings.elements, "timeout", 30)
+    element = LateElement(appears_on=2)
+
+    assert element.is_visible is False
+    assert element.searches == 1
+
+
+def test_click_mouse_waits_for_a_late_element(mouse):
+    element = LateElement(appears_on=3)
+
+    element.click_mouse()
+
+    assert element.searches == 3
+    mouse.click.assert_called_once_with(2, 3, hold=None, duration=None, pause=None)
+
+
+@pytest.mark.parametrize(
+    "method, controller, options",
+    [
+        ("click_mouse", "click", {"hold": 1, "duration": 2, "pause": 3}),
+        ("right_click_mouse", "right_click", {"hold": 1, "duration": 2, "pause": 3}),
+        ("double_click_mouse", "double_click", {"duration": 2}),
+        ("hover_mouse", "hover", {"duration": 2}),
+    ],
+)
+def test_mouse_methods_pass_their_options(mouse, method, controller, options):
+    getattr(LateElement(), method)(1, 1, **options)
+
+    getattr(mouse, controller).assert_called_once_with(3, 4, **options)
+
+
+@pytest.mark.parametrize(
+    "method", ["click_mouse", "right_click_mouse", "double_click_mouse", "hover_mouse"]
+)
+def test_mouse_options_are_keyword_only(mouse, method):
+    with pytest.raises(TypeError):
+        getattr(LateElement(), method)(0, 0, 0.5)

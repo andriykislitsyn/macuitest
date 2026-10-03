@@ -23,8 +23,8 @@ pause = 0.001              # Seconds between key events in keyboard.write. paste
 
 [elements]
 similarity = 0.925         # Minimum UIElement match score, from 0 to 1.
-timeout = 5                # Seconds UIElement and VisibleText wait to appear, before every click too.
-vanish_timeout = 15        # Seconds wait_vanish waits for them to disappear.
+timeout = 5                # Seconds an element's wait_displayed waits, and screen elements before every click.
+vanish_timeout = 15        # Seconds an element's wait_vanish waits.
 
 [ocr]
 languages = ["en-US"]      # Vision language codes VisibleText reads, such as "uk-UA".
