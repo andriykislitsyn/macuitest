@@ -109,6 +109,15 @@ Reading is safe at any time. `press`, `set`, `menu`, `quit`, and the verbs that 
 }
 ```
 
+### Install the skill
+
+The macuitest skill for Claude Code teaches an agent this section's loop, the gotchas, and how to write a suite. Install it from the [agentic-engineering](https://github.com/andriykislitsyn/agentic-engineering/tree/main/plugins/macuitest) marketplace:
+
+```bash
+claude plugin marketplace add andriykislitsyn/agentic-engineering
+claude plugin install macuitest@agentic-engineering
+```
+
 ## Element types
 
 Each module in `macuitest.lib.elements` finds elements a different way:

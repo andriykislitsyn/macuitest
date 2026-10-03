@@ -44,4 +44,5 @@ Unit tests never touch the real screen or real apps: autouse guards in `tests/un
 
 - Docs follow the Google developer documentation style guide. User-facing changes get a `CHANGELOG.md` entry under "Unreleased".
 - Releases: bump `version` in `pyproject.toml`, date the changelog section, then publish a GitHub release tagged `v<version>`. `release.yml` uploads to PyPI through Trusted Publishing, and the tag must match the version. PyPI's index lags a few minutes after the upload, so the examples repo picks the release up with `uv lock --refresh --upgrade-package macuitest`.
+- The Claude Code skill lives in https://github.com/andriykislitsyn/agentic-engineering, under `plugins/macuitest`. A change to a verb, flag, or exit code needs a matching update there.
 - Example suites for real apps live in https://github.com/andriykislitsyn/macuitest-examples.
