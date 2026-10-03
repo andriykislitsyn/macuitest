@@ -4,6 +4,7 @@ import pytest
 
 from macuitest.lib import actions
 from macuitest.lib import app_actions
+from macuitest.lib.elements.controllers.keyboard_controller import KeyBoardController
 
 
 class FakeRunning:
@@ -180,3 +181,90 @@ def test_menu_raises_no_window_error_when_the_app_isnt_running(monkeypatch):
 
     with pytest.raises(actions.NoWindowError, match="TextEdit isn't running"):
         app_actions.menu("TextEdit", "File > New")
+
+
+@pytest.mark.parametrize(
+    "combo, expected",
+    [
+        ("cmd+s", ["command", "s"]),
+        ("command+shift+s", ["command", "shift", "s"]),
+        ("ctrl+alt+delete", ["ctrl", "option", "delete"]),
+        ("control+option+f5", ["ctrl", "option", "f5"]),
+        ("return", ["return"]),
+        (" Cmd + , ", ["command", ","]),
+    ],
+)
+def test_parse_keys_reads_modifiers_and_a_key(combo, expected):
+    assert app_actions.parse_keys(combo) == expected
+
+
+def test_parse_keys_reads_an_uppercase_key_as_the_key():
+    assert app_actions.parse_keys("cmd+S") == ["command", "s"]
+
+
+@pytest.mark.parametrize("combo", ["", "cmd+", "cmd+nope", "hyper+s", "s+cmd"])
+def test_parse_keys_rejects_an_unknown_or_missing_name(combo):
+    with pytest.raises(actions.UsageError):
+        app_actions.parse_keys(combo)
+
+
+@pytest.fixture
+def keyboard(monkeypatch):
+    fake = mock.create_autospec(KeyBoardController, instance=True)
+    monkeypatch.setattr(app_actions, "keyboard", fake)
+    return fake
+
+
+def in_front_for(checks):
+    """Return a bring_to_front that answers `checks`, one per focus check."""
+    answers = iter(checks)
+    return lambda app: lambda: next(answers)
+
+
+def test_keys_posts_the_shortcut_once_the_app_is_in_front(keyboard, monkeypatch):
+    monkeypatch.setattr(app_actions, "bring_to_front", in_front_for([True]))
+
+    app_actions.keys("TextEdit", "cmd+shift+s")
+
+    keyboard.hotkey.assert_called_once_with("command", "shift", "s")
+
+
+def test_keys_parses_before_taking_focus(keyboard, monkeypatch):
+    bring = mock.Mock()
+    monkeypatch.setattr(app_actions, "bring_to_front", bring)
+
+    with pytest.raises(actions.UsageError):
+        app_actions.keys("TextEdit", "cmd+nope")
+
+    bring.assert_not_called()
+
+
+def test_keys_refuses_when_the_app_leaves_the_front(keyboard, monkeypatch):
+    monkeypatch.setattr(app_actions, "bring_to_front", in_front_for([False]))
+
+    with pytest.raises(actions.FocusError):
+        app_actions.keys("TextEdit", "cmd+s")
+
+    keyboard.hotkey.assert_not_called()
+
+
+def test_type_text_checks_focus_before_every_character(keyboard, monkeypatch):
+    monkeypatch.setattr(app_actions, "bring_to_front", in_front_for([True, True, True]))
+
+    app_actions.type_text("TextEdit", "a\nb")
+
+    assert [c.args for c in keyboard.write.call_args_list] == [("a",), ("\n",), ("b",)]
+
+
+def test_type_text_stops_when_the_app_leaves_the_front(keyboard, monkeypatch):
+    monkeypatch.setattr(app_actions, "bring_to_front", in_front_for([True, True, False]))
+
+    with pytest.raises(actions.FocusError, match="Stopped after 2 of 4 characters"):
+        app_actions.type_text("TextEdit", "abcd")
+
+    assert keyboard.write.call_count == 2
+
+
+def test_type_text_needs_text(keyboard):
+    with pytest.raises(actions.UsageError):
+        app_actions.type_text("TextEdit", "")

@@ -10,9 +10,13 @@ from typing import Optional
 import AppKit
 
 from macuitest.lib.actions import ActionError
+from macuitest.lib.actions import FocusError
 from macuitest.lib.actions import NoWindowError
 from macuitest.lib.actions import UsageError
+from macuitest.lib.actions import bring_to_front
 from macuitest.lib.core import wait_condition
+from macuitest.lib.elements.controllers.keyboard_controller import keyboard
+from macuitest.lib.elements.controllers.keyboard_mappings import KEYBOARD_KEYS
 from macuitest.lib.elements.locators.accessibility import GONE
 from macuitest.lib.elements.locators.accessibility import alive
 from macuitest.lib.elements.locators.accessibility import app_root
@@ -21,6 +25,17 @@ from macuitest.lib.elements.native.native_ui_element import NativeUIElement
 # Seconds to wait for a launched app's window, and for a quitting app to exit.
 LAUNCH_TIMEOUT: float = 15
 QUIT_TIMEOUT: float = 10
+
+# Modifier names people type, by the keyboard table's name.
+_MODIFIERS = {
+    "cmd": "command",
+    "command": "command",
+    "shift": "shift",
+    "alt": "option",
+    "option": "option",
+    "ctrl": "ctrl",
+    "control": "ctrl",
+}
 
 
 class LaunchError(RuntimeError):
@@ -112,6 +127,62 @@ def _title(element: Any) -> str:
 
 def _menu_title(title: str) -> str:
     return title.replace("...", "…")
+
+
+def parse_keys(combo: str) -> list[str]:
+    """Return the key names of a shortcut such as "cmd+shift+s", modifiers first.
+
+    Raises:
+        UsageError: A name is empty or unknown, or a modifier comes last.
+    """
+    names = [name.strip() for name in combo.split("+")]
+    *modifiers, key = [name if len(name) == 1 else name.lower() for name in names]
+    key = key.lower()
+    unknown = [m for m in modifiers if m.lower() not in _MODIFIERS]
+    if unknown:
+        raise UsageError(f'Unknown modifier "{unknown[0]}". Use cmd, shift, alt, or ctrl')
+    if key not in KEYBOARD_KEYS or key in _MODIFIERS:
+        raise UsageError(
+            f'Unknown key "{key}". Use one character, or a name such as return, escape, tab,'
+            " space, delete, up, or f5"
+        )
+    return [_MODIFIERS[m.lower()] for m in modifiers] + [key]
+
+
+def keys(app: str, combo: str) -> None:
+    """Bring `app` to the front and post the shortcut `combo`, such as "cmd+s".
+
+    Raises:
+        UsageError: `combo` isn't a shortcut.
+        NoWindowError: `app` has no window.
+        FocusError: `app` isn't in front, so nothing was posted.
+    """
+    names = parse_keys(combo)
+    in_front = bring_to_front(app)
+    if not in_front():
+        raise FocusError(f"{app} left the front, so no keys were posted")
+    keyboard.hotkey(*names)
+
+
+def type_text(app: str, text: str) -> None:
+    """Bring `app` to the front and type `text` into its focused element.
+
+    Focus is checked before each character, so typing stops when `app` leaves the front.
+
+    Raises:
+        UsageError: `text` is empty.
+        NoWindowError: `app` has no window.
+        FocusError: `app` left the front, so typing stopped.
+    """
+    if not text:
+        raise UsageError("type needs text")
+    in_front = bring_to_front(app)
+    for typed, character in enumerate(text):
+        if not in_front():
+            raise FocusError(
+                f"Stopped after {typed} of {len(text)} characters: {app} left the front"
+            )
+        keyboard.write(character)
 
 
 def running(app: str) -> list[Any]:
