@@ -165,3 +165,23 @@ def test_resolve_reads_an_element_a_screen_inherits(tmp_path):
     )
 
     assert resolve([f"{module}:Fonts.search"]).app == "TextEdit"
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "def broken(:\n",
+        "undefined_name\n",
+        "from macuitest.lib.elements.locators import Screen, ax\n\n\n"
+        "class Fonts(Screen):\n    search = ax(description='Search')\n",
+        "from macuitest.lib.elements.locators import Screen, image\n\n\n"
+        "class Fonts(Screen, app='TextEdit'):\n    search = image()\n",
+    ],
+    ids=["syntax error", "error at import", "screen without app", "missing image"],
+)
+def test_resolve_reports_a_module_that_fails_as_a_bad_reference(tmp_path, source):
+    module = tmp_path / "screens.py"
+    module.write_text(source)
+
+    with pytest.raises(ValueError, match="screens.py"):
+        resolve([f"{module}:Fonts.search"])

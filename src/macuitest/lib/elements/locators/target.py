@@ -78,14 +78,19 @@ def _reference(match: re.Match, label: str) -> Target:
         raise ValueError(f"No such file: {path}")
     try:
         module = load_module(path)
-    except ImportError as error:
-        raise ValueError(str(error)) from error
+    # Importing runs the module, which can raise anything.
+    except Exception as error:
+        raise ValueError(f"Can't load {path}: {error!r}") from error
     screen = getattr(module, match["screen"], None)
     if not (isinstance(screen, type) and issubclass(screen, Screen)):
         raise ValueError(f"{path} has no screen {match['screen']}")
     if not any(isinstance(vars(cls).get(match["element"]), Locator) for cls in screen.__mro__):
         raise ValueError(f"{match['screen']} has no element {match['element']}")
-    return Target(getattr(screen, match["element"]), screen.app, label)
+    try:
+        element = getattr(screen, match["element"])
+    except (TypeError, OSError) as error:
+        raise ValueError(f"{path}: {error}") from error
+    return Target(element, screen.app, label)
 
 
 def parse_locator(source: str) -> Locator:
