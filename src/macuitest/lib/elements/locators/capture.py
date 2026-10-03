@@ -51,6 +51,8 @@ _WINDOW_KEYWORDS = {"AXTitle": "title", "AXSubrole": "subrole"}
 WINDOW_TIMEOUT = 2
 # Roles whose contents are data, such as a list of fonts.
 _COLLECTIONS = frozenset({"AXList", "AXOutline", "AXTable"})
+# Containers that only lay out others. A screenshot of one shows whatever it holds right now.
+_LAYOUT = frozenset({"AXGroup", "AXScrollArea", "AXSplitGroup", "AXSplitter", "AXToolbar"})
 _CHROME = frozenset({"AXCloseButton", "AXFullScreenButton", "AXMinimizeButton", "AXZoomButton"})
 # AppKit generates identifiers such as `_NS:34`, which change between launches.
 _GENERATED_IDENTIFIER = re.compile(r"_NS:\d+")
@@ -58,9 +60,10 @@ _GENERATED_IDENTIFIER = re.compile(r"_NS:\d+")
 
 @dataclass(frozen=True, eq=False)
 class Found:
-    """An element seen while walking a window. `chrome` marks window buttons and their parts.
+    """An element seen while walking a window.
 
-    `in_collection` marks everything inside a table, outline, or list.
+    `chrome` marks window buttons, scroll bars, and their parts. `in_collection` marks everything
+    inside a table, outline, or list.
 
     `role` is None when it can't be read. `depth` is 1 for the window's children, 2 for theirs,
     and so on.
@@ -268,7 +271,11 @@ def walk(window: Any) -> list[Found]:
     def visit(element: Any, in_chrome: bool, in_collection: bool, depth: int) -> None:
         in_collection = in_collection or _read(element, "AXRole") in _COLLECTIONS
         for child in _read(element, "AXChildren") or []:
-            chrome = in_chrome or _read(child, "AXSubrole") in _CHROME
+            chrome = (
+                in_chrome
+                or _read(child, "AXSubrole") in _CHROME
+                or _read(child, "AXRole") == "AXScrollBar"
+            )
             try:
                 frame = frame_of(child)
             except GONE:
@@ -408,8 +415,10 @@ def capture(
             for e in entries
             if e.found.in_collection and (e.locator == "image()" or labels[_labels(e.found)] > 1)
         }
-        entries = [entry for entry in entries if id(entry) not in folded]
         skipped = len(folded)
+        layout = _LAYOUT | _COLLECTIONS
+        folded |= {id(e) for e in entries if e.found.role in layout and e.locator == "image()"}
+        entries = [entry for entry in entries if id(entry) not in folded]
     # A standard window's title is often a document name, which changes between runs.
     title = None if window is None else target.get_ax_attribute("AXTitle")
     screen = class_name(title, app)

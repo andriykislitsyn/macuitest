@@ -8,7 +8,7 @@
 
 ### Changed
 
-- `capture` skips the elements inside tables, outlines, and lists that have no `ax()` locator, or one that every row repeats, and notes how many in a comment. The Fonts panel in TextEdit used to produce an `image()` and a PNG for each font row. Pass `--role` to capture them anyway.
+- `capture` skips the elements inside tables, outlines, and lists that have no `ax()` locator, or one that every row repeats, and notes how many in a comment. The Fonts panel in TextEdit used to produce an `image()` and a PNG for each font row. It also skips layout containers, such as groups, scroll areas, and toolbars, that would only get `image()`, and scroll bars. Pass `--role` to capture them anyway.
 
 ### Fixed
 

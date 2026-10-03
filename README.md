@@ -156,7 +156,7 @@ python -m macuitest.locators check apps/calculator.py
 
 To add another window's screen to a module you already have, pass `--append`. `capture` adds the class and any imports the module lacks, and refuses when the module already defines a class with that name.
 
-Rows of tables, outlines, and lists show data that changes, such as the font list in TextEdit's Fonts panel. `capture` skips the elements inside them that have no `ax()` locator, or one that every row repeats, and notes how many in a comment. Find a row by what it shows instead, such as `text("Helvetica")`. To capture rows anyway, name their role with `--role AXRow`.
+Rows of tables, outlines, and lists show data that changes, such as the font list in TextEdit's Fonts panel. `capture` skips the elements inside them that have no `ax()` locator, or one that every row repeats, and notes how many in a comment. Find a row by what it shows instead, such as `text("Helvetica")`. It also skips layout containers, such as groups, scroll areas, and toolbars, unless they have an `ax()` locator, and scroll bars always. To capture rows or containers anyway, name their role, such as `--role AXRow`.
 
 `capture` and `tree` skip identifiers that AppKit generates, such as `_NS:34`, because they change between launches.
 

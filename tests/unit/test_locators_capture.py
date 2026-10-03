@@ -393,7 +393,7 @@ def test_capture_skips_rows_without_a_stable_locator(fonts, tmp_path):
     assert "row =" not in source
     assert "static_text =" not in source
     assert "    # Skipped 4 elements inside tables and lists" in source
-    assert {path.stem for path in written[1:]} == {"search", "outline", "favorite"}
+    assert {path.stem for path in written[1:]} == {"search", "favorite"}
 
 
 def test_capture_keeps_an_element_with_a_stable_locator_inside_a_table(fonts, tmp_path):
@@ -547,3 +547,44 @@ def test_capture_skips_an_element_inside_a_table_that_repeats_in_every_row(
 
     assert "favorite =" not in out.read_text()
     assert "# Skipped 4 elements" in out.read_text()
+
+
+def test_walk_flags_a_scroll_bar_and_its_parts_as_chrome():
+    bar = FakeAX(element("AXButton", 0, 0, 10, 10), AXRole="AXScrollBar")
+
+    assert [found.chrome for found in walk(FakeAX(bar))] == [True, True]
+
+
+def layout_window():
+    """A window with a toolbar holding a search button, and a group with an identifier."""
+    return FakeAX(
+        FakeAX(
+            element("AXButton", 30, 30, 20, 20, AXDescription="Search"),
+            AXRole="AXToolbar",
+            AXPosition=(10, 20),
+            AXSize=(200, 30),
+        ),
+        element("AXGroup", 20, 60, 100, 30, AXIdentifier="sidebar"),
+        AXRole="AXWindow",
+        AXPosition=(10, 20),
+        AXSize=(200, 100),
+    )
+
+
+def test_capture_skips_layout_containers_without_a_stable_locator(app, monkeypatch, tmp_path):
+    monkeypatch.setattr(capture_module, "standard_window", lambda name, query=None: layout_window())
+    out = tmp_path / "layout.py"
+
+    capture("TextEdit", out)
+
+    assert "toolbar" not in out.read_text()
+    assert 'sidebar = ax(identifier="sidebar")' in out.read_text()
+
+
+def test_capture_keeps_layout_containers_when_roles_ask_for_them(app, monkeypatch, tmp_path):
+    monkeypatch.setattr(capture_module, "standard_window", lambda name, query=None: layout_window())
+    out = tmp_path / "layout.py"
+
+    capture("TextEdit", out, roles=["AXToolbar"])
+
+    assert "toolbar = image()" in out.read_text()
