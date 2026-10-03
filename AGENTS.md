@@ -1,6 +1,6 @@
 # Agent notes for macuitest
 
-macuitest drives real macOS apps. Anything that posts input (clicks, keys, `Application.activate`, `capture`, `tree --activate`) moves the user's focus and can type into the wrong app. Run those only when the user approves that run. Reading is safe: `python -m macuitest.locators tree <app>` and `check <module>`, AX attribute reads, and System Events `get` and `exists` queries.
+macuitest drives real macOS apps. Anything that posts input (clicks, keys, `Application.activate`, `macuitest click`, `capture`, `tree --activate`) moves the user's focus and can type into the wrong app. Run those only when the user approves that run. `macuitest press` and `set` change the app through accessibility without taking focus, and still need approval. Reading is safe: `macuitest tree`, `find`, `read`, and `wait` with a locator string, AX attribute reads, and System Events `get` and `exists` queries. A module reference, and `check`, import the module and run its code.
 
 ## Commands
 
@@ -17,7 +17,7 @@ Unit tests never touch the real screen or real apps: autouse guards in `tests/un
 
 ## Exploring an app
 
-- Start with `python -m macuitest.locators tree <app>`. It prints each element's attributes and the `ax()` locator that finds it. Calculator and floating panels such as TextEdit's Fonts panel show windows only while the app is active, which needs `--activate`.
+- Start with `macuitest tree <app>`. It prints each element's attributes and the `ax()` locator that finds it. Calculator and floating panels such as TextEdit's Fonts panel show windows only while the app is active, which needs `--activate`.
 - An element's `ax()` locator is valid only if it's the first match in depth-first order across the app's windows, front to back. `tree` and `capture` apply that rule. Hand-written locators must too.
 - AppKit generates identifiers like `_NS:34`. They change between launches, so never match on them. `tree` and `capture` hide them.
 

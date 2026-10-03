@@ -157,7 +157,8 @@ class BaseUIElement:
 
     def _set_value(self, value):
         """Set element value."""
-        return self.__when_present(lambda: self._execute("set value of", params=f'to "{value}"'))
+        quoted = '"' + str(value).replace("\\", "\\\\").replace('"', '\\"') + '"'
+        return self.__when_present(lambda: self._execute("set value of", params=f"to {quoted}"))
 
     def _get_value(self):
         """Get element value."""

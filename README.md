@@ -60,11 +60,42 @@ An agent that operates a Mac through screenshots alone has to read each frame wi
 
 An agent with a shell works in three steps:
 
-1. Read the UI with `python -m macuitest.locators tree <app>`. It prints every element with the `ax()` locator that finds it. See [Inspect an app](#inspect-an-app).
-2. Act on an element: declare that locator on a `Screen` in a short script and call it, such as `Calculator.seven.press()`. See [Declare an app's elements with screens](#declare-an-apps-elements-with-screens).
-3. To reuse locators across runs, write them to a `Screen` module with `capture`. See [Capture elements](#capture-elements).
+1. Read the UI with `macuitest tree <app>`. It prints every element with the `ax()` locator that finds it. See [Inspect an app](#inspect-an-app).
+2. Act on an element by passing that locator to a verb, such as `macuitest press Calculator 'ax(identifier="Seven", kind=Button)'`.
+3. To reuse locators across runs, write them to a `Screen` module with `capture`. See [Capture elements](#capture-elements). Every verb also takes an element of a screen module, such as `macuitest press apps/calculator.py:Calculator.seven`, so you can try the exact element a test uses.
 
-Reading the tree is safe at any time. Clicks, keystrokes, and `activate` move the user's focus and can type into the wrong app, so have the agent ask before it runs them.
+| Verb | Does | Takes focus |
+|---|---|---|
+| `find` | Prints the element's role, title, frame, and value, or exits 1 when it isn't there. Doesn't wait. | No |
+| `read` | Prints the element's text or value. | No |
+| `wait` | Waits for the element to appear, or to vanish with `--vanish`. | No |
+| `press` | Performs the element's accessibility press action without moving the pointer. Exits 1 when the element offers none, such as a sidebar label: use `click` there. | No |
+| `set` | Writes the element's value, such as a text field's text. | No |
+| `click` | Brings the app to the front, then clicks with the mouse. `--double` and `--right` change the click. | Yes |
+
+Prefer `press` and `set`: they work while the app stays in the background. `click` is for apps with poor accessibility support, or that misbehave under fast accessibility actions. `click` refuses to click when the app doesn't come to the front, but it doesn't check whether another app's floating window covers the element.
+
+Every verb exits 0 when it's done, 1 when the element is missing, a wait times out, focus is refused, or the app rejects the action, and 2 for bad usage, such as an invalid locator. A locator string is parsed, never run as Python. `--window-title` and `--window-subrole` scope a locator string to one window.
+
+Reading is safe at any time. `press`, `set`, and `click` change the app, and `click` moves the user's focus, so have the agent ask before it runs them. A module reference imports the module, which runs its code, so allow these verbs unprompted only where the agent can't write Python files you haven't reviewed. In Claude Code, these rules in `.claude/settings.json` allow the reads and ask for the rest:
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv run macuitest tree *)",
+      "Bash(uv run macuitest find *)",
+      "Bash(uv run macuitest read *)",
+      "Bash(uv run macuitest wait *)"
+    ],
+    "ask": [
+      "Bash(uv run macuitest press *)",
+      "Bash(uv run macuitest set *)",
+      "Bash(uv run macuitest click *)"
+    ]
+  }
+}
+```
 
 ## Element types
 
@@ -145,7 +176,7 @@ Keep these window rules in mind:
 To see what `ax()` can find in a running app, print its accessibility tree:
 
 ```bash
-python -m macuitest.locators tree TextEdit --window-title Fonts
+macuitest tree TextEdit --window-title Fonts
 ```
 
 Each line shows an element's role, identifier, description, title, and value, indented under its parent, then the `ax()` locator that finds it, when one does. Narrow the output with `--role`, `--window-title`, or `--window-subrole`. `tree` only reads, and leaves the app in the background. Some apps, such as Calculator, and floating panels show their windows only while the app is active, so pass `--activate` to bring the app to the front first.
@@ -155,8 +186,8 @@ Each line shows an element's role, identifier, description, title, and value, in
 Instead of writing a screen by hand, capture it from the running app:
 
 ```bash
-python -m macuitest.locators capture Calculator --out apps/calculator.py --role AXButton
-python -m macuitest.locators check apps/calculator.py
+macuitest capture Calculator --out apps/calculator.py --role AXButton
+macuitest check apps/calculator.py
 ```
 
 `capture` walks the app's first standard window and writes the following:

@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Breaking changes
+
+- `python -m macuitest.locators` is now the `macuitest` command, also run as `python -m macuitest`: `macuitest tree`, `macuitest capture`, and `macuitest check`.
+
+### Added
+
+- `macuitest find`, `read`, `wait`, `press`, `set`, and `click` act on one element named by a locator string, such as `macuitest press TextEdit 'ax(identifier="OK")'`, or by a screen module element, such as `macuitest press screens.py:Fonts.search`. Exit code 1 means the UI said no, and 2 means bad usage.
+
 ## 0.9.1 (2026-10-03)
 
 ### Added
