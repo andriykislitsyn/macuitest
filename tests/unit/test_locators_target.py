@@ -48,7 +48,6 @@ def test_parse_locator_round_trips_what_capture_prints(label):
     [
         'ax(identifier=__import__("os").system("true"))',
         'eval("1")',
-        'ax(identifier="OK").child(role="AXButton")',
         "ax(**{'identifier': 'OK'})",
         'ax(identifier="OK", kind=os.system)',
         'ax(identifier="OK", kind=Nope)',
@@ -228,3 +227,30 @@ def test_resolve_loads_a_module_image_element_from_its_folder(tmp_path):
     element = resolve([f"{module}:Fonts.search"]).element
 
     assert element.path == png
+
+
+def test_parse_locator_reads_a_child_chain_with_its_own_kind():
+    locator = parse_locator(
+        'ax(identifier="StandardInputView").child(role="AXStaticText", kind=StaticText)'
+    )
+
+    assert isinstance(locator, AXLocator)
+    assert [query.attributes for query in locator.queries] == [
+        (("AXIdentifier", "StandardInputView"),),
+        (("AXRole", "AXStaticText"),),
+    ]
+    assert locator.kind is native_element.StaticText
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        'ax(identifier="View").child(role=f"{1}")',
+        'ax(identifier="View").parent()',
+        'text("AB").child(role="AXStaticText")',
+        'ax(identifier="View").child(role="AXStaticText", kind=os.system)',
+    ],
+)
+def test_parse_locator_rejects_a_bad_child_chain(source):
+    with pytest.raises(ValueError):
+        parse_locator(source)

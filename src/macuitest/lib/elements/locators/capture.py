@@ -8,6 +8,7 @@ from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+from typing import Iterator
 from typing import Optional
 from typing import Sequence
 
@@ -45,6 +46,8 @@ KINDS = {
 }
 # Most stable first. Every key must be set for a locator to apply.
 _LOCATOR_KEYS = (("identifier",), ("description", "role"), ("title", "role"))
+# The same for a `.child()` query, which searches only an ancestor's subtree.
+_CHILD_KEYS = (*_LOCATOR_KEYS, ("role",))
 # Names that would shadow `Screen` attributes, or the factories inside the generated class body.
 _RESERVED = frozenset({"app", "window", "applescript", "ax", "image", "text"})
 # `window()` keywords by the AX attribute an `AXQuery` stores.
@@ -96,10 +99,32 @@ def locator_for(found: Found, walked: list[Found]) -> tuple[str, Optional[str]]:
     """Return the source of the most stable locator that resolves to `found`, and its kind.
 
     A locator resolves to `found` when `found` is the first element of `walked`, the whole window
-    in depth-first order, that it matches. Without one, the element gets `image()`.
+    in depth-first order, that it matches. Without one, the nearest ancestor that has one narrows
+    the search with `.child()`, unless `found` lays out others or sits in a table or list. Without
+    either, the element gets `image()`.
     """
     kind = KINDS.get(found.role or "")
-    for keys in _LOCATOR_KEYS:
+    own = _arguments(found, walked, _LOCATOR_KEYS)
+    if own is not None:
+        return f"ax({', '.join(own + _kind(kind))})", kind
+    if not found.in_collection and found.role not in _LAYOUT | _COLLECTIONS:
+        for index in _ancestors(found, walked):
+            parent = _arguments(walked[index], walked, _LOCATOR_KEYS)
+            if parent is None:
+                continue
+            # Farther ancestors search a larger subtree, which can only add earlier matches.
+            child = _arguments(found, _subtree(walked, index), _CHILD_KEYS)
+            if child is None:
+                break
+            return f"ax({', '.join(parent)}).child({', '.join(child + _kind(kind))})", kind
+    return "image()", None
+
+
+def _arguments(
+    found: Found, walked: list[Found], key_sets: tuple[tuple[str, ...], ...]
+) -> Optional[list[str]]:
+    """Return the arguments of the first key set whose first match in `walked` is `found`."""
+    for keys in key_sets:
         values = {key: getattr(found, key) for key in keys}
         if not all(values.values()):
             continue
@@ -107,11 +132,31 @@ def locator_for(found: Found, walked: list[Found]) -> tuple[str, Optional[str]]:
             (f for f in walked if all(getattr(f, key) == v for key, v in values.items())), None
         )
         if first is found:
-            arguments = [f"{key}={_literal(v)}" for key, v in values.items()]
-            if kind:
-                arguments.append(f"kind={kind}")
-            return f"ax({', '.join(arguments)})", kind
-    return "image()", None
+            return [f"{key}={_literal(v)}" for key, v in values.items()]
+    return None
+
+
+def _kind(kind: Optional[str]) -> list[str]:
+    return [f"kind={kind}"] if kind else []
+
+
+def _ancestors(found: Found, walked: list[Found]) -> Iterator[int]:
+    """Yield the indexes of `found`'s ancestors in `walked`, nearest first."""
+    index = next((i for i, f in enumerate(walked) if f is found), None)
+    if index is None:
+        return
+    depth = found.depth
+    for i in range(index - 1, -1, -1):
+        if walked[i].depth < depth:
+            depth = walked[i].depth
+            yield i
+
+
+def _subtree(walked: list[Found], index: int) -> list[Found]:
+    """Return the elements under `walked[index]`."""
+    depth = walked[index].depth
+    end = next((j for j in range(index + 1, len(walked)) if walked[j].depth <= depth), len(walked))
+    return walked[index + 1 : end]
 
 
 def attribute_name(found: Found, taken: set[str]) -> str:

@@ -110,16 +110,30 @@ def parse_locator(source: str) -> Locator:
 
 
 def _build(node: ast.expr) -> Locator:
-    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
-        if reason := _MODULE_ONLY.get(node.func.id):
-            raise ValueError(f"{reason}: use <module.py>:<Screen>.<element>")
-    if not (
-        isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Name)
-        and node.func.id in _FACTORIES
-    ):
-        raise ValueError(f"Expected a call to ax() or text(), not {ast.unparse(node)}")
-    factory = node.func.id
+    expected = f"Expected a call to ax() or text(), not {ast.unparse(node)}"
+    if not isinstance(node, ast.Call):
+        raise ValueError(expected)
+    arguments, keywords = _arguments(node)
+    function = node.func
+    make: Callable[..., Locator]
+    if isinstance(function, ast.Attribute) and function.attr == "child":
+        parent = _build(function.value)
+        if not isinstance(parent, AXLocator):
+            raise ValueError(f".child() follows an ax() call, not {ast.unparse(function.value)}")
+        make = parent.child
+    elif isinstance(function, ast.Name) and function.id in _MODULE_ONLY:
+        raise ValueError(f"{_MODULE_ONLY[function.id]}: use <module.py>:<Screen>.<element>")
+    elif isinstance(function, ast.Name) and function.id in _FACTORIES:
+        make = _FACTORIES[function.id]
+    else:
+        raise ValueError(expected)
+    try:
+        return make(*arguments, **keywords)
+    except TypeError as error:
+        raise ValueError(f"{ast.unparse(node)}: {error}") from error
+
+
+def _arguments(node: ast.Call) -> tuple[list[Any], dict[str, Any]]:
     arguments = [_literal(argument) for argument in node.args]
     keywords: dict[str, Any] = {}
     for keyword in node.keywords:
@@ -131,10 +145,7 @@ def _build(node: ast.expr) -> Locator:
             keywords["within"] = _within(keyword.value)
         else:
             keywords[keyword.arg] = _literal(keyword.value)
-    try:
-        return _FACTORIES[factory](*arguments, **keywords)
-    except TypeError as error:
-        raise ValueError(f"{ast.unparse(node)}: {error}") from error
+    return arguments, keywords
 
 
 def _literal(node: ast.expr) -> Any:

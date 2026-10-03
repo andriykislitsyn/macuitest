@@ -37,10 +37,14 @@ class AXLocator(Locator[E]):
         description: Optional[str] = None,
         title: Optional[str] = None,
         role: Optional[str] = None,
-    ) -> "AXLocator[E]":
-        """Return a locator for this element's first descendant matching the given attributes."""
+        kind: Optional[type[NativeElement]] = None,
+    ) -> "AXLocator[Any]":
+        """Return a locator for this element's first descendant matching the given attributes.
+
+        The descendant reads as a `kind` instance, by default this element's kind.
+        """
         query = AXQuery.of(identifier=identifier, description=description, title=title, role=role)
-        return AXLocator((*self.queries, query), self.kind)
+        return AXLocator((*self.queries, query), kind or self.kind)
 
     def find(self) -> Optional[Any]:
         """Return the accessibility element, or None when the app or element isn't there.

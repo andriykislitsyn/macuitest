@@ -179,7 +179,7 @@ To see what `ax()` can find in a running app, print its accessibility tree:
 macuitest tree TextEdit --window-title Fonts
 ```
 
-Each line shows an element's role, identifier, description, title, and value, indented under its parent, then the `ax()` locator that finds it, when one does. Narrow the output with `--role`, `--window-title`, or `--window-subrole`. `tree` only reads, and leaves the app in the background. Some apps, such as Calculator, and floating panels show their windows only while the app is active, so pass `--activate` to bring the app to the front first.
+Each line shows an element's role, identifier, description, title, and value, indented under its parent, then the `ax()` locator that finds it, when one does. An element without labels of its own gets a locator through its nearest labeled ancestor, such as `ax(identifier="StandardInputView").child(role="AXStaticText", kind=StaticText)`. Narrow the output with `--role`, `--window-title`, or `--window-subrole`. `tree` only reads, and leaves the app in the background. Some apps, such as Calculator, and floating panels show their windows only while the app is active, so pass `--activate` to bring the app to the front first.
 
 ### Capture elements
 

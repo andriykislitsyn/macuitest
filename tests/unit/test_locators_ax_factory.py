@@ -10,6 +10,7 @@ from macuitest.lib.elements.locators import window
 from macuitest.lib.elements.native.calls import AXErrorInvalidUIElement
 from macuitest.lib.elements.native_element import Button
 from macuitest.lib.elements.native_element import NativeElement
+from macuitest.lib.elements.native_element import StaticText
 
 
 class FakeAX:
@@ -237,3 +238,22 @@ def test_ax_on_a_window_screen_without_that_window_raises(app_windows, monkeypat
         LookupError, match=r"Confirm\.ok: .* in Calculator's AXSubrole='AXDialog' window"
     ):
         _ = Confirm.ok.item
+
+
+def test_child_reads_as_its_own_kind(app_windows):
+    value = FakeAX(AXRole="AXStaticText", AXValue="42")
+    app_windows.append(FakeAX(FakeAX(value, AXIdentifier="Display")))
+
+    class Calculator(Screen, app="Calculator"):
+        display = ax(identifier="Display", kind=Button).child(role="AXStaticText", kind=StaticText)
+
+    assert isinstance(Calculator.display, StaticText)
+
+
+def test_child_keeps_the_parent_kind_by_default(app_windows):
+    app_windows.append(FakeAX(FakeAX(FakeAX(AXRole="AXButton"), AXIdentifier="Keypad")))
+
+    class Calculator(Screen, app="Calculator"):
+        key = ax(identifier="Keypad", kind=Button).child(role="AXButton")
+
+    assert isinstance(Calculator.key, Button)
