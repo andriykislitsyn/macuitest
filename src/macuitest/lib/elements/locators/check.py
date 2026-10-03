@@ -10,6 +10,7 @@ from macuitest.lib.elements.locators.factories import ImageLocator
 from macuitest.lib.elements.locators.screen import Locator
 from macuitest.lib.elements.locators.screen import Screen
 from macuitest.lib.elements.locators.screen import image_folder
+from macuitest.lib.elements.locators.screen import images_root
 
 
 @dataclass(frozen=True)
@@ -60,7 +61,7 @@ def check(module: ModuleType) -> Report:
         declared_in[image_folder(module_file, screen.__name__)] = declared
     undeclared = [
         png
-        for png in sorted((module_file.parent / module_file.stem).glob("*/*.png"))
+        for png in sorted(images_root(module_file).glob("*/*.png"))
         if png.stem.split("@")[0] not in declared_in.get(png.parent, set())
     ]
     return Report(missing=sorted(missing), undeclared=undeclared)

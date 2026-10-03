@@ -17,7 +17,7 @@ Unit tests never touch the real screen: an autouse guard in `tests/unit/conftest
 
 - Start with `python -m macuitest.locators tree <app>`. It prints each element's attributes and the `ax()` locator that finds it. Calculator and floating panels such as TextEdit's Fonts panel show windows only while the app is active, which needs `--activate`.
 - An element's `ax()` locator is valid only if it's the first match in depth-first order across the app's windows, front to back. `tree` and `capture` apply that rule. Hand-written locators must too.
-- AppKit generates identifiers like `_NS:34`. They change between launches, so never match on them.
+- AppKit generates identifiers like `_NS:34`. They change between launches, so never match on them. `tree` and `capture` hide them.
 
 ## Gotchas
 

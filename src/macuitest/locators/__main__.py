@@ -55,7 +55,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             force=args.force,
             window=window,
         )
-    except (LookupError, FileExistsError, PermissionError) as error:
+    except (LookupError, PermissionError, OSError) as error:
         print(error, file=sys.stderr)
         return 1
     print(f"Wrote {written[0]} and {len(written) - 1} images")
@@ -72,7 +72,11 @@ def _tree(app: str, window: Optional[AXQuery], roles: list[str], activate: bool)
 
 
 def _check(module: Path) -> int:
-    report = check(load_module(module))
+    try:
+        report = check(load_module(module))
+    except (ImportError, OSError) as error:
+        print(error, file=sys.stderr)
+        return 1
     for path in report.missing:
         print(f"Missing: {path}")
     for path in report.undeclared:

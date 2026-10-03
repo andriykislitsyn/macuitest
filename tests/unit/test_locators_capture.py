@@ -147,6 +147,37 @@ def test_walk_keeps_an_element_with_an_unreadable_attribute():
     assert ("AXButton", "Mode") in [(f.role, f.description) for f in found]
 
 
+def test_walk_drops_identifiers_appkit_generates():
+    size = element("AXComboBox", 30, 40, 60, 24, AXIdentifier="_NS:34", AXDescription="Size")
+
+    [found] = walk(FakeAX(size))
+
+    assert (found.identifier, found.description) == (None, "Size")
+
+
+def test_walk_reads_an_unreadable_role_as_none():
+    [found] = walk(FakeAX(FakeAX(AXDescription="Mode")))
+
+    assert found.role is None
+
+
+def test_capture_names_the_screen_after_the_app_not_its_window(app, tmp_path):
+    out = tmp_path / "textedit.py"
+
+    written = capture("TextEdit", out)
+
+    assert "class TextEdit(Screen" in out.read_text()
+    assert written[1].parent == tmp_path / "textedit" / "text_edit"
+
+
+def test_capture_names_a_window_screen_after_its_window(app, tmp_path):
+    out = tmp_path / "textedit.py"
+
+    capture("TextEdit", out, window=AXQuery.of(title="Calculator"))
+
+    assert "class Calculator(Screen" in out.read_text()
+
+
 def test_capture_writes_a_module_and_a_png_per_element_inside_the_window(app, tmp_path):
     out = tmp_path / "calculator.py"
 

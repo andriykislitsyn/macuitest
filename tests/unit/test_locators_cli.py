@@ -64,7 +64,13 @@ def test_capture_passes_the_window_to_match(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "error", [LookupError("no window"), FileExistsError("exists"), PermissionError("not granted")]
+    "error",
+    [
+        LookupError("no window"),
+        FileExistsError("exists"),
+        PermissionError("not granted"),
+        OSError("Can't write c/png.png"),
+    ],
 )
 def test_capture_errors_exit_one_with_the_message(tmp_path, capsys, error):
     with mock.patch.object(cli, "capture", autospec=True, side_effect=error):
@@ -101,3 +107,13 @@ def test_tree_errors_exit_one_with_the_message(capsys, error):
 
     assert code == 1
     assert str(error) in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("name", ["missing.py", "notes.txt"])
+def test_check_of_a_module_it_cant_load_exits_one_with_the_message(tmp_path, capsys, name):
+    (tmp_path / "notes.txt").write_text("notes")
+
+    code = cli.main(["check", str(tmp_path / name)])
+
+    assert code == 1
+    assert name in capsys.readouterr().err

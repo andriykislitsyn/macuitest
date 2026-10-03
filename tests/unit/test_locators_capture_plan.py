@@ -38,6 +38,12 @@ def test_a_role_filter_doesnt_change_which_locator_resolves():
     assert entries[0].locator == 'ax(title="Confirm", role="AXButton", kind=Button)'
 
 
+def test_an_element_with_an_unreadable_role_gets_no_role_locator():
+    unknown = Found(None, FRAME, description="Mode")
+
+    assert locator_for(unknown, [unknown]) == ("image()", None)
+
+
 def test_an_element_without_usable_attributes_gets_an_image():
     blank = Found("AXGroup", FRAME)
 
@@ -97,6 +103,8 @@ def test_crop_box_outside_the_window_is_none():
         ("Calculator", "Calculator", "Calculator"),
         ("", "System Settings", "SystemSettings"),
         (None, "1Password", "AppScreen"),
+        ("none", "TextEdit", "TextEdit"),
+        (None, "True", "AppScreen"),
     ],
 )
 def test_class_name(title, app, expected):

@@ -1,4 +1,3 @@
-import cv2
 import numpy
 import pytest
 
@@ -46,9 +45,9 @@ def test_bands_cover_every_start_row_exactly_once(screen_height, template_height
     assert rows == list(range(screen_height - template_height + 1))
 
 
-def test_template_taller_than_the_screen_raises(screen):
-    with pytest.raises(cv2.error):
-        find_template(screen, numpy.zeros((901, 10), dtype=numpy.uint8), 0.925)
+@pytest.mark.parametrize("shape", [(901, 10), (10, 701)])
+def test_template_larger_than_the_screen_is_not_found(screen, shape):
+    assert find_template(screen, numpy.zeros(shape, dtype=numpy.uint8), 0.925) is None
 
 
 @pytest.mark.parametrize("bands", [1, 3, 4, 8])

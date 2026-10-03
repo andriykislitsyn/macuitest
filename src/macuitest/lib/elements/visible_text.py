@@ -1,5 +1,6 @@
 """Screen elements found by their visible text."""
 
+import unicodedata
 from typing import Optional
 
 from macuitest.config.constants import Region
@@ -23,7 +24,7 @@ class VisibleText(ScreenElement):
         Raises:
             ValueError: `text` is a single character, which Vision doesn't read reliably.
         """
-        if len(text.strip()) == 1:
+        if len(unicodedata.normalize("NFC", text.strip())) == 1:
             raise ValueError(
                 f"Vision can't reliably read the single character {text.strip()!r}. "
                 "Find it with an accessibility locator or an image instead."

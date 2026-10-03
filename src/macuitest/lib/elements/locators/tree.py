@@ -72,7 +72,9 @@ def _roots(app: str, window: Optional[AXQuery]) -> list[Any]:
 
 
 def _element(found: Found, walked: list[Found]) -> str:
-    role = f"{found.role} [chrome]" if found.chrome else found.role
+    role = found.role or "(no role)"
+    if found.chrome:
+        role += " [chrome]"
     line = _line(
         role,
         identifier=found.identifier,

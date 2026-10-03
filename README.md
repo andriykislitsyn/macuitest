@@ -152,7 +152,9 @@ python -m macuitest.locators check apps/calculator.py
 - `apps/calculator.py`, with an `ax()` entry for each element it can identify, else an `image()` entry.
 - A PNG of each element in `apps/calculator/calculator/`, cropped with a 4 pt margin. Change the margin with `--margin`.
 
-`capture` brings the app to the front first and crops each element from a capture of that one window. To capture an alert, panel, or secondary window, pass `--window-subrole AXDialog` or `--window-title`. `capture` doesn't overwrite existing files unless you pass `--force`.
+`capture` brings the app to the front first and crops each element from a capture of that one window. To capture an alert, panel, or secondary window, pass `--window-subrole AXDialog` or `--window-title`. The screen class is named after the app, or after the window when you pass one of those options. `capture` doesn't overwrite existing files unless you pass `--force`.
+
+`capture` and `tree` skip identifiers that AppKit generates, such as `_NS:34`, because they change between launches.
 
 Then edit the generated module: delete the entries you don't need, and switch an entry to `image()` where its accessibility attributes don't identify it. Identifiers that encode state, such as Calculator's `Mode: basic; unitConversion: false`, need a stable replacement, such as a match on the description.
 
