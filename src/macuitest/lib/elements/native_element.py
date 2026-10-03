@@ -6,6 +6,7 @@ from typing import Optional
 from macuitest.config.constants import Frame
 from macuitest.config.constants import Point
 from macuitest.config.constants import Region
+from macuitest.config.settings import settings
 from macuitest.lib import core
 from macuitest.lib.core import wait_condition
 from macuitest.lib.elements.controllers.mouse import mouse
@@ -35,27 +36,41 @@ class NativeElement:
         self.item.press()
         time.sleep(0.24)
 
-    def double_click_mouse(self, x_off: int = 0, y_off: int = 0, duration: Optional[float] = None):
-        mouse.double_click(
-            self.frame.center.x + x_off, self.frame.center.y + y_off, duration=duration
-        )
-
     def click_mouse(
         self,
         x_off: int = 0,
         y_off: int = 0,
+        *,
+        hold: Optional[float] = None,
         duration: Optional[float] = None,
-        hold_time: Optional[float] = None,
+        pause: Optional[float] = None,
     ):
-        mouse.click(self.frame.center.x + x_off, self.frame.center.y + y_off, hold_time, duration)
+        center = self.frame.center
+        mouse.click(center.x + x_off, center.y + y_off, hold=hold, duration=duration, pause=pause)
 
-    def rightclick_mouse(self, x_off: int = 0, y_off: int = 0, duration: Optional[float] = None):
+    def double_click_mouse(
+        self, x_off: int = 0, y_off: int = 0, *, duration: Optional[float] = None
+    ):
+        center = self.frame.center
+        mouse.double_click(center.x + x_off, center.y + y_off, duration=duration)
+
+    def right_click_mouse(
+        self,
+        x_off: int = 0,
+        y_off: int = 0,
+        *,
+        hold: Optional[float] = None,
+        duration: Optional[float] = None,
+        pause: Optional[float] = None,
+    ):
+        center = self.frame.center
         mouse.right_click(
-            self.frame.center.x + x_off, self.frame.center.y + y_off, duration=duration
+            center.x + x_off, center.y + y_off, hold=hold, duration=duration, pause=pause
         )
 
-    def hover_mouse(self, x_off: int = 0, y_off: int = 0, duration: Optional[float] = None):
-        mouse.hover(self.frame.center.x + x_off, self.frame.center.y + y_off, duration)
+    def hover_mouse(self, x_off: int = 0, y_off: int = 0, *, duration: Optional[float] = None):
+        center = self.frame.center
+        mouse.hover(center.x + x_off, center.y + y_off, duration=duration)
 
     def region(self, margin: int = 0):
         return Region(
@@ -106,14 +121,24 @@ class NativeElement:
 
     @property
     def is_visible(self) -> bool:
+        """Whether the element is in the accessibility tree now. Doesn't wait."""
         return self.exists
 
-    def wait_vanish(self, timeout: float = 5) -> bool:
-        return wait_condition(lambda: self.__get_axrole() is None, timeout=timeout)
+    def wait_displayed(self, timeout: Optional[float] = None) -> bool:
+        """Return whether the element appears within `timeout` seconds.
 
-    @property
-    def did_vanish(self) -> bool:
-        return wait_condition(lambda: self.__get_axrole() is None)
+        `timeout` defaults to `settings.elements.timeout`.
+        """
+        timeout = settings.elements.timeout if timeout is None else timeout
+        return bool(wait_condition(lambda: self.exists, timeout=timeout))
+
+    def wait_vanish(self, timeout: Optional[float] = None) -> bool:
+        """Return whether the element disappears within `timeout` seconds.
+
+        `timeout` defaults to `settings.elements.vanish_timeout`.
+        """
+        timeout = settings.elements.vanish_timeout if timeout is None else timeout
+        return wait_condition(lambda: self.__get_axrole() is None, timeout=timeout)
 
     def __get_axrole(self) -> Optional[str]:
         try:
