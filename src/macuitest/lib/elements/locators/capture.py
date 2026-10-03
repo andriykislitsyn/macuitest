@@ -18,9 +18,11 @@ from macuitest.config.constants import POINTS_PER_INCH
 from macuitest.config.constants import Region
 from macuitest.lib.core import wait_condition
 from macuitest.lib.elements.locators.accessibility import GONE
+from macuitest.lib.elements.locators.accessibility import MAX_DEPTH
 from macuitest.lib.elements.locators.accessibility import AXQuery
 from macuitest.lib.elements.locators.accessibility import app_root
 from macuitest.lib.elements.locators.accessibility import frame_of
+from macuitest.lib.elements.locators.accessibility import identity
 from macuitest.lib.elements.locators.accessibility import standard_window
 from macuitest.lib.elements.locators.accessibility import windows
 from macuitest.lib.elements.locators.screen import image_folder
@@ -268,9 +270,17 @@ def walk(window: Any) -> list[Found]:
     """
     found: list[Found] = []
 
-    def visit(element: Any, in_chrome: bool, in_collection: bool, depth: int) -> None:
+    def visit(
+        element: Any, in_chrome: bool, in_collection: bool, depth: int, path: tuple[Any, ...]
+    ) -> None:
+        if depth > MAX_DEPTH:
+            return
+        path = (*path, identity(element))
         in_collection = in_collection or _read(element, "AXRole") in _COLLECTIONS
         for child in _read(element, "AXChildren") or []:
+            # Some apps list an ancestor among an element's children, which would loop forever.
+            if identity(child) in path:
+                continue
             chrome = (
                 in_chrome
                 or _read(child, "AXSubrole") in _CHROME
@@ -293,9 +303,9 @@ def walk(window: Any) -> list[Found]:
                     value=_read(child, "AXValue"),
                 )
             )
-            visit(child, chrome, in_collection, depth + 1)
+            visit(child, chrome, in_collection, depth + 1, path)
 
-    visit(window, False, False, 1)
+    visit(window, False, False, 1, ())
     return found
 
 

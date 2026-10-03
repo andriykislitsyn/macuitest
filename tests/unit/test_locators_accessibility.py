@@ -232,3 +232,38 @@ def test_an_unreadable_window_doesnt_hide_the_next_one(running):
     running(UnreadableSubrole(AXRole="AXWindow"), window())
 
     assert ax.standard_window_frame("Calculator") == Region(10, 20, 210, 120)
+
+
+def chain(length, **bottom):
+    """Return the top of `length` nested elements; the deepest has the `bottom` attributes."""
+    element = FakeAX(**bottom)
+    for _ in range(length - 1):
+        element = FakeAX(element)
+    return element
+
+
+def test_find_first_survives_an_element_that_is_its_own_child():
+    loop = FakeAX()
+    loop.attributes["AXChildren"].append(loop)
+
+    assert ax.find_first([FakeAX(loop)], AXQuery.of(description="7")) is None
+
+
+def test_find_first_survives_a_loop_through_two_elements():
+    first, second = FakeAX(), FakeAX()
+    first.attributes["AXChildren"].append(second)
+    second.attributes["AXChildren"].append(first)
+
+    assert ax.find_first([FakeAX(first)], AXQuery.of(description="7")) is None
+
+
+def test_find_first_finds_an_element_at_the_depth_cap():
+    root = FakeAX(chain(ax.MAX_DEPTH, AXDescription="7"))
+
+    assert ax.find_first([root], AXQuery.of(description="7")) is not None
+
+
+def test_find_first_stops_below_the_depth_cap():
+    root = FakeAX(chain(ax.MAX_DEPTH + 50, AXDescription="7"))
+
+    assert ax.find_first([root], AXQuery.of(description="7")) is None

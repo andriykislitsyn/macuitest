@@ -20,6 +20,8 @@ from macuitest.lib.operating_system.permissions import require_accessibility
 # Raised for an app that is quitting or not answering yet, for an element that just vanished,
 # and by SwiftUI for some attributes of otherwise readable elements (AXErrorFailure).
 GONE = (AXErrorCannotComplete, AXErrorFailure, AXErrorIllegalArgument, AXErrorInvalidUIElement)
+# How deep lookups and walks descend. Real UIs nest a few dozen levels at most.
+MAX_DEPTH = 100
 # Process IDs by app name. Finding a running app through NSWorkspace spins the run loop for 1 s.
 _pids: dict[str, int] = {}
 
@@ -174,11 +176,22 @@ def _alive(pid: int) -> bool:
     return True
 
 
-def _descendants(element: Any) -> Iterator[Any]:
+def identity(element: Any) -> Any:
+    """Return what tells accessibility elements apart: the AX reference, else the object."""
+    return getattr(element, "ref", element)
+
+
+def _descendants(element: Any, path: tuple[Any, ...] = ()) -> Iterator[Any]:
+    path = (*path, identity(element))
+    if len(path) > MAX_DEPTH:
+        return
     try:
         children = element.get_ax_attribute("AXChildren") or []
     except GONE:
         return
     for child in children:
+        # Some apps list an ancestor among an element's children, which would loop forever.
+        if identity(child) in path:
+            continue
         yield child
-        yield from _descendants(child)
+        yield from _descendants(child, path)
