@@ -44,6 +44,37 @@ def calculator_window():
     )
 
 
+def fonts_window():
+    """A window with a search button and an outline of two font rows, one with a favorite box."""
+    arial = FakeAX(
+        element("AXStaticText", 20, 60, 80, 16, AXValue="Arial"),
+        AXRole="AXRow",
+        AXPosition=(20, 60),
+        AXSize=(150, 20),
+    )
+    helvetica = FakeAX(
+        element("AXCheckBox", 150, 82, 10, 10, AXIdentifier="favorite"),
+        element("AXStaticText", 20, 80, 80, 16, AXValue="Helvetica"),
+        AXRole="AXRow",
+        AXPosition=(20, 80),
+        AXSize=(150, 20),
+    )
+    return FakeAX(
+        element("AXButton", 30, 30, 20, 20, AXDescription="Search"),
+        FakeAX(arial, helvetica, AXRole="AXOutline", AXPosition=(20, 60), AXSize=(150, 40)),
+        AXRole="AXWindow",
+        AXTitle="Fonts",
+        AXPosition=(10, 20),
+        AXSize=(200, 100),
+    )
+
+
+@pytest.fixture
+def fonts(app, monkeypatch):
+    """Serve fonts_window as the app's window."""
+    monkeypatch.setattr(capture_module, "standard_window", lambda name, query=None: fonts_window())
+
+
 @pytest.fixture
 def app(monkeypatch, text_image):
     """Serve calculator_window as Calculator's window, captured at 2x, and record queries."""
@@ -337,3 +368,133 @@ def test_window_number_prefers_an_app_window_over_a_panel_with_the_same_bounds(m
     monkeypatch.setattr(capture_module.Quartz, "CGWindowListCopyWindowInfo", lambda *args: windows)
 
     assert window_number(42, Region(10, 20, 210, 120)) == 2
+
+
+def test_walk_marks_elements_inside_a_table_or_list():
+    seen = [(found.role, found.in_collection) for found in walk(fonts_window())]
+
+    assert seen == [
+        ("AXButton", False),
+        ("AXOutline", False),
+        ("AXRow", True),
+        ("AXStaticText", True),
+        ("AXRow", True),
+        ("AXCheckBox", True),
+        ("AXStaticText", True),
+    ]
+
+
+def test_capture_skips_rows_without_a_stable_locator(fonts, tmp_path):
+    out = tmp_path / "fonts.py"
+
+    written = capture("TextEdit", out)
+
+    source = out.read_text()
+    assert "row =" not in source
+    assert "static_text =" not in source
+    assert "    # Skipped 4 elements inside tables and lists" in source
+    assert {path.stem for path in written[1:]} == {"search", "outline", "favorite"}
+
+
+def test_capture_keeps_an_element_with_a_stable_locator_inside_a_table(fonts, tmp_path):
+    out = tmp_path / "fonts.py"
+
+    capture("TextEdit", out)
+
+    assert 'favorite = ax(identifier="favorite", kind=CheckBox)' in out.read_text()
+
+
+def test_capture_keeps_rows_when_roles_ask_for_them(fonts, tmp_path):
+    out = tmp_path / "fonts.py"
+
+    capture("TextEdit", out, roles=["AXRow"])
+
+    assert "row = image()" in out.read_text()
+    assert "Skipped" not in out.read_text()
+
+
+TEXTEDIT_MODULE = """\
+\"\"\"TextEdit's screens.\"\"\"
+
+from macuitest.lib.elements.locators import Screen
+from macuitest.lib.elements.locators import text
+
+
+class TextEdit(Screen, app="TextEdit"):
+    untitled = text("Untitled")
+
+
+def helper():
+    return 1
+"""
+
+
+def test_capture_appends_a_screen_to_an_existing_module(app, tmp_path):
+    out = tmp_path / "textedit.py"
+    out.write_text(TEXTEDIT_MODULE)
+
+    capture("Calculator", out, append=True)
+
+    source = out.read_text()
+    assert 'class TextEdit(Screen, app="TextEdit"):\n    untitled = text("Untitled")' in source
+    assert source.endswith(
+        '    return 1\n\n\nclass Calculator(Screen, app="Calculator"):\n'
+        + (
+            '    ok = ax(identifier="OK", kind=Button)\n'
+            '    total = ax(description="Total", role="AXStaticText", kind=StaticText)\n'
+        )
+    )
+
+
+def test_capture_append_adds_only_the_missing_imports_after_the_last_one(app, tmp_path):
+    out = tmp_path / "textedit.py"
+    out.write_text(TEXTEDIT_MODULE)
+
+    capture("Calculator", out, append=True)
+
+    imports = out.read_text().split("\n\n\nclass TextEdit")[0].splitlines()[2:]
+    assert imports == [
+        "from macuitest.lib.elements.locators import Screen",
+        "from macuitest.lib.elements.locators import text",
+        "from macuitest.lib.elements.locators import ax",
+        "from macuitest.lib.elements.native_element import Button",
+        "from macuitest.lib.elements.native_element import StaticText",
+    ]
+
+
+def test_capture_append_refuses_a_screen_the_module_defines(app, tmp_path):
+    out = tmp_path / "calculator.py"
+    out.write_text("class Calculator:\n    pass\n")
+
+    with pytest.raises(FileExistsError, match="already defines Calculator"):
+        capture("Calculator", out, append=True)
+
+    assert out.read_text() == "class Calculator:\n    pass\n"
+    assert not (tmp_path / "calculator" / "calculator").exists()
+
+
+def test_capture_append_writes_a_new_module_when_none_exists(app, tmp_path):
+    out = tmp_path / "calculator.py"
+
+    capture("Calculator", out, append=True)
+
+    assert out.read_text().startswith('"""Generated by')
+
+
+@pytest.mark.parametrize(
+    "module, head",
+    [
+        ("", ""),
+        ("TIMEOUT = 3\n", ""),
+        ('"""Screens."""\n\nTIMEOUT = 3\n', '"""Screens."""\n'),
+    ],
+)
+def test_capture_append_puts_imports_at_the_top_of_a_module_without_any(
+    app, tmp_path, module, head
+):
+    out = tmp_path / "calculator.py"
+    out.write_text(module)
+
+    capture("Calculator", out, append=True)
+
+    assert out.read_text().startswith(head + "from macuitest.lib.elements.locators import Screen\n")

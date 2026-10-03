@@ -24,6 +24,9 @@ def main(argv: Optional[list[str]] = None) -> int:
     capturing.add_argument("--role", action="append", default=[], help="keep only this AX role")
     capturing.add_argument("--margin", type=_margin, default=4.0, help="points around each crop")
     capturing.add_argument("--force", action="store_true", help="replace existing files")
+    capturing.add_argument(
+        "--append", action="store_true", help="add the screen to an existing module"
+    )
     capturing.add_argument("--window-title", help="capture the window with this title")
     capturing.add_argument("--window-subrole", help="capture the window with this AX subrole")
     checking = commands.add_parser(
@@ -54,6 +57,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             margin=args.margin,
             force=args.force,
             window=window,
+            append=args.append,
         )
     except (LookupError, PermissionError, OSError) as error:
         print(error, file=sys.stderr)

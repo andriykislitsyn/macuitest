@@ -154,6 +154,10 @@ python -m macuitest.locators check apps/calculator.py
 
 `capture` brings the app to the front first and crops each element from a capture of that one window. To capture an alert, panel, or secondary window, pass `--window-subrole AXDialog` or `--window-title`. The screen class is named after the app, or after the window when you pass one of those options. `capture` doesn't overwrite existing files unless you pass `--force`.
 
+To add another window's screen to a module you already have, pass `--append`. `capture` adds the class and any imports the module lacks, and refuses when the module already defines a class with that name.
+
+Rows of tables, outlines, and lists show data that changes, such as the font list in TextEdit's Fonts panel. `capture` skips the elements inside them that have no `ax()` locator, and notes how many in a comment. Find a row by what it shows instead, such as `text("Helvetica")`. To capture rows anyway, name their role with `--role AXRow`.
+
 `capture` and `tree` skip identifiers that AppKit generates, such as `_NS:34`, because they change between launches.
 
 Then edit the generated module: delete the entries you don't need, and switch an entry to `image()` where its accessibility attributes don't identify it. Identifiers that encode state, such as Calculator's `Mode: basic; unitConversion: false`, need a stable replacement, such as a match on the description.
