@@ -24,6 +24,8 @@ def find_template(
     three decimals. Ties resolve to the topmost, then leftmost match. Bands of rows are matched in
     parallel on a shared thread pool.
     """
+    if template.shape[0] > screen.shape[0] or template.shape[1] > screen.shape[1]:
+        return None
     bands = _bands(screen.shape[0], template.shape[0])
     results = list(_executor.map(lambda band: _match_band(screen, template, band), bands))
     best = max(score for score, _ in results)
@@ -37,8 +39,6 @@ def _bands(screen_height: int, template_height: int) -> list[tuple[int, int]]:
     Every range except the last spans at least one template height.
     """
     positions = screen_height - template_height + 1
-    if positions < 1:
-        return [(0, 1)]  # Leave it to matchTemplate to reject a template taller than the screen.
     count = max(1, min(_BANDS, positions // template_height))
     step = math.ceil(positions / count)
     return [(start, min(start + step, positions)) for start in range(0, positions, step)]

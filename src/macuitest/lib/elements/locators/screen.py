@@ -54,7 +54,17 @@ def snake_case(name: str) -> str:
 
 def image_folder(module_file: Path, screen_name: str) -> Path:
     """Return the folder holding the images of screen `screen_name` declared in `module_file`."""
-    return module_file.parent / module_file.stem / snake_case(screen_name)
+    return images_root(module_file) / snake_case(screen_name)
+
+
+def images_root(module_file: Path) -> Path:
+    """Return the folder holding a folder of images per screen declared in `module_file`.
+
+    It's the folder named after the module, or the package's own folder for an `__init__.py`.
+    """
+    if module_file.name == "__init__.py":
+        return module_file.parent
+    return module_file.parent / module_file.stem
 
 
 class Locator(ABC, Generic[T]):

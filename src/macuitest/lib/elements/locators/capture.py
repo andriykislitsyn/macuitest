@@ -38,7 +38,7 @@ KINDS = {
     "AXTextField": "TextField",
     "AXWebArea": "WebView",
 }
-# Most stable first. The first key must be set for a locator to apply.
+# Most stable first. Every key must be set for a locator to apply.
 _LOCATOR_KEYS = (("identifier",), ("description", "role"), ("title", "role"))
 # Names that would shadow `Screen` attributes, or the factories inside the generated class body.
 _RESERVED = frozenset({"app", "window", "applescript", "ax", "image", "text"})
@@ -47,16 +47,19 @@ _WINDOW_KEYWORDS = {"AXTitle": "title", "AXSubrole": "subrole"}
 # Seconds to wait for the window after activating the app.
 WINDOW_TIMEOUT = 2
 _CHROME = frozenset({"AXCloseButton", "AXFullScreenButton", "AXMinimizeButton", "AXZoomButton"})
+# AppKit generates identifiers such as `_NS:34`, which change between launches.
+_GENERATED_IDENTIFIER = re.compile(r"_NS:\d+")
 
 
 @dataclass(frozen=True, eq=False)
 class Found:
     """An element seen while walking a window. `chrome` marks window buttons and their parts.
 
-    `depth` is 1 for the window's children, 2 for theirs, and so on.
+    `role` is None when it can't be read. `depth` is 1 for the window's children, 2 for theirs,
+    and so on.
     """
 
-    role: str
+    role: Optional[str]
     frame: Optional[Region]
     identifier: Optional[str] = None
     description: Optional[str] = None
@@ -82,10 +85,10 @@ def locator_for(found: Found, walked: list[Found]) -> tuple[str, Optional[str]]:
     A locator resolves to `found` when `found` is the first element of `walked`, the whole window
     in depth-first order, that it matches. Without one, the element gets `image()`.
     """
-    kind = KINDS.get(found.role)
+    kind = KINDS.get(found.role or "")
     for keys in _LOCATOR_KEYS:
         values = {key: getattr(found, key) for key in keys}
-        if not values[keys[0]]:
+        if not all(values.values()):
             continue
         first = next(
             (f for f in walked if all(getattr(f, key) == v for key, v in values.items())), None
@@ -100,7 +103,7 @@ def locator_for(found: Found, walked: list[Found]) -> tuple[str, Optional[str]]:
 
 def attribute_name(found: Found, taken: set[str]) -> str:
     """Return a unique, valid attribute name for `found` and add it to `taken`."""
-    role = snake_case(found.role.removeprefix("AX")) or "element"
+    role = snake_case((found.role or "").removeprefix("AX")) or "element"
     labels = (found.identifier, found.description, found.title)
     base = next((name for name in (snake_case(label or "") for label in labels) if name), role)
     if base[0].isdigit():
@@ -145,7 +148,7 @@ def class_name(title: Optional[str], app: str) -> str:
     """Return a PascalCase class name from the window `title`, else from `app`."""
     for source in (title or "", app):
         name = "".join(word[:1].upper() + word[1:] for word in re.findall(r"[0-9A-Za-z]+", source))
-        if name and not name[0].isdigit():
+        if name and not name[0].isdigit() and not keyword.iskeyword(name):
             return name
     return "AppScreen"
 
@@ -194,9 +197,9 @@ def walk(window: Any) -> list[Found]:
                 frame = None
             found.append(
                 Found(
-                    role=_read(child, "AXRole") or "AXUnknown",
+                    role=_read(child, "AXRole"),
                     frame=frame,
-                    identifier=_label(child, "AXIdentifier"),
+                    identifier=_identifier(child),
                     description=_label(child, "AXDescription"),
                     title=_label(child, "AXTitle"),
                     chrome=chrome,
@@ -265,7 +268,8 @@ def capture(
     accessibility tree only while the app is active. The window is the first matching
     `window`, else the first standard window. Elements outside
     it are skipped, and `roles` keeps only those AX roles. Each PNG is the element's frame plus
-    `margin` points, clipped to the window. Nothing is written when any target exists, unless
+    `margin` points, clipped to the window. The screen class is named after the window for a
+    `window` screen, else after the app. Nothing is written when any target exists, unless
     `force` is set.
 
     Returns:
@@ -304,7 +308,9 @@ def capture(
         wanted = f" with role {', '.join(roles)}" if roles else ""
         raise LookupError(f"No elements{wanted} in {app}'s window")
     entries = plan(kept, walked)
-    screen = class_name(target.get_ax_attribute("AXTitle"), app)
+    # A standard window's title is often a document name, which changes between runs.
+    title = None if window is None else target.get_ax_attribute("AXTitle")
+    screen = class_name(title, app)
     folder = image_folder(out, screen)
     pngs = [folder / f"{entry.name}.png" for entry in entries]
     existing = [path for path in (out, *pngs) if path.exists()]
@@ -351,6 +357,13 @@ def _read(element: Any, name: str) -> Any:
         return element.get_ax_attribute(name)
     except GONE:
         return None
+
+
+def _identifier(element: Any) -> Optional[str]:
+    identifier = _label(element, "AXIdentifier")
+    if identifier is None or _GENERATED_IDENTIFIER.fullmatch(identifier):
+        return None
+    return identifier
 
 
 def _label(element: Any, name: str) -> Optional[str]:

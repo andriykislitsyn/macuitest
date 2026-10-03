@@ -6,6 +6,15 @@
 
 - `python -m macuitest.locators tree` prints an app's accessibility tree with the `ax()` locator of each element. It only reads, unless you pass `--activate`.
 
+### Fixed
+
+- `capture` names a screen after the app instead of the window title, which is often a document name. A window screen, captured with `--window-title` or `--window-subrole`, still takes the window's title. A title or app name that would make the class `None`, `True`, or `False` falls back to the next source.
+- `capture` and `tree` skip AppKit's generated `_NS:<n>` identifiers, which change between launches. An element whose role can't be read gets no `role=` locator.
+- A screen declared in a package's `__init__.py` keeps its images in the package folder, not in an `__init__` folder.
+- `image(within=)` on an area smaller than the image reports the image as not found instead of raising `cv2.error`.
+- `text()` and `VisibleText` reject a single character written in decomposed form, such as `e` plus a combining accent.
+- `python -m macuitest.locators` reports a module it can't load, and a capture it can't write, without a traceback.
+
 ## 0.8.0 (2026-10-03)
 
 ### Breaking changes

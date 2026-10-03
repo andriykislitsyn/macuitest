@@ -64,7 +64,8 @@ def test_waits_default_to_the_elements_timeouts(ocr, monkeypatch, wait, setting)
     assert wait_condition.call_args.kwargs["timeout"] == 7
 
 
-@pytest.mark.parametrize("text", ["7", " = ", "÷"])
+# "e\u0301" is "é" in decomposed form: two code points, one character.
+@pytest.mark.parametrize("text", ["7", " = ", "÷", "e\u0301"])
 def test_single_characters_are_rejected(text, ocr):
     with pytest.raises(ValueError, match="single character"):
         VisibleText(text, ocr=ocr)

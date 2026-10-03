@@ -80,6 +80,12 @@ def test_images_live_next_to_the_module_in_a_folder_per_screen():
     assert folder == Path("/x/apps/calculator/use_cases")
 
 
+def test_images_of_a_package_screen_live_in_the_package_folder():
+    folder = image_folder(Path("/x/apps/calculator/__init__.py"), "UseCases")
+
+    assert folder == Path("/x/apps/calculator/use_cases")
+
+
 def test_text_reads_as_the_same_visible_text_every_time():
     class Main(Screen):
         ok = text("OK")
