@@ -93,15 +93,33 @@ class Application:
         converted = {True: "true", False: "false"}.get(value)
         self._set_attribute("AXFrontmost", converted)
 
-    def is_frontmost(self) -> bool:
-        return wait_condition(lambda: self._read_attribute("AXFrontmost"), timeout=5)
-
     def set_hidden(self, value: bool = True):
         converted = {True: "true", False: "false"}.get(value)
         self._set_attribute("AXHidden", converted)
 
+    @property
+    def is_frontmost(self) -> bool:
+        return wait_condition(lambda: self._read_attribute("AXFrontmost"), timeout=5)
+
+    @property
     def is_hidden(self) -> bool:
         return wait_condition(lambda: self._read_attribute("AXHidden"), timeout=3)
+
+    @property
+    def frontmost(self) -> bool:
+        return self.is_frontmost
+
+    @frontmost.setter
+    def frontmost(self, value: bool) -> None:
+        self.set_frontmost(value)
+
+    @property
+    def hidden(self) -> bool:
+        return self.is_hidden
+
+    @hidden.setter
+    def hidden(self, value: bool) -> None:
+        self.set_hidden(value)
 
     def _set_attribute(self, attribute, value):
         return self.__execute(f'set value of attribute "{attribute}"', params=f"to {value}")
@@ -119,9 +137,6 @@ class Application:
         :return str: Execution output."""
         _command = f"{command} {params}" if params else f"{command}"
         return as_wrapper.tell_app_process(command=_command, app_process=self.name)
-
-    hidden = property(is_hidden, set_hidden)
-    frontmost = property(is_frontmost, set_frontmost)
 
 
 class Finder(Application):
