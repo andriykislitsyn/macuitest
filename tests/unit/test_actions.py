@@ -2,10 +2,12 @@ from unittest import mock
 
 import pytest
 
+from macuitest.config.constants import Point
 from macuitest.config.constants import Region
 from macuitest.lib import actions
 from macuitest.lib.elements import applescript_element as script
 from macuitest.lib.elements import native_element as native
+from macuitest.lib.elements.controllers.mouse import Mouse
 from macuitest.lib.elements.native.calls import AXErrorUnsupported
 from macuitest.lib.elements.visible_text import VisibleText
 
@@ -180,24 +182,58 @@ def front_app(monkeypatch):
     return root
 
 
+@pytest.fixture
+def mouse(monkeypatch):
+    fake = mock.create_autospec(Mouse, instance=True)
+    monkeypatch.setattr(actions, "mouse", fake)
+    return fake
+
+
 @pytest.mark.parametrize(
     "options, method",
-    [
-        ({}, "click_mouse"),
-        ({"double": True}, "double_click_mouse"),
-        ({"right": True}, "right_click_mouse"),
-    ],
+    [({}, "click"), ({"double": True}, "double_click"), ({"right": True}, "right_click")],
 )
-def test_click_activates_the_app_then_clicks(front_app, options, method):
-    element = mock.create_autospec(native.Button, instance=True)
-
-    actions.click(element, "TextEdit", **options)
+def test_click_clicks_the_element_center_once_the_app_is_in_front(
+    front_app, mouse, options, method
+):
+    actions.click(native.Button(item=ax_item()), "TextEdit", **options)
 
     front_app.activate.assert_called_once_with()
-    getattr(element, method).assert_called_once_with()
+    getattr(mouse, method).assert_called_once_with(424, 100)
 
 
-def test_click_refuses_when_the_app_doesnt_reach_the_front(monkeypatch):
+def test_click_locates_a_screen_element_after_activating_the_app(front_app, mouse):
+    calls = mock.Mock()
+    front_app.activate.side_effect = lambda: calls.activate()
+    element = mock.create_autospec(VisibleText, instance=True)
+    element.get_center.side_effect = lambda: (calls.locate(), Point(5, 6))[1]
+
+    actions.click(element, "TextEdit")
+
+    assert [call[0] for call in calls.mock_calls] == ["activate", "locate"]
+    mouse.click.assert_called_once_with(5, 6)
+
+
+def test_click_refuses_when_the_app_leaves_the_front_while_locating(front_app, mouse):
+    front_app.get_ax_attribute.side_effect = [True, False]
+
+    with pytest.raises(actions.FocusError):
+        actions.click(native.Button(item=ax_item()), "TextEdit")
+
+    mouse.click.assert_not_called()
+
+
+def test_click_refuses_an_applescript_element_of_another_process(front_app, mouse):
+    element = mock.create_autospec(script.Button, instance=True)
+    element.process = "Finder"
+
+    with pytest.raises(actions.UsageError, match="Finder"):
+        actions.click(element, "TextEdit")
+
+    front_app.activate.assert_not_called()
+
+
+def test_click_refuses_when_the_app_doesnt_reach_the_front(monkeypatch, mouse):
     root = mock.Mock()
     root.get_ax_attribute.return_value = False
     monkeypatch.setattr(actions, "app_root", lambda app: root)
@@ -207,7 +243,7 @@ def test_click_refuses_when_the_app_doesnt_reach_the_front(monkeypatch):
     with pytest.raises(actions.FocusError, match="TextEdit"):
         actions.click(element, "TextEdit")
 
-    element.click_mouse.assert_not_called()
+    mouse.click.assert_not_called()
 
 
 def test_click_raises_lookup_error_when_the_app_has_no_window(monkeypatch):

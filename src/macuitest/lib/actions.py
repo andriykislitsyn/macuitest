@@ -13,6 +13,7 @@ from macuitest.config.constants import Region
 from macuitest.lib.core import wait_condition
 from macuitest.lib.elements import applescript_element
 from macuitest.lib.elements import native_element
+from macuitest.lib.elements.controllers.mouse import mouse
 from macuitest.lib.elements.locators.accessibility import GONE
 from macuitest.lib.elements.locators.accessibility import app_root
 from macuitest.lib.elements.locators.accessibility import frame_of
@@ -121,17 +122,23 @@ def set_value(element: Any, value: str) -> None:
 
 
 def click(element: Any, app: Optional[str], double: bool = False, right: bool = False) -> None:
-    """Bring `app` to the front, then click the element with the mouse.
+    """Bring `app` to the front, find the element, then click its center with the mouse.
+
+    Focus is checked again after the element is found, right before the click.
 
     Raises:
-        UsageError: `app` is None, or both `double` and `right` are set.
-        LookupError: `app` has no window.
-        FocusError: `app` didn't come to the front, so nothing was clicked.
+        UsageError: `app` is None, both `double` and `right` are set, or the element belongs to
+            another process.
+        LookupError: `app` has no window, or the element isn't there.
+        FocusError: `app` isn't in front, so nothing was clicked.
     """
     if double and right:
         raise UsageError("Pass --double or --right, not both")
     if app is None:
         raise UsageError("click needs the element's app, to bring it to the front first")
+    process = getattr(element, "process", app)
+    if process != app:
+        raise UsageError(f"The element belongs to {process}, not {app}")
     root = app_root(app)
     if root is None:
         raise LookupError(f"{app} has no window")
@@ -139,11 +146,17 @@ def click(element: Any, app: Optional[str], double: bool = False, right: bool = 
         root.activate()
     except GONE:
         pass
-    if not wait_condition(lambda: root.get_ax_attribute("AXFrontmost"), timeout=FOCUS_TIMEOUT):
+    in_front = lambda: root.get_ax_attribute("AXFrontmost")  # noqa: E731
+    if not wait_condition(in_front, timeout=FOCUS_TIMEOUT):
         raise FocusError(f"{app} didn't come to the front, so nothing was clicked")
+    # Found after activating, since another window may cover the element until then.
+    center = element.get_center() if isinstance(element, ScreenElement) else element.frame.center
+    # Finding a screen element can take seconds, enough for the user to switch apps.
+    if not in_front():
+        raise FocusError(f"{app} left the front, so nothing was clicked")
     if double:
-        element.double_click_mouse()
+        mouse.double_click(center.x, center.y)
     elif right:
-        element.right_click_mouse()
+        mouse.right_click(center.x, center.y)
     else:
-        element.click_mouse()
+        mouse.click(center.x, center.y)
