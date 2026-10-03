@@ -66,7 +66,7 @@ Each module in `macuitest.lib.elements` finds elements a different way:
 | `ui_element` | A screenshot of the element | Icons and custom-drawn controls without text |
 | `locators` | `Screen` classes that declare an app's elements with the kinds above | Any app you test more than once |
 
-`VisibleText` and `UIElement` share one API: `click_mouse`, `double_click`, `right_click`, `hover_mouse`, `paste`, `wait_displayed`, `wait_vanish`, and the `is_visible` property. Each of these methods takes a `region` to search, and a window-sized region is faster to search than the whole desktop.
+Every element kind shares one API: `click_mouse`, `double_click_mouse`, `right_click_mouse`, `hover_mouse`, `wait_displayed`, `wait_vanish`, and the `is_visible` property. `is_visible` checks once, so wait with `wait_displayed` or `wait_vanish`. The mouse methods move the real pointer, while `click()` and `press()` on accessibility and AppleScript elements perform the accessibility action without it. `VisibleText` and `UIElement` also have `paste`, and their methods take a `region` to search. A window-sized region is faster to search than the whole desktop.
 
 To browse an app's accessibility attributes, use Accessibility Inspector, which comes with Xcode, or see [Inspect an app](#inspect-an-app). To turn them into locators, see [Capture elements](#capture-elements).
 

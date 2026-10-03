@@ -2,9 +2,18 @@
 
 ## Unreleased
 
+### Breaking changes
+
+- `is_visible` checks once and never waits, on every element kind. `VisibleText` and `UIElement` used to wait up to `settings.elements.timeout`, and AppleScript elements up to 5 s. Wait with `wait_displayed()`.
+- Every element kind has `click_mouse`, `double_click_mouse`, `right_click_mouse`, and `hover_mouse`, and their options after the offsets are keyword-only. This renames `double_click` and `right_click` on `VisibleText` and `UIElement`, `rightclick_mouse` on `NativeElement`, and `doubleclick_mouse` and `rightclick_mouse` on AppleScript elements. `NativeElement.click_mouse(hold_time=)` is now `hold=`. `region` is keyword-only on `VisibleText` and `UIElement`.
+- AppleScript elements' `wait_displayed` and `wait_vanish`, and `NativeElement.wait_vanish`, default to the `settings.elements` timeouts instead of 5 s.
+- `did_vanish` is removed: use `wait_vanish()`. AppleScript elements' `is_exists()` is now the `exists` property.
+- `Application.is_frontmost` and `is_hidden`, and `Window.is_minimized` and `is_full_screen`, are properties. `if app.is_frontmost:` works now, and `app.is_frontmost()` raises `TypeError`.
+
 ### Added
 
 - `python -m macuitest.locators tree` prints an app's accessibility tree with the `ax()` locator of each element. It only reads, unless you pass `--activate`.
+- `NativeElement.wait_displayed()`.
 
 ### Fixed
 
@@ -14,6 +23,7 @@
 - `image(within=)` on an area smaller than the image reports the image as not found instead of raising `cv2.error`.
 - `text()` and `VisibleText` reject a single character written in decomposed form, such as `e` plus a combining accent.
 - `python -m macuitest.locators` reports a module it can't load, and a capture it can't write, without a traceback.
+- `Window.full_screen = True` sets full screen. It used to set `AXFrontmost`.
 
 ## 0.8.0 (2026-10-03)
 

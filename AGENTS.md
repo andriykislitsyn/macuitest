@@ -25,7 +25,7 @@ Unit tests never touch the real screen: an autouse guard in `tests/unit/conftest
 - System Events reads many SwiftUI controls' `description` as "button" and can't read `AXDescription`. Match `value of attribute "AXIdentifier"` instead.
 - System Events raises -1719 (invalid index) as well as -1728 for a reference that isn't there yet. Both mean "missing".
 - AppKit keeps a closed sheet or panel alive, so a fixed AX reference to one stays valid. `ax()` elements search again on every use for that reason.
-- `Application.is_frontmost` is a method and `frontmost` is the property. `if app.is_frontmost:` is always true.
+- `is_visible` checks once. Wait with `wait_displayed()` or `wait_vanish()`, never `wait_condition(lambda: x.is_visible)`.
 - numpy 2 keeps `uint8` arithmetic in `uint8`, so pixel subtraction wraps. Cast first.
 - multiprocessing on macOS spawns workers that re-run the caller's `__main__`. Never use it in library code.
 - Vision returns nothing, not an error, for unsupported languages, and doesn't read single characters reliably. `VisibleText` rejects them.
