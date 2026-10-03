@@ -12,6 +12,7 @@ from macuitest.lib.applescript_lib.applescript_wrapper import AppleScriptError
 from macuitest.lib.elements.locators.accessibility import AXQuery
 from macuitest.lib.elements.locators.capture import capture
 from macuitest.lib.elements.locators.check import check
+from macuitest.lib.elements.locators.check import check_live
 from macuitest.lib.elements.locators.check import load_module
 from macuitest.lib.elements.locators.target import REFERENCE
 from macuitest.lib.elements.locators.target import Target
@@ -54,6 +55,11 @@ def main(argv: Optional[list[str]] = None) -> int:
         "check", help="list declared images missing on disk and PNGs no element declares"
     )
     checking.add_argument("module", type=Path)
+    checking.add_argument(
+        "--live",
+        action="store_true",
+        help="also look up each ax() and applescript() element in the running app",
+    )
     showing = commands.add_parser(
         "tree", help="print an app's accessibility tree with each element's ax() locator"
     )
@@ -103,7 +109,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     shooting.add_argument("--window-subrole", help="capture the window with this AX subrole")
     args = parser.parse_args(argv)
     if args.command == "check":
-        return _check(args.module)
+        return _check(args.module, args.live)
     window = None
     title, subrole = getattr(args, "window_title", None), getattr(args, "window_subrole", None)
     if title or subrole:
@@ -253,17 +259,27 @@ def _tree(app: str, window: Optional[AXQuery], roles: list[str], activate: bool)
     return 0
 
 
-def _check(module: Path) -> int:
+def _check(module: Path, live: bool) -> int:
     try:
-        report = check(load_module(module))
-    except (ImportError, OSError) as error:
+        loaded = load_module(module)
+        report = check(loaded)
+        live_report = check_live(loaded) if live else None
+    except (ImportError, OSError, AppleScriptError, PermissionError) as error:
         print(error, file=sys.stderr)
         return 1
     for path in report.missing:
         print(f"Missing: {path}")
     for path in report.undeclared:
         print(f"Not declared: {path}")
-    return 0 if report.clean else 1
+    if live_report is None:
+        return 0 if report.clean else 1
+    for app in live_report.not_running:
+        print(f"{app} isn't running. Launch it first.", file=sys.stderr)
+    for label in live_report.missing:
+        print(f"Not found: {label}")
+    checked = len(live_report.found) + len(live_report.missing)
+    print(f"{len(live_report.found)} of {checked} found, {len(live_report.skipped)} not checked")
+    return 0 if report.clean and live_report.clean else 1
 
 
 def _margin(value: str) -> float:
