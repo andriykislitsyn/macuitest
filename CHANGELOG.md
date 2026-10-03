@@ -5,6 +5,9 @@
 ### Added
 
 - `capture --append` adds a screen to an existing module, with the imports it lacks.
+
+### Changed
+
 - `capture` skips the elements inside tables, outlines, and lists that have no `ax()` locator, and notes how many in a comment. The Fonts panel in TextEdit used to produce an `image()` and a PNG for each font row. Pass `--role` to capture them anyway.
 
 ### Fixed

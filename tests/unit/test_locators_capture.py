@@ -486,7 +486,8 @@ def test_capture_append_writes_a_new_module_when_none_exists(app, tmp_path):
     [
         ("", ""),
         ("TIMEOUT = 3\n", ""),
-        ('"""Screens."""\n\nTIMEOUT = 3\n', '"""Screens."""\n'),
+        ('"""Screens."""\n\nTIMEOUT = 3\n', '"""Screens."""\n\n'),
+        ('"""Screens."""', '"""Screens."""\n\n'),
     ],
 )
 def test_capture_append_puts_imports_at_the_top_of_a_module_without_any(
@@ -498,3 +499,28 @@ def test_capture_append_puts_imports_at_the_top_of_a_module_without_any(
     capture("Calculator", out, append=True)
 
     assert out.read_text().startswith(head + "from macuitest.lib.elements.locators import Screen\n")
+
+
+def test_capture_append_starts_a_new_line_after_a_last_import_without_one(app, tmp_path):
+    out = tmp_path / "calculator.py"
+    out.write_text("from os import path")
+
+    capture("Calculator", out, append=True)
+
+    assert out.read_text().startswith(
+        "from os import path\nfrom macuitest.lib.elements.locators import Screen\n"
+    )
+
+
+def test_capture_append_refuses_existing_pngs_without_force(app, tmp_path):
+    out = tmp_path / "textedit.py"
+    out.write_text(TEXTEDIT_MODULE)
+    existing = tmp_path / "textedit" / "calculator" / "ok.png"
+    existing.parent.mkdir(parents=True)
+    existing.write_bytes(b"mine")
+
+    with pytest.raises(FileExistsError, match="--force"):
+        capture("Calculator", out, append=True)
+
+    assert out.read_text() == TEXTEDIT_MODULE
+    assert existing.read_bytes() == b"mine"

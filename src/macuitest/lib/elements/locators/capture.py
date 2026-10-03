@@ -203,13 +203,14 @@ def append_screen(
         for module, name in _imports(entries, window)
         if name not in bound
     ]
-    lines = source.splitlines(keepends=True)
+    # Without a final newline, imports inserted after the last line would join it.
+    lines = (source + "\n").splitlines(keepends=True)
     if imports:
         anchor = imports[-1].end_lineno or 0
     else:
         docstring = ast.get_docstring(ast.Module(body=body[:1], type_ignores=[]))
         anchor = (body[0].end_lineno or 0) if docstring is not None else 0
-        missing.append("\n")
+        missing = ["\n" if anchor else "", *missing, "\n"]
     lines[anchor:anchor] = missing
     head = "".join(lines).rstrip("\n")
     return "\n".join([head, "", "", *_class_lines(screen, app, entries, window, skipped)]) + "\n"
