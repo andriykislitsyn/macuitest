@@ -10,6 +10,10 @@
 
 - `macuitest find`, `read`, `wait`, `press`, `set`, and `click` act on one element named by a locator string, such as `macuitest press TextEdit 'ax(identifier="OK")'`, or by a screen module element, such as `macuitest press screens.py:Fonts.search`. Exit code 1 means the UI said no, and 2 means bad usage.
 
+### Fixed
+
+- AppleScript text elements' `set_text` escapes quotes and backslashes. A value such as `He said "hi"` used to fail, and a backslash changed the text.
+
 ## 0.9.1 (2026-10-03)
 
 ### Added
