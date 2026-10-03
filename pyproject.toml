@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "macuitest"
-version = "0.9.1"
+version = "0.10.0"
 description = "Drive macOS apps from Python, for end-to-end tests and AI agents"
 readme = "README.md"
 license = "MIT"
