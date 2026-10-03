@@ -4,6 +4,7 @@ import Quartz
 
 from macuitest.config import DEFAULT_FILE
 from macuitest.config.settings import settings
+from macuitest.lib.applescript_lib import applescript_wrapper
 from macuitest.lib.elements.ui import monitor as monitor_module
 from macuitest.lib.operating_system import permissions
 
@@ -30,6 +31,25 @@ def no_screen_capture(monkeypatch):
         )
 
     monkeypatch.setattr(monitor_module.CoreGraphics, "CGWindowListCreateImage", capture)
+
+
+class _NoAppleScript:
+    """Stand in for NSAppleScript, so a test can't reach System Events or a real app."""
+
+    @staticmethod
+    def alloc():
+        raise RuntimeError(
+            "Unit tests must not run AppleScript. Patch as_wrapper or the method that reads."
+        )
+
+
+@pytest.fixture(autouse=True)
+def no_applescript(monkeypatch):
+    """Fail any test that runs real AppleScript, which queries live apps and waits on them."""
+    applescript_wrapper._script.cache_clear()
+    monkeypatch.setattr(applescript_wrapper, "NSAppleScript", _NoAppleScript)
+    yield
+    applescript_wrapper._script.cache_clear()
 
 
 def render_text(labels, width, height, scale=2, size=16):
