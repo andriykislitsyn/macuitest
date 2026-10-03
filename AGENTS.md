@@ -11,7 +11,9 @@ uv run ruff check && uv run ruff format --check
 uv run ty check
 ```
 
-Unit tests never touch the real screen: an autouse guard in `tests/unit/conftest.py` fails any capture, and settings reset to `default.toml` before each test. To put text on a fake screen, use the `text_image` fixture. Every permission reads as granted in unit tests.
+Lock with a current uv, such as `uvx --from uv@latest uv lock`. An older uv rewrites `uv.lock` to an older lock revision.
+
+Unit tests never touch the real screen: an autouse guard in `tests/unit/conftest.py` fails any capture, and settings reset to `default.toml` before each test. To put text on a fake screen, use the `text_image` fixture. Every permission reads as granted in unit tests. Nothing guards System Events the same way, so patch `as_wrapper` or the reading method: an unpatched `Application` or AppleScript element read queries the real app and waits out its timeout.
 
 ## Exploring an app
 
@@ -30,8 +32,15 @@ Unit tests never touch the real screen: an autouse guard in `tests/unit/conftest
 - multiprocessing on macOS spawns workers that re-run the caller's `__main__`. Never use it in library code.
 - Vision returns nothing, not an error, for unsupported languages, and doesn't read single characters reliably. `VisibleText` rejects them.
 
+## API conventions
+
+- Every element kind shares one protocol: `click_mouse`, `double_click_mouse`, `right_click_mouse`, and `hover_mouse`, with keyword-only options after the offsets; `is_visible`, which checks once; and `wait_displayed` and `wait_vanish`, which default to the `settings.elements` timeouts. New element classes and methods follow it.
+- Every `is_*` name is a property.
+- `click()` and `press()` perform the accessibility action. Only `*_mouse` methods move the pointer.
+- Breaking changes are fine between minor versions: rename outright, with no deprecation aliases, and list each rename under "Breaking changes" in `CHANGELOG.md`.
+
 ## Conventions
 
 - Docs follow the Google developer documentation style guide. User-facing changes get a `CHANGELOG.md` entry under "Unreleased".
-- Releases: bump `version` in `pyproject.toml`, date the changelog section, then publish a GitHub release tagged `v<version>`. `release.yml` uploads to PyPI through Trusted Publishing, and the tag must match the version.
+- Releases: bump `version` in `pyproject.toml`, date the changelog section, then publish a GitHub release tagged `v<version>`. `release.yml` uploads to PyPI through Trusted Publishing, and the tag must match the version. PyPI's index lags a few minutes after the upload, so the examples repo picks the release up with `uv lock --refresh --upgrade-package macuitest`.
 - Example suites for real apps live in https://github.com/andriykislitsyn/macuitest-examples.
