@@ -46,12 +46,13 @@ def test_capture_passes_its_options(tmp_path):
                 "--margin",
                 "2",
                 "--force",
+                "--append",
             ]
         )
 
     assert code == 0
     run.assert_called_once_with(
-        "Calculator", out, roles=["AXButton"], margin=2.0, force=True, window=None
+        "Calculator", out, roles=["AXButton"], margin=2.0, force=True, window=None, append=True
     )
 
 

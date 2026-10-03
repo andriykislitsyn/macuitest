@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Added
+
+- `capture --append` adds a screen to an existing module, with the imports it lacks.
+
+### Changed
+
+- `capture` skips the elements inside tables, outlines, and lists that have no `ax()` locator, or one that every row repeats, and notes how many in a comment. The Fonts panel in TextEdit used to produce an `image()` and a PNG for each font row. It also skips layout containers, such as groups, scroll areas, and toolbars, that would only get `image()`, and scroll bars. Pass `--role` to capture them anyway.
+
 ### Fixed
 
 - `UIElement` reads a PNG's scale from its DPI, so a pattern captured at 2x matches on a 1x display and the reverse. macOS screenshots record 144 DPI at 2x, and `capture` now records the DPI too. A PNG without a DPI, or with one other than 72, 144, or 216, is still assumed captured on the menu bar display. To mark an older 2x PNG, run `sips -s dpiWidth 144 -s dpiHeight 144 <png>`.
