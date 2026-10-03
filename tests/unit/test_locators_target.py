@@ -254,3 +254,13 @@ def test_parse_locator_reads_a_child_chain_with_its_own_kind():
 def test_parse_locator_rejects_a_bad_child_chain(source):
     with pytest.raises(ValueError):
         parse_locator(source)
+
+
+def test_parse_locator_rejects_positional_child_arguments():
+    with pytest.raises(ValueError):
+        parse_locator('ax(identifier="a").child(None, None, None, "AXButton", "os.system")')
+
+
+def test_parse_locator_rejects_an_absurdly_long_chain():
+    with pytest.raises(ValueError):
+        parse_locator('ax(identifier="a")' + '.child(role="AXGroup")' * 400)

@@ -10,7 +10,7 @@ from macuitest.config.constants import Region
 from macuitest.lib.elements.applescript_element import BaseUIElement
 from macuitest.lib.elements.locators.accessibility import GONE
 from macuitest.lib.elements.locators.accessibility import AXQuery
-from macuitest.lib.elements.locators.accessibility import find_first
+from macuitest.lib.elements.locators.accessibility import find_path
 from macuitest.lib.elements.locators.accessibility import frame_of
 from macuitest.lib.elements.locators.accessibility import standard_window
 from macuitest.lib.elements.locators.accessibility import standard_window_frame
@@ -33,6 +33,7 @@ class AXLocator(Locator[E]):
 
     def child(
         self,
+        *,
         identifier: Optional[str] = None,
         description: Optional[str] = None,
         title: Optional[str] = None,
@@ -59,10 +60,13 @@ class AXLocator(Locator[E]):
         else:
             screen_window = standard_window(app, self.screen.window)
             roots = [] if screen_window is None else [screen_window]
+        above: tuple[Any, ...] = ()
         for query in self.queries:
-            match = find_first(roots, query)
-            if match is None:
+            path = find_path(roots, query, above)
+            if path is None:
                 return None
+            # The next query searches under this match, counting loops and depth from the window.
+            match, above = path[-1], path[:-1]
             roots = [match]
         return match
 

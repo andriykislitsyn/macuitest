@@ -73,11 +73,23 @@ def find_first(roots: Iterable[Any], query: AXQuery) -> Optional[Any]:
 
     Elements that vanish during the search are skipped.
     """
+    path = find_path(roots, query)
+    return None if path is None else path[-1]
+
+
+def find_path(
+    roots: Iterable[Any], query: AXQuery, above: tuple[Any, ...] = ()
+) -> Optional[tuple[Any, ...]]:
+    """Return the path from a root to the first descendant that matches `query`, or None.
+
+    `above` is the path to the roots' parent when the roots came from an earlier search, so a
+    nested search skips the same loops and stops at the same depth as one from the window.
+    """
     for root in roots:
-        for element in _descendants(root):
+        for path in _descendants(root, above):
             try:
-                if query.matches(element):
-                    return element
+                if query.matches(path[-1]):
+                    return path
             except GONE:
                 continue
     return None
@@ -181,17 +193,19 @@ def identity(element: Any) -> Any:
     return getattr(element, "ref", element)
 
 
-def _descendants(element: Any, path: tuple[Any, ...] = ()) -> Iterator[Any]:
-    path = (*path, identity(element))
+def _descendants(element: Any, above: tuple[Any, ...] = ()) -> Iterator[tuple[Any, ...]]:
+    """Yield the path to each descendant of `element`, depth first. `above` leads to `element`."""
+    path = (*above, element)
     if len(path) > MAX_DEPTH:
         return
     try:
         children = element.get_ax_attribute("AXChildren") or []
     except GONE:
         return
+    ancestors = [identity(ancestor) for ancestor in path]
     for child in children:
         # Some apps list an ancestor among an element's children, which would loop forever.
-        if identity(child) in path:
+        if identity(child) in ancestors:
             continue
-        yield child
+        yield (*path, child)
         yield from _descendants(child, path)

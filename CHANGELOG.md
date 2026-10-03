@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Breaking changes
+
+- `child()` takes keyword arguments only, like `ax()`.
+
 ### Added
 
 - `tree` and `capture` give an element without labels of its own a `.child()` locator through its nearest labeled ancestor, such as Calculator's display text, instead of no locator or `image()`. Elements in tables and lists, and layout containers, still get none.
@@ -9,7 +13,7 @@
 
 ### Fixed
 
-- `ax()` lookups, `tree`, and `capture` no longer crash on an app whose accessibility tree lists an ancestor among an element's children, and stop descending below 100 levels.
+- `ax()` lookups, `tree`, and `capture` no longer crash on an app whose accessibility tree lists an ancestor among an element's children, and stop descending below 100 levels. A `.child()` lookup counts loops and depth from the window too, so it finds the element `tree` and `capture` planned.
 - `macuitest read` and `find` drop invisible direction marks, such as the ones Calculator puts around its display, so `read` prints `7`, not `‎7`.
 - `macuitest read` prints an empty line for a static text without a value, not `None`.
 - `macuitest click` on an app without a window says so, and suggests launching it.

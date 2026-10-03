@@ -7,6 +7,8 @@ from macuitest.lib.elements.locators import factories
 from macuitest.lib.elements.locators import image
 from macuitest.lib.elements.locators import text
 from macuitest.lib.elements.locators import window
+from macuitest.lib.elements.locators.capture import locator_for
+from macuitest.lib.elements.locators.capture import walk
 from macuitest.lib.elements.native.calls import AXErrorInvalidUIElement
 from macuitest.lib.elements.native_element import Button
 from macuitest.lib.elements.native_element import NativeElement
@@ -257,3 +259,23 @@ def test_child_keeps_the_parent_kind_by_default(app_windows):
         key = ax(identifier="Keypad", kind=Button).child(role="AXButton")
 
     assert isinstance(Calculator.key, Button)
+
+
+def test_a_planned_child_locator_finds_the_same_element_through_a_loop(app_windows):
+    target = FakeAX(AXRole="AXStaticText", AXValue="target")
+    decoy = FakeAX(AXRole="AXStaticText", AXValue="decoy")
+    loop = FakeAX()
+    view = FakeAX(loop, target, AXIdentifier="View")
+    ancestor = FakeAX(view, decoy)
+    loop.attributes["AXChildren"].append(ancestor)
+    window = FakeAX(ancestor)
+    app_windows.append(window)
+    walked = walk(window)
+    planned, _ = locator_for(next(f for f in walked if f.value == "target"), walked)
+
+    assert planned == 'ax(identifier="View").child(role="AXStaticText", kind=StaticText)'
+
+    class Screen_(Screen, app="App"):
+        found = ax(identifier="View").child(role="AXStaticText", kind=StaticText)
+
+    assert Screen_.found.item is target

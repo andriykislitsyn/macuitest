@@ -96,8 +96,9 @@ def _reference(match: re.Match, label: str) -> Target:
 def parse_locator(source: str) -> Locator:
     """Return the locator that `source`, such as `ax(identifier="OK", kind=Button)`, declares.
 
-    Accepts one call to `ax` or `text` with literal arguments, `kind=` naming an
-    element class, and `within=` holding a nested `ax()` call. Nothing in `source` is evaluated.
+    Accepts one call to `ax` or `text`, optionally followed by `.child()` calls after `ax`, with
+    literal arguments, `kind=` naming an element class, and `within=` holding a nested `ax()`
+    call. Nothing in `source` is evaluated.
 
     Raises:
         ValueError: `source` is anything else.
@@ -106,7 +107,10 @@ def parse_locator(source: str) -> Locator:
         node = ast.parse(source, mode="eval").body
     except SyntaxError as error:
         raise ValueError(f"Not a locator: {source!r}") from error
-    return _build(node)
+    try:
+        return _build(node)
+    except RecursionError as error:
+        raise ValueError("The locator nests too deeply") from error
 
 
 def _build(node: ast.expr) -> Locator:
