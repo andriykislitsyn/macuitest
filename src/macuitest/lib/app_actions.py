@@ -3,11 +3,15 @@
 Functions return values and raise typed errors. They never print.
 """
 
+import os
 import subprocess
+import tempfile
+from pathlib import Path
 from typing import Any
 from typing import Optional
 
 import AppKit
+import Quartz
 
 from macuitest.lib.actions import ActionError
 from macuitest.lib.actions import FocusError
@@ -18,9 +22,16 @@ from macuitest.lib.core import wait_condition
 from macuitest.lib.elements.controllers.keyboard_controller import keyboard
 from macuitest.lib.elements.controllers.keyboard_mappings import KEYBOARD_KEYS
 from macuitest.lib.elements.locators.accessibility import GONE
+from macuitest.lib.elements.locators.accessibility import AXQuery
 from macuitest.lib.elements.locators.accessibility import alive
 from macuitest.lib.elements.locators.accessibility import app_root
+from macuitest.lib.elements.locators.accessibility import frame_of
+from macuitest.lib.elements.locators.accessibility import standard_window
+from macuitest.lib.elements.locators.capture import window_number
+from macuitest.lib.elements.locators.capture import write_png
+from macuitest.lib.elements.locators.screen import snake_case
 from macuitest.lib.elements.native.native_ui_element import NativeUIElement
+from macuitest.lib.elements.ui.monitor import monitor
 
 # Seconds to wait for a launched app's window, and for a quitting app to exit.
 LAUNCH_TIMEOUT: float = 15
@@ -183,6 +194,32 @@ def type_text(app: str, text: str) -> None:
                 f"Stopped after {typed} of {len(text)} characters: {app} left the front"
             )
         keyboard.write(character)
+
+
+def screenshot(app: str, out: Optional[Path] = None, window: Optional[AXQuery] = None) -> Path:
+    """Write a PNG of `app`'s front standard window, or the one `window` matches, and return it.
+
+    `out` defaults to a new temp file. The PNG records its scale, like `capture`'s.
+
+    Raises:
+        NoWindowError: `app` has no matching window.
+        PermissionError: Screen Recording isn't granted.
+    """
+    target = standard_window(app, window)
+    frame = None if target is None else frame_of(target)
+    if target is None or frame is None:
+        raise NoWindowError(f"{app} has no matching window")
+    number = window_number(target.pid, frame)
+    if number is None:
+        raise NoWindowError(f"Can't find {app}'s window on the window server")
+    image = monitor.capture_window(number)
+    width, height = Quartz.CGImageGetWidth(image), Quartz.CGImageGetHeight(image)
+    if out is None:
+        handle, name = tempfile.mkstemp(prefix=f"macuitest-{snake_case(app)}-", suffix=".png")
+        os.close(handle)
+        out = Path(name)
+    write_png(image, (0, 0, width, height), out, width / (frame.x2 - frame.x1))
+    return out
 
 
 def running(app: str) -> list[Any]:

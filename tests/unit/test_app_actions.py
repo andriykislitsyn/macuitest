@@ -5,6 +5,8 @@ import pytest
 from macuitest.lib import actions
 from macuitest.lib import app_actions
 from macuitest.lib.elements.controllers.keyboard_controller import KeyBoardController
+from macuitest.lib.elements.locators.accessibility import AXQuery
+from macuitest.lib.elements.ui_element import recorded_scale
 
 
 class FakeRunning:
@@ -104,6 +106,7 @@ class FakeAX:
     def __init__(self, *children, **attributes):
         self.attributes = {"AXChildren": list(children), "AXEnabled": True, **attributes}
         self.presses = 0
+        self.pid = 41
 
     def get_ax_attribute(self, name):
         return self.attributes.get(name)
@@ -268,3 +271,61 @@ def test_type_text_stops_when_the_app_leaves_the_front(keyboard, monkeypatch):
 def test_type_text_needs_text(keyboard):
     with pytest.raises(actions.UsageError):
         app_actions.type_text("TextEdit", "")
+
+
+@pytest.fixture
+def textedit_window(monkeypatch, text_image):
+    """Serve a 200x100 pt TextEdit window, captured at 2x."""
+    window = FakeAX(AXPosition=(10, 20), AXSize=(200, 100))
+    queries = []
+    monkeypatch.setattr(
+        app_actions, "standard_window", lambda app, query=None: queries.append(query) or window
+    )
+    monkeypatch.setattr(app_actions, "window_number", lambda pid, frame: 7)
+    monkeypatch.setattr(
+        app_actions.monitor, "capture_window", lambda number: text_image([], 200, 100)
+    )
+    return queries
+
+
+def test_screenshot_writes_the_window_at_its_scale(textedit_window, tmp_path):
+    out = tmp_path / "shot.png"
+
+    assert app_actions.screenshot("TextEdit", out) == out
+    assert recorded_scale(out) == 2
+
+
+def test_screenshot_defaults_to_a_temp_file_named_after_the_app(textedit_window):
+    path = app_actions.screenshot("TextEdit")
+
+    try:
+        assert path.name.startswith("macuitest-text_edit-")
+        assert path.suffix == ".png"
+        assert path.stat().st_size > 0
+    finally:
+        path.unlink()
+
+
+def test_screenshot_passes_the_window_query(textedit_window, tmp_path):
+    query = AXQuery.of(title="Fonts")
+
+    app_actions.screenshot("TextEdit", tmp_path / "shot.png", window=query)
+
+    assert textedit_window == [query]
+
+
+def test_screenshot_needs_a_window(monkeypatch, tmp_path):
+    monkeypatch.setattr(app_actions, "standard_window", lambda app, query=None: None)
+
+    with pytest.raises(actions.NoWindowError, match="TextEdit has no matching window"):
+        app_actions.screenshot("TextEdit", tmp_path / "shot.png")
+
+
+def test_screenshot_needs_screen_recording(textedit_window, monkeypatch, tmp_path):
+    def denied(number):
+        raise PermissionError("Grant Screen Recording")
+
+    monkeypatch.setattr(app_actions.monitor, "capture_window", denied)
+
+    with pytest.raises(PermissionError):
+        app_actions.screenshot("TextEdit", tmp_path / "shot.png")
