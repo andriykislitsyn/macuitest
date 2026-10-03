@@ -103,7 +103,7 @@ def app_root(app: str) -> Optional[NativeUIElement]:
     """
     require_accessibility()
     pid = _pids.get(app)
-    if pid is None or not _alive(pid):
+    if pid is None or not alive(pid):
         pid = _window_owner(app)
         if pid is None:
             _pids.pop(app, None)
@@ -178,7 +178,8 @@ def _window_owner(app: str) -> Optional[int]:
     return None
 
 
-def _alive(pid: int) -> bool:
+def alive(pid: int) -> bool:
+    """Return whether process `pid` is running."""
     try:
         os.kill(pid, 0)
     except ProcessLookupError:

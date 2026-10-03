@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Optional
+from typing import Sequence
 from typing import Tuple
 from typing import Union
 
@@ -122,6 +123,21 @@ class Monitor:
             CoreGraphics.kCGWindowListOptionIncludingWindow,
             window_number,
             CoreGraphics.kCGWindowImageBoundsIgnoreFraming,
+        )
+
+    @staticmethod
+    def capture_windows(window_numbers: Sequence[int], region: Region):
+        """Return a CGImage of `region` showing only the given windows, even under other windows.
+
+        Raises:
+            PermissionError: Screen Recording isn't granted.
+        """
+        require_screen_recording()
+        rect = CoreGraphics.CGRectMake(
+            region.x1, region.y1, region.x2 - region.x1, region.y2 - region.y1
+        )
+        return CoreGraphics.CGWindowListCreateImageFromArray(
+            rect, list(window_numbers), CoreGraphics.kCGWindowImageBoundsIgnoreFraming
         )
 
     @staticmethod

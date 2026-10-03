@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Optional
 
 from macuitest.lib import actions
+from macuitest.lib import app_actions
 from macuitest.lib.applescript_lib.applescript_wrapper import AppleScriptError
 from macuitest.lib.elements.locators.accessibility import AXQuery
 from macuitest.lib.elements.locators.capture import capture
@@ -28,6 +29,8 @@ VERBS = {
     "set": "write an element's value",
     "click": "bring the app to the front and click an element with the mouse",
 }
+# Commands that act on a whole app.
+APP_VERBS = frozenset({"launch", "quit", "menu", "keys", "type", "screenshot"})
 
 
 def main(argv: Optional[list[str]] = None) -> int:
@@ -72,12 +75,41 @@ def main(argv: Optional[list[str]] = None) -> int:
     pressing.add_argument("--pause", type=float, help="seconds to wait first")
     clicking.add_argument("--double", action="store_true", help="double-click")
     clicking.add_argument("--right", action="store_true", help="right-click")
+    launching = commands.add_parser("launch", help="open an app and wait for its window")
+    launching.add_argument("app")
+    launching.add_argument(
+        "--timeout", type=float, default=app_actions.LAUNCH_TIMEOUT, help="seconds to wait"
+    )
+    quitting = commands.add_parser("quit", help="ask an app to quit, like Command-Q")
+    quitting.add_argument("app")
+    quitting.add_argument(
+        "--timeout", type=float, default=app_actions.QUIT_TIMEOUT, help="seconds to wait"
+    )
+    pressing_menu = commands.add_parser("menu", help='press a menu item, such as "File > Save…"')
+    pressing_menu.add_argument("app")
+    pressing_menu.add_argument("path")
+    shortcut = commands.add_parser("keys", help="post a shortcut, such as cmd+s")
+    shortcut.add_argument("app")
+    shortcut.add_argument("combo")
+    typing = commands.add_parser(
+        "type", help="type text into the app's focused element; \\n types as written"
+    )
+    typing.add_argument("app")
+    typing.add_argument("text")
+    shooting = commands.add_parser("screenshot", help="write a PNG of an app's window")
+    shooting.add_argument("app")
+    shooting.add_argument("--out", type=Path, help="the PNG to write, by default a temp file")
+    shooting.add_argument("--window-title", help="capture the window with this title")
+    shooting.add_argument("--window-subrole", help="capture the window with this AX subrole")
     args = parser.parse_args(argv)
     if args.command == "check":
         return _check(args.module)
     window = None
-    if args.window_title or args.window_subrole:
-        window = AXQuery.of(title=args.window_title, subrole=args.window_subrole)
+    title, subrole = getattr(args, "window_title", None), getattr(args, "window_subrole", None)
+    if title or subrole:
+        window = AXQuery.of(title=title, subrole=subrole)
+    if args.command in APP_VERBS:
+        return _act_on_app(args, window)
     if args.command in VERBS:
         parts, rest = _split_target(args.target)
         if args.command == "set" and not rest:
@@ -101,6 +133,38 @@ def main(argv: Optional[list[str]] = None) -> int:
         print(error, file=sys.stderr)
         return 1
     print(f"Wrote {written[0]} and {len(written) - 1} images")
+    return 0
+
+
+def _act_on_app(args: argparse.Namespace, window: Optional[AXQuery]) -> int:
+    try:
+        if args.command == "launch":
+            app_actions.launch(args.app, timeout=args.timeout)
+        elif args.command == "quit":
+            if not app_actions.quit(args.app, timeout=args.timeout):
+                print(f"{args.app} isn't running")
+        elif args.command == "menu":
+            app_actions.menu(args.app, args.path)
+        elif args.command == "keys":
+            app_actions.keys(args.app, args.combo)
+        elif args.command == "type":
+            app_actions.type_text(args.app, args.text)
+        else:
+            print(app_actions.screenshot(args.app, args.out, window=window))
+    except ValueError as error:
+        print(error, file=sys.stderr)
+        return 2
+    except (
+        LookupError,
+        app_actions.LaunchError,
+        app_actions.QuitError,
+        actions.ActionError,
+        actions.FocusError,
+        AXError,
+        PermissionError,
+    ) as error:
+        print(error, file=sys.stderr)
+        return 1
     return 0
 
 
