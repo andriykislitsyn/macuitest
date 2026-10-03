@@ -4,6 +4,7 @@ import ast
 import json
 import keyword
 import re
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -223,6 +224,10 @@ def defines(source: str, name: str) -> bool:
     )
 
 
+def _labels(found: Found) -> tuple[Optional[str], ...]:
+    return found.role, found.identifier, found.description, found.title
+
+
 def _imports(entries: list[Entry], window: Optional[AXQuery]) -> list[tuple[str, str]]:
     """Return the (module, name) imports a screen of `entries` needs."""
     names = {entry.locator.split("(")[0] for entry in entries}
@@ -352,8 +357,9 @@ def capture(
     it are skipped, and `roles` keeps only those AX roles. Each PNG is the element's frame plus
     `margin` points, clipped to the window. The screen class is named after the window for a
     `window` screen, else after the app. Without `roles`, elements inside tables and lists are
-    skipped unless they have an `ax()` locator. Nothing is written when any target exists, unless
-    `force` is set. With `append`, the screen is added to an existing module at `out` instead.
+    skipped unless they have an `ax()` locator that no other element shares. Nothing is written
+    when any target exists, unless `force` is set. With `append`, the screen is added to an
+    existing module at `out` instead.
 
     Returns:
         The module path, then every PNG path.
@@ -394,8 +400,14 @@ def capture(
     entries = plan(kept, walked)
     skipped = 0
     if not roles:
-        # A table's rows show data that changes, so a screenshot of each is noise.
-        folded = {id(e) for e in entries if e.found.in_collection and e.locator == "image()"}
+        # Rows show data that changes. A screenshot of one is noise, and so is a locator that
+        # matches a control every row repeats, since it finds whichever row comes first.
+        labels = Counter(_labels(found) for found in walked)
+        folded = {
+            id(e)
+            for e in entries
+            if e.found.in_collection and (e.locator == "image()" or labels[_labels(e.found)] > 1)
+        }
         entries = [entry for entry in entries if id(entry) not in folded]
         skipped = len(folded)
     # A standard window's title is often a document name, which changes between runs.

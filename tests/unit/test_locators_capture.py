@@ -524,3 +524,26 @@ def test_capture_append_refuses_existing_pngs_without_force(app, tmp_path):
 
     assert out.read_text() == TEXTEDIT_MODULE
     assert existing.read_bytes() == b"mine"
+
+
+def test_capture_skips_an_element_inside_a_table_that_repeats_in_every_row(
+    app, monkeypatch, tmp_path
+):
+    rows = [
+        FakeAX(
+            element("AXCheckBox", 150, y + 2, 10, 10, AXDescription="favorite"),
+            AXRole="AXRow",
+            AXPosition=(20, y),
+            AXSize=(150, 20),
+        )
+        for y in (60, 80)
+    ]
+    table = FakeAX(*rows, AXRole="AXTable", AXPosition=(20, 60), AXSize=(150, 40))
+    window = FakeAX(table, AXRole="AXWindow", AXPosition=(10, 20), AXSize=(200, 100))
+    monkeypatch.setattr(capture_module, "standard_window", lambda name, query=None: window)
+    out = tmp_path / "typefaces.py"
+
+    capture("TextEdit", out)
+
+    assert "favorite =" not in out.read_text()
+    assert "# Skipped 4 elements" in out.read_text()
