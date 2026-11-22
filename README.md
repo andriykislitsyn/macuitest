@@ -111,7 +111,13 @@ Reading is safe at any time. `press`, `set`, `menu`, `quit`, and the verbs that 
 
 ### Install the skill
 
-The macuitest skill for Claude Code teaches an agent this section's loop, the gotchas, and how to write a suite. Install it from the [agentic-engineering](https://github.com/andriykislitsyn/agentic-engineering/tree/main/plugins/macuitest) marketplace:
+The macuitest skill teaches an agent this section's loop, the gotchas, and how to write a suite. It follows the open `SKILL.md` format in [`skills/macuitest`](skills/macuitest/SKILL.md) and works with Claude Code, Cursor, Copilot, Codex, and other agents that support Agent Skills:
+
+```bash
+npx skills add andriykislitsyn/macuitest
+```
+
+For Claude Code, you can also install it as a plugin from the [agentic-engineering](https://github.com/andriykislitsyn/agentic-engineering/tree/main/plugins/macuitest) marketplace:
 
 ```bash
 claude plugin marketplace add andriykislitsyn/agentic-engineering
