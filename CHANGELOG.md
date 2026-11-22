@@ -4,7 +4,7 @@
 
 ### Added
 
-- A Claude Code skill teaches an agent the `macuitest` loop, its gotchas, and how to write a suite. Install it with `claude plugin install macuitest@agentic-engineering`. See the README.
+- An agent skill in `skills/macuitest` teaches an agent the `macuitest` loop, its gotchas, and how to write a suite. Install it with `npx skills add andriykislitsyn/macuitest` or as a Claude Code plugin with `claude plugin install macuitest@agentic-engineering`. See the README.
 
 ## 0.11.0 (2026-10-03)
 

@@ -40,3 +40,46 @@ jobs:
           path: dist/
       - uses: astral-sh/setup-uv@v10.2.0
       - run: uv publish --trusted-publishing always
+
+  skill:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: Package skill
+        run: |
+          python3 - <<'EOF'
+          import zipfile
+          from pathlib import Path
+
+          skill_dir = Path("skills/macuitest")
+          zip_path = Path("macuitest-skill.zip")
+          files = sorted(
+              path
+              for path in skill_dir.rglob("*")
+              if path.is_file()
+              and not any(part.startswith(".") for part in path.relative_to(skill_dir).parts)
+          )
+          with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+              for path in files:
+                  archive.write(path, str(Path("macuitest") / path.relative_to(skill_dir)))
+          with zipfile.ZipFile(zip_path, "r") as archive:
+              names = archive.namelist()
+              assert "macuitest/SKILL.md" in names, f"Missing SKILL.md in {names}"
+              assert archive.testzip() is None, "Corrupt zip archive"
+          EOF
+      - uses: actions/upload-artifact@v7
+        with:
+          name: macuitest-skill
+          path: macuitest-skill.zip
+      - name: Attach skill to GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" macuitest-skill.zip --clobber
+          else
+            echo "No GitHub release for $GITHUB_REF_NAME; skill zip is available as a workflow artifact."
+          fi
